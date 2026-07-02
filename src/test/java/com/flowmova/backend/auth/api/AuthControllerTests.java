@@ -1,6 +1,7 @@
 package com.flowmova.backend.auth.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -90,5 +91,44 @@ class AuthControllerTests {
                                 }
                                 """))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void rejectsInvalidPassword() throws Exception {
+        String email = "short-password.%s@flowmova.test".formatted(UUID.randomUUID());
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "%s",
+                                  "password": "short",
+                                  "firstName": "New",
+                                  "lastName": "User"
+                                }
+                                """.formatted(email)))
+                .andExpect(status().isBadRequest());
+
+        assertThat(userRepository.existsByEmail(email)).isFalse();
+    }
+
+    @Test
+    void neverExposesPasswordHashInRegistrationResponse() throws Exception {
+        String email = "safe-response.%s@flowmova.test".formatted(UUID.randomUUID());
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "%s",
+                                  "password": "Password123!",
+                                  "firstName": "Safe",
+                                  "lastName": "Response"
+                                }
+                                """.formatted(email)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.passwordHash").doesNotExist())
+                .andExpect(jsonPath("$.password").doesNotExist())
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Password123!"))));
     }
 }
