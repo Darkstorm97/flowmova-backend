@@ -64,8 +64,8 @@ class UserControllerTests {
         mockMvc.perform(get("/api/users/me"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.status").value(401))
-                .andExpect(jsonPath("$.code").value("INVALID_ACCESS_TOKEN"))
-                .andExpect(jsonPath("$.message").value("Access token is invalid"));
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
+                .andExpect(jsonPath("$.message").value("Authentication is required"));
     }
 
     @Test
