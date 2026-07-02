@@ -107,6 +107,10 @@ public class User {
         return status;
     }
 
+    public void disable() {
+        this.status = UserStatus.DISABLED;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }

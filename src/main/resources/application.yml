@@ -19,6 +19,13 @@ spring:
 server:
   port: 8080
 
+flowmova:
+  auth:
+    jwt:
+      issuer: ${FLOWMOVA_JWT_ISSUER:flowmova-backend}
+      secret: ${FLOWMOVA_JWT_SECRET:flowmova-dev-secret-change-me-before-production-32}
+      expires-in-seconds: ${FLOWMOVA_JWT_EXPIRES_IN_SECONDS:43200}
+
 management:
   endpoints:
     web:

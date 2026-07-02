@@ -6,9 +6,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.flowmova.backend.user.domain.User;
 import com.flowmova.backend.user.domain.UserStatus;
 import com.flowmova.backend.user.infrastructure.UserRepository;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -165,5 +169,115 @@ class AuthControllerTests {
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
                 .andExpect(jsonPath("$.message").value("Request body is invalid"))
                 .andExpect(jsonPath("$.path").value("/api/auth/register"));
+    }
+
+    @Test
+    void logsInUserAndReturnsBearerTokenExpiringInTwelveHours() throws Exception {
+        String email = "login.%s@flowmova.test".formatted(UUID.randomUUID());
+        User user = userRepository.save(new User(
+                email,
+                passwordEncoder.encode("Password123!"),
+                "Login",
+                "User"));
+
+        String response = mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "%s",
+                                  "password": "Password123!"
+                                }
+                                """.formatted(email.toUpperCase())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").isNotEmpty())
+                .andExpect(jsonPath("$.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.expiresIn").value(43200))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String token = response.substring(response.indexOf("\"accessToken\":\"") + 15);
+        token = token.substring(0, token.indexOf('"'));
+        DecodedJWT decodedToken = JWT.decode(token);
+
+        assertThat(decodedToken.getSubject()).isEqualTo(user.getId().toString());
+        assertThat(decodedToken.getClaim("userId").asString()).isEqualTo(user.getId().toString());
+        assertThat(decodedToken.getClaim("email").asString()).isEqualTo(email);
+        assertThat(Duration.between(
+                decodedToken.getIssuedAt().toInstant(),
+                decodedToken.getExpiresAt().toInstant())).isEqualTo(Duration.ofHours(12));
+        assertThat(decodedToken.getExpiresAt().toInstant()).isAfter(Instant.now().plus(Duration.ofHours(11)));
+    }
+
+    @Test
+    void rejectsLoginWithUnknownEmail() throws Exception {
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "missing.%s@flowmova.test",
+                                  "password": "Password123!"
+                                }
+                                """.formatted(UUID.randomUUID())))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
+                .andExpect(jsonPath("$.message").value("Invalid email or password"));
+    }
+
+    @Test
+    void rejectsLoginWithWrongPassword() throws Exception {
+        String email = "wrong-password.%s@flowmova.test".formatted(UUID.randomUUID());
+        userRepository.save(new User(email, passwordEncoder.encode("Password123!"), "Wrong", "Password"));
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "%s",
+                                  "password": "NotThePassword123!"
+                                }
+                                """.formatted(email)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
+                .andExpect(jsonPath("$.message").value("Invalid email or password"))
+                .andExpect(jsonPath("$.accessToken").doesNotExist());
+    }
+
+    @Test
+    void rejectsLoginForDisabledUser() throws Exception {
+        String email = "disabled.%s@flowmova.test".formatted(UUID.randomUUID());
+        User user = new User(email, passwordEncoder.encode("Password123!"), "Disabled", "User");
+        user.disable();
+        userRepository.save(user);
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "%s",
+                                  "password": "Password123!"
+                                }
+                                """.formatted(email)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.message").value("User account is disabled"));
+    }
+
+    @Test
+    void rejectsInvalidLoginRequest() throws Exception {
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "",
+                                  "password": ""
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.fieldErrors[?(@.field == 'email')]").exists())
+                .andExpect(jsonPath("$.fieldErrors[?(@.field == 'password')]").exists());
     }
 }
