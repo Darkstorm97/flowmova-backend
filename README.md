@@ -72,3 +72,19 @@ Le premier objectif est d'implementer la gestion des utilisateurs et de l'authen
 ## Etat du projet
 
 Le depot est en phase d'initialisation. Le premier jalon consiste a mettre en place le socle Spring Boot, la base PostgreSQL, les migrations Flyway et la verticale minimale inscription -> connexion -> JWT -> endpoint protege.
+
+## Demarrage local
+
+Prerequis:
+
+- JDK 21
+- Maven 3.9+
+
+Commandes utiles:
+
+```bash
+mvn test
+mvn spring-boot:run
+```
+
+L'application demarre par defaut sur le port `8080`.
