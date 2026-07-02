@@ -1,6 +1,7 @@
 package com.flowmova.backend.shared.api;
 
 import jakarta.servlet.http.HttpServletRequest;
+import com.flowmova.backend.auth.domain.InvalidAccessTokenException;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
@@ -67,6 +68,13 @@ public class GlobalExceptionHandler {
                 request.getRequestURI());
 
         return ResponseEntity.status(statusCode).body(response);
+    }
+
+    @ExceptionHandler(InvalidAccessTokenException.class)
+    ResponseEntity<ApiErrorResponse> handleInvalidAccessToken(
+            InvalidAccessTokenException exception,
+            HttpServletRequest request) {
+        return buildResponse(HttpStatus.UNAUTHORIZED, "INVALID_ACCESS_TOKEN", "Access token is invalid", request);
     }
 
     @ExceptionHandler(Exception.class)
