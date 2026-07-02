@@ -1,8 +1,8 @@
 package com.flowmova.backend.auth.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -75,7 +75,14 @@ class AuthControllerTests {
                                   "lastName": "User"
                                 }
                                 """.formatted(email.toUpperCase())))
-                .andExpect(status().isConflict());
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.error").value("Conflict"))
+                .andExpect(jsonPath("$.code").value("CONFLICT"))
+                .andExpect(jsonPath("$.message").value("Email already exists"))
+                .andExpect(jsonPath("$.path").value("/api/auth/register"))
+                .andExpect(jsonPath("$.fieldErrors").isArray())
+                .andExpect(jsonPath("$.fieldErrors").isEmpty());
     }
 
     @Test
@@ -90,7 +97,16 @@ class AuthControllerTests {
                                   "lastName": ""
                                 }
                                 """))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").value("Request validation failed"))
+                .andExpect(jsonPath("$.path").value("/api/auth/register"))
+                .andExpect(jsonPath("$.fieldErrors[?(@.field == 'email')]").exists())
+                .andExpect(jsonPath("$.fieldErrors[?(@.field == 'password')]").exists())
+                .andExpect(jsonPath("$.fieldErrors[?(@.field == 'firstName')]").exists())
+                .andExpect(jsonPath("$.fieldErrors[?(@.field == 'lastName')]").exists());
     }
 
     @Test
@@ -107,7 +123,9 @@ class AuthControllerTests {
                                   "lastName": "User"
                                 }
                                 """.formatted(email)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.fieldErrors[?(@.field == 'password')]").exists());
 
         assertThat(userRepository.existsByEmail(email)).isFalse();
     }
@@ -130,5 +148,22 @@ class AuthControllerTests {
                 .andExpect(jsonPath("$.passwordHash").doesNotExist())
                 .andExpect(jsonPath("$.password").doesNotExist())
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Password123!"))));
+    }
+
+    @Test
+    void returnsStandardErrorForInvalidJson() throws Exception {
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "broken-json@flowmova.test",
+                                  "password": "Password123!"
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.message").value("Request body is invalid"))
+                .andExpect(jsonPath("$.path").value("/api/auth/register"));
     }
 }
