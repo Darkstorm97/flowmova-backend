@@ -32,6 +32,8 @@ Le Product Blueprint est conserve comme document de contexte, mais il n'est plus
 
 Le backend suit une approche de monolithe modulaire. La premiere version doit rester simple tout en conservant des frontieres claires entre les domaines fonctionnels.
 
+La structure des modules backend est documentee dans [docs/architecture/backend-modules.md](docs/architecture/backend-modules.md).
+
 Modules cibles de demarrage:
 
 - `auth`: inscription, connexion, JWT, reset password
