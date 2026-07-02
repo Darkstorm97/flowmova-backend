@@ -1,0 +1,21 @@
+﻿services:
+  postgres:
+    image: postgres:16
+    container_name: flowmova-postgres
+    environment:
+      POSTGRES_DB: flowmova
+      POSTGRES_USER: flowmova
+      POSTGRES_PASSWORD: flowmova_dev
+    ports:
+      - "5433:5432"
+    volumes:
+      - flowmova-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flowmova -d flowmova"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  flowmova-postgres-data:
+

@@ -83,8 +83,23 @@ Prerequis:
 Commandes utiles:
 
 ```bash
+docker compose up -d
 mvn test
 mvn spring-boot:run
 ```
 
 L'application demarre par defaut sur le port `8080`.
+
+PostgreSQL local est fourni par Docker Compose:
+
+- host: `localhost`
+- port: `5433`
+- database: `flowmova`
+- user: `flowmova`
+- password: `flowmova_dev`
+
+Pour arreter PostgreSQL local:
+
+```bash
+docker compose down
+```
