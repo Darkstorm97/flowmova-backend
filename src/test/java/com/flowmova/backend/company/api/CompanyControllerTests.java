@@ -231,6 +231,53 @@ class CompanyControllerTests {
     }
 
     @Test
+    void getsActiveCompanyWithoutJwt() throws Exception {
+        User owner = userRepository.save(new User(
+                "public-detail-owner.%s@flowmova.test".formatted(UUID.randomUUID()),
+                passwordEncoder.encode("Password123!"),
+                "Public",
+                "Detail"));
+        Company company = activeCompany("Public Detail Company", "Visible detail", owner);
+
+        mockMvc.perform(get("/api/companies/{companyId}", company.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(company.getId().toString()))
+                .andExpect(jsonPath("$.name").value("Public Detail Company"))
+                .andExpect(jsonPath("$.description").value("Visible detail"))
+                .andExpect(jsonPath("$.currency").value("CAD"))
+                .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.createdAt").exists())
+                .andExpect(jsonPath("$.updatedAt").exists())
+                .andExpect(jsonPath("$.role").doesNotExist());
+    }
+
+    @Test
+    void hidesDisabledCompanyDetailPublicly() throws Exception {
+        User owner = userRepository.save(new User(
+                "public-detail-disabled.%s@flowmova.test".formatted(UUID.randomUUID()),
+                passwordEncoder.encode("Password123!"),
+                "Public",
+                "Disabled"));
+        Company disabledCompany = companyRepository.save(new Company(
+                "Disabled Detail Company",
+                "Hidden detail",
+                owner));
+
+        mockMvc.perform(get("/api/companies/{companyId}", disabledCompany.getId()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Company not found"));
+    }
+
+    @Test
+    void returnsNotFoundForUnknownCompanyDetail() throws Exception {
+        mockMvc.perform(get("/api/companies/{companyId}", UUID.randomUUID()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Company not found"));
+    }
+
+    @Test
     void listsCurrentUserCompaniesWithPaginationAndRoles() throws Exception {
         User user = userRepository.save(new User(
                 "company-list.%s@flowmova.test".formatted(UUID.randomUUID()),
