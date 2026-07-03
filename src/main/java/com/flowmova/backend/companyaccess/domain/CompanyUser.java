@@ -1,5 +1,6 @@
 package com.flowmova.backend.companyaccess.domain;
 
+import com.flowmova.backend.company.domain.Company;
 import com.flowmova.backend.user.domain.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -27,6 +28,10 @@ public class CompanyUser {
 
     @Column(name = "company_id", nullable = false)
     private UUID companyId;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "company_id", nullable = false, insertable = false, updatable = false)
+    private Company company;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
@@ -68,6 +73,10 @@ public class CompanyUser {
         return companyId;
     }
 
+    public Company getCompany() {
+        return company;
+    }
+
     public User getUser() {
         return user;
     }
@@ -78,6 +87,10 @@ public class CompanyUser {
 
     public CompanyUserStatus getStatus() {
         return status;
+    }
+
+    public void deactivate() {
+        this.status = CompanyUserStatus.INACTIVE;
     }
 
     public Instant getCreatedAt() {

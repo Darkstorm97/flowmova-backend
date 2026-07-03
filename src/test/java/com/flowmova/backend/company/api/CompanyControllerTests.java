@@ -1,6 +1,7 @@
 package com.flowmova.backend.company.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -128,5 +129,62 @@ class CompanyControllerTests {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.fieldErrors[?(@.field == 'name')]").exists());
+    }
+
+    @Test
+    void listsCurrentUserCompaniesWithPaginationAndRoles() throws Exception {
+        User user = userRepository.save(new User(
+                "company-list.%s@flowmova.test".formatted(UUID.randomUUID()),
+                passwordEncoder.encode("Password123!"),
+                "Company",
+                "Lister"));
+        User otherUser = userRepository.save(new User(
+                "other-company-list.%s@flowmova.test".formatted(UUID.randomUUID()),
+                passwordEncoder.encode("Password123!"),
+                "Other",
+                "Lister"));
+        String token = accessTokenGenerator.generate(user).value();
+
+        Company alphaCompany = activeCompany("Alpha Company", "Visible alpha", user);
+        Company betaCompany = activeCompany("Beta Company", "Visible beta", user);
+        Company inactiveMembershipCompany = activeCompany("Hidden Membership", "Inactive membership", user);
+        Company otherUserCompany = activeCompany("Other User Company", "Other user", otherUser);
+
+        companyUserRepository.save(new CompanyUser(betaCompany.getId(), user, CompanyRole.EMPLOYEE));
+        companyUserRepository.save(new CompanyUser(alphaCompany.getId(), user, CompanyRole.ADMIN));
+        CompanyUser inactiveMembership = new CompanyUser(inactiveMembershipCompany.getId(), user, CompanyRole.ADMIN);
+        inactiveMembership.deactivate();
+        companyUserRepository.save(inactiveMembership);
+        companyUserRepository.save(new CompanyUser(otherUserCompany.getId(), otherUser, CompanyRole.ADMIN));
+
+        mockMvc.perform(get("/api/users/me/companies")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .param("page", "0")
+                        .param("size", "1")
+                        .param("sort", "name,asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].id").value(alphaCompany.getId().toString()))
+                .andExpect(jsonPath("$.items[0].name").value("Alpha Company"))
+                .andExpect(jsonPath("$.items[0].role").value("ADMIN"))
+                .andExpect(jsonPath("$.items[0].status").value("ACTIVE"))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(1))
+                .andExpect(jsonPath("$.totalItems").value(2))
+                .andExpect(jsonPath("$.totalPages").value(2));
+    }
+
+    @Test
+    void rejectsCurrentUserCompaniesWithoutJwt() throws Exception {
+        mockMvc.perform(get("/api/users/me/companies"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    private Company activeCompany(String name, String description, User createdBy) {
+        Company company = new Company(name, description, createdBy);
+        company.activate();
+        return companyRepository.save(company);
     }
 }
