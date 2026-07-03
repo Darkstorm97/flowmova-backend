@@ -67,6 +67,10 @@ public class Company {
         this.createdBy = createdBy;
     }
 
+    public void activate() {
+        this.status = CompanyStatus.ACTIVE;
+    }
+
     public UUID getId() {
         return id;
     }
