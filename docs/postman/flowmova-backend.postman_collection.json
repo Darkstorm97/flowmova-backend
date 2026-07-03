@@ -45,6 +45,11 @@
       "key": "companySearchQuery",
       "value": "FlowMova",
       "type": "string"
+    },
+    {
+      "key": "catalogCategoryId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -672,6 +677,76 @@
               ]
             },
             "description": "Cas negatif attendu: 400 VALIDATION_ERROR sans nom d'entreprise."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Catalog Categories",
+      "item": [
+        {
+          "name": "Create Catalog Category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response contains created catalog category fields', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('id');",
+                  "    pm.expect(json).to.have.property('companyId', pm.collectionVariables.get('companyId'));",
+                  "    pm.expect(json).to.have.property('name');",
+                  "    pm.expect(json).to.have.property('displayOrder');",
+                  "    pm.expect(json).to.have.property('status', 'ACTIVE');",
+                  "    pm.expect(json).to.have.property('createdAt');",
+                  "    pm.expect(json).to.have.property('updatedAt');",
+                  "    pm.collectionVariables.set('catalogCategoryId', json.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Services principaux\",\n  \"description\": \"Categorie creee depuis Postman\",\n  \"displayOrder\": 10\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/companies/{{companyId}}/catalog-categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "companies",
+                "{{companyId}}",
+                "catalog-categories"
+              ]
+            },
+            "description": "Cree une categorie de catalogue dans une entreprise. Executer Login puis Create Company avant cet appel pour alimenter accessToken et companyId."
           },
           "response": []
         }
