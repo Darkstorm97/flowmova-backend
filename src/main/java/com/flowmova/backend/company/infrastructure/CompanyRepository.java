@@ -1,0 +1,14 @@
+package com.flowmova.backend.company.infrastructure;
+
+import com.flowmova.backend.company.domain.Company;
+import com.flowmova.backend.company.domain.CompanyStatus;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface CompanyRepository extends JpaRepository<Company, UUID> {
+
+    List<Company> findByStatus(CompanyStatus status);
+
+    List<Company> findByNameContainingIgnoreCase(String name);
+}
