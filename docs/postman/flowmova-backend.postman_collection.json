@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "a1ef1ed7-5e68-4fb1-a7d7-flowmova0001",
     "name": "FlowMova Backend - Local",
-    "description": "Collection Postman pour tester les endpoints backend FlowMova deja implementes: auth, profil utilisateur courant et actuator.",
+    "description": "Collection Postman pour tester les endpoints backend FlowMova deja implementes: auth, profil utilisateur courant, entreprises et actuator.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -24,6 +24,16 @@
     {
       "key": "testPassword",
       "value": "Password123!",
+      "type": "string"
+    },
+    {
+      "key": "companyName",
+      "value": "FlowMova Demo Company",
+      "type": "string"
+    },
+    {
+      "key": "companyId",
+      "value": "",
       "type": "string"
     }
   ],
@@ -307,6 +317,139 @@
               ]
             },
             "description": "Cas negatif attendu: 401 INVALID_ACCESS_TOKEN avec token invalide."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Companies",
+      "item": [
+        {
+          "name": "Create Company",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response contains created company fields', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('id');",
+                  "    pm.expect(json).to.have.property('name');",
+                  "    pm.expect(json).to.have.property('description');",
+                  "    pm.expect(json).to.have.property('status', 'ACTIVE');",
+                  "    pm.expect(json).to.have.property('createdAt');",
+                  "    pm.expect(json).to.have.property('updatedAt');",
+                  "    pm.collectionVariables.set('companyId', json.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{companyName}}\",\n  \"description\": \"Company created from Postman\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/companies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "companies"
+              ]
+            },
+            "description": "Cree une entreprise ACTIVE et associe automatiquement l'utilisateur authentifie comme ADMIN. Executer Login avant cet appel."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Company - Missing Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{companyName}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/companies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "companies"
+              ]
+            },
+            "description": "Cas negatif attendu: 401 UNAUTHORIZED sans token."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Company - Missing Name",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"\",\n  \"description\": \"Invalid company\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/companies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "companies"
+              ]
+            },
+            "description": "Cas negatif attendu: 400 VALIDATION_ERROR sans nom d'entreprise."
           },
           "response": []
         }
