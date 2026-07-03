@@ -3,6 +3,7 @@ package com.flowmova.backend.catalog.api;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -223,6 +224,216 @@ class CatalogControllerTests {
                                 """.formatted(category.getId())))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.fieldErrors[?(@.field == 'priceAmount')]").exists());
+    }
+
+    @Test
+    void adminUpdatesCatalog() throws Exception {
+        User admin = user("catalog-update-admin");
+        Company company = company(admin);
+        CatalogCategory initialCategory = category(company, admin);
+        CatalogCategory newCategory = category(company, admin);
+        Catalog catalog = catalogRepository.save(new Catalog(
+                company,
+                initialCategory,
+                "Old Catalog",
+                "Old description",
+                "https://cdn.flowmova.test/old.png",
+                new BigDecimal("15.00"),
+                admin));
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(put("/api/companies/{companyId}/catalogs/{catalogId}", company.getId(), catalog.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "catalogCategoryId": "%s",
+                                  "name": " Updated Catalog ",
+                                  "description": " Updated description ",
+                                  "imageUrl": " https://cdn.flowmova.test/updated.png ",
+                                  "priceAmount": 25.50
+                                }
+                                """.formatted(newCategory.getId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(catalog.getId().toString()))
+                .andExpect(jsonPath("$.companyId").value(company.getId().toString()))
+                .andExpect(jsonPath("$.catalogCategoryId").value(newCategory.getId().toString()))
+                .andExpect(jsonPath("$.name").value("Updated Catalog"))
+                .andExpect(jsonPath("$.description").value("Updated description"))
+                .andExpect(jsonPath("$.imageUrl").value("https://cdn.flowmova.test/updated.png"))
+                .andExpect(jsonPath("$.priceAmount").value(25.50))
+                .andExpect(jsonPath("$.status").value("ACTIVE"));
+
+        Catalog updatedCatalog = catalogRepository.findById(catalog.getId()).orElseThrow();
+        assertThat(updatedCatalog.getCatalogCategory().getId()).isEqualTo(newCategory.getId());
+        assertThat(updatedCatalog.getName()).isEqualTo("Updated Catalog");
+        assertThat(updatedCatalog.getPriceAmount()).isEqualByComparingTo("25.50");
+        assertThat(updatedCatalog.getStatus()).isEqualTo(CatalogStatus.ACTIVE);
+        assertThat(updatedCatalog.getUpdatedBy().getId()).isEqualTo(admin.getId());
+    }
+
+    @Test
+    void adminUpdatesCatalogWithBlankOptionalFields() throws Exception {
+        User admin = user("catalog-update-blank");
+        Company company = company(admin);
+        CatalogCategory category = category(company, admin);
+        Catalog catalog = catalogRepository.save(new Catalog(
+                company,
+                category,
+                "Catalog With Optionals",
+                "Description",
+                "https://cdn.flowmova.test/catalog.png",
+                new BigDecimal("12.00"),
+                admin));
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(put("/api/companies/{companyId}/catalogs/{catalogId}", company.getId(), catalog.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "catalogCategoryId": "%s",
+                                  "name": "Catalog Without Optionals",
+                                  "description": " ",
+                                  "imageUrl": " "
+                                }
+                                """.formatted(category.getId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.description").doesNotExist())
+                .andExpect(jsonPath("$.imageUrl").doesNotExist())
+                .andExpect(jsonPath("$.priceAmount").doesNotExist());
+    }
+
+    @Test
+    void rejectsCatalogUpdateWithoutJwt() throws Exception {
+        mockMvc.perform(put("/api/companies/{companyId}/catalogs/{catalogId}", UUID.randomUUID(), UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "catalogCategoryId": "%s",
+                                  "name": "Unauthorized Update"
+                                }
+                                """.formatted(UUID.randomUUID())))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void rejectsCatalogUpdateForEmployee() throws Exception {
+        User employee = user("catalog-update-employee");
+        Company company = company(employee);
+        CatalogCategory category = category(company, employee);
+        Catalog catalog = catalogRepository.save(new Catalog(
+                company,
+                category,
+                "Employee Update Catalog",
+                null,
+                null,
+                null,
+                employee));
+        companyUserRepository.save(new CompanyUser(company.getId(), employee, CompanyRole.EMPLOYEE));
+        String token = accessTokenGenerator.generate(employee).value();
+
+        mockMvc.perform(put("/api/companies/{companyId}/catalogs/{catalogId}", company.getId(), catalog.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "catalogCategoryId": "%s",
+                                  "name": "Employee Updated Catalog"
+                                }
+                                """.formatted(category.getId())))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.message").value("Company admin role is required"));
+    }
+
+    @Test
+    void rejectsCatalogUpdateWithCategoryFromAnotherCompany() throws Exception {
+        User admin = user("catalog-update-wrong-category");
+        Company company = company(admin);
+        Company otherCompany = company(admin);
+        CatalogCategory category = category(company, admin);
+        CatalogCategory otherCategory = category(otherCompany, admin);
+        Catalog catalog = catalogRepository.save(new Catalog(
+                company,
+                category,
+                "Wrong Category Update Catalog",
+                null,
+                null,
+                null,
+                admin));
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(put("/api/companies/{companyId}/catalogs/{catalogId}", company.getId(), catalog.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "catalogCategoryId": "%s",
+                                  "name": "Wrong Category Update Catalog"
+                                }
+                                """.formatted(otherCategory.getId())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("Catalog category is invalid"));
+    }
+
+    @Test
+    void rejectsCatalogUpdateForUnknownCatalog() throws Exception {
+        User admin = user("catalog-update-unknown");
+        Company company = company(admin);
+        CatalogCategory category = category(company, admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(put("/api/companies/{companyId}/catalogs/{catalogId}", company.getId(), UUID.randomUUID())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "catalogCategoryId": "%s",
+                                  "name": "Unknown Catalog"
+                                }
+                                """.formatted(category.getId())))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Catalog not found"));
+    }
+
+    @Test
+    void rejectsCatalogUpdateWithoutNameOrCategory() throws Exception {
+        User admin = user("catalog-update-invalid");
+        Company company = company(admin);
+        CatalogCategory category = category(company, admin);
+        Catalog catalog = catalogRepository.save(new Catalog(
+                company,
+                category,
+                "Invalid Update Catalog",
+                null,
+                null,
+                null,
+                admin));
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(put("/api/companies/{companyId}/catalogs/{catalogId}", company.getId(), catalog.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "",
+                                  "priceAmount": -1
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.fieldErrors[?(@.field == 'catalogCategoryId')]").exists())
+                .andExpect(jsonPath("$.fieldErrors[?(@.field == 'name')]").exists())
                 .andExpect(jsonPath("$.fieldErrors[?(@.field == 'priceAmount')]").exists());
     }
 

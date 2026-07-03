@@ -3,10 +3,13 @@ package com.flowmova.backend.catalog.infrastructure;
 import com.flowmova.backend.catalog.domain.Catalog;
 import com.flowmova.backend.catalog.domain.CatalogStatus;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface CatalogRepository extends JpaRepository<Catalog, UUID> {
+
+    Optional<Catalog> findByIdAndCompanyId(UUID id, UUID companyId);
 
     List<Catalog> findByCompanyIdOrderByNameAsc(UUID companyId);
 

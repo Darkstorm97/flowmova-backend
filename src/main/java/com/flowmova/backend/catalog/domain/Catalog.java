@@ -99,6 +99,21 @@ public class Catalog {
         this.status = CatalogStatus.ARCHIVED;
     }
 
+    public void update(
+            CatalogCategory catalogCategory,
+            String name,
+            String description,
+            String imageUrl,
+            BigDecimal priceAmount,
+            User updatedBy) {
+        this.catalogCategory = catalogCategory;
+        this.name = name;
+        this.description = description;
+        this.imageUrl = imageUrl;
+        this.priceAmount = priceAmount;
+        this.updatedBy = updatedBy;
+    }
+
     public UUID getId() {
         return id;
     }
