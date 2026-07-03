@@ -48,70 +48,6 @@
             "description": "Endpoint actuator info expose publiquement."
           },
           "response": []
-        },
-        {
-          "name": "Update Catalog",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status is 200 OK', function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test('Response contains updated catalog fields', function () {",
-                  "    const json = pm.response.json();",
-                  "    pm.expect(json).to.have.property('id', pm.collectionVariables.get('catalogId'));",
-                  "    pm.expect(json).to.have.property('companyId', pm.collectionVariables.get('companyId'));",
-                  "    pm.expect(json).to.have.property('catalogCategoryId', pm.collectionVariables.get('catalogCategoryId'));",
-                  "    pm.expect(json).to.have.property('name');",
-                  "    pm.expect(json).to.have.property('status', 'ACTIVE');",
-                  "    pm.expect(json).to.have.property('updatedAt');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{accessToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"catalogCategoryId\": \"{{catalogCategoryId}}\",\n  \"name\": \"Nettoyage standard modifie\",\n  \"description\": \"Offre de reference modifiee depuis Postman\",\n  \"imageUrl\": \"https://cdn.flowmova.test/catalogs/nettoyage-standard-modifie.png\",\n  \"priceAmount\": 59.99\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/companies/{{companyId}}/catalogs/{{catalogId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "companies",
-                "{{companyId}}",
-                "catalogs",
-                "{{catalogId}}"
-              ]
-            },
-            "description": "Modifie un catalogue existant. Executer Login, Create Company, Create Catalog Category puis Create Catalog avant cet appel pour alimenter accessToken, companyId, catalogCategoryId et catalogId."
-          },
-          "response": []
         }
       ],
       "id": "ae771c5c-ead2-4fdd-a551-d9bd2667dd27"
@@ -1008,6 +944,70 @@
               ]
             },
             "description": "Cree un catalogue dans une categorie existante. Executer Login, Create Company puis Create Catalog Category avant cet appel pour alimenter accessToken, companyId et catalogCategoryId."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Catalog",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains updated catalog fields', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('id', pm.collectionVariables.get('catalogId'));",
+                  "    pm.expect(json).to.have.property('companyId', pm.collectionVariables.get('companyId'));",
+                  "    pm.expect(json).to.have.property('catalogCategoryId', pm.collectionVariables.get('catalogCategoryId'));",
+                  "    pm.expect(json).to.have.property('name');",
+                  "    pm.expect(json).to.have.property('status', 'ACTIVE');",
+                  "    pm.expect(json).to.have.property('updatedAt');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"catalogCategoryId\": \"{{catalogCategoryId}}\",\n  \"name\": \"Nettoyage standard modifie\",\n  \"description\": \"Offre de reference modifiee depuis Postman\",\n  \"imageUrl\": \"https://cdn.flowmova.test/catalogs/nettoyage-standard-modifie.png\",\n  \"priceAmount\": 59.99\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/companies/{{companyId}}/catalogs/{{catalogId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "companies",
+                "{{companyId}}",
+                "catalogs",
+                "{{catalogId}}"
+              ]
+            },
+            "description": "Modifie un catalogue existant. Executer Login, Create Company, Create Catalog Category puis Create Catalog avant cet appel pour alimenter accessToken, companyId, catalogCategoryId et catalogId."
           },
           "response": []
         }
