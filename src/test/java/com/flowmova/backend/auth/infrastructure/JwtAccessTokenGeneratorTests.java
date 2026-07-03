@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 
 class JwtAccessTokenGeneratorTests {
 
-    private static final Instant NOW = Instant.parse("2026-07-02T12:00:00Z");
+    private static final Instant NOW = Instant.now();
     private static final String ISSUER = "flowmova-test";
     private static final String SECRET = "test-secret-with-enough-length-for-hmac";
 
