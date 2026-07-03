@@ -99,6 +99,11 @@ public class Catalog {
         this.status = CatalogStatus.ARCHIVED;
     }
 
+    public void archive(User updatedBy) {
+        this.status = CatalogStatus.ARCHIVED;
+        this.updatedBy = updatedBy;
+    }
+
     public void update(
             CatalogCategory catalogCategory,
             String name,

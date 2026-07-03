@@ -1010,6 +1010,60 @@
             "description": "Modifie un catalogue existant. Executer Login, Create Company, Create Catalog Category puis Create Catalog avant cet appel pour alimenter accessToken, companyId, catalogCategoryId et catalogId."
           },
           "response": []
+        },
+        {
+          "name": "Archive Catalog",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains archived catalog', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('id', pm.collectionVariables.get('catalogId'));",
+                  "    pm.expect(json).to.have.property('companyId', pm.collectionVariables.get('companyId'));",
+                  "    pm.expect(json).to.have.property('catalogCategoryId');",
+                  "    pm.expect(json).to.have.property('status', 'ARCHIVED');",
+                  "    pm.expect(json).to.have.property('updatedAt');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/companies/{{companyId}}/catalogs/{{catalogId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "companies",
+                "{{companyId}}",
+                "catalogs",
+                "{{catalogId}}"
+              ]
+            },
+            "description": "Archive logiquement un catalogue existant. Executer Login, Create Company, Create Catalog Category puis Create Catalog avant cet appel pour alimenter accessToken, companyId, catalogCategoryId et catalogId. Le catalogue archive ne sera plus visible dans List Catalogs."
+          },
+          "response": []
         }
       ],
       "id": "b35fc02d-2c1a-4486-beab-5167138ecc9d"

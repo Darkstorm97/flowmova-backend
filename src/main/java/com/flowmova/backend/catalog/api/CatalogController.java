@@ -1,6 +1,7 @@
 package com.flowmova.backend.catalog.api;
 
 import com.flowmova.backend.auth.domain.AuthenticatedUser;
+import com.flowmova.backend.catalog.application.ArchiveCatalogService;
 import com.flowmova.backend.catalog.application.CreateCatalogService;
 import com.flowmova.backend.catalog.application.ListActiveCatalogsService;
 import com.flowmova.backend.catalog.application.UpdateCatalogService;
@@ -9,6 +10,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,14 +28,17 @@ public class CatalogController {
     private final CreateCatalogService createCatalogService;
     private final ListActiveCatalogsService listActiveCatalogsService;
     private final UpdateCatalogService updateCatalogService;
+    private final ArchiveCatalogService archiveCatalogService;
 
     public CatalogController(
             CreateCatalogService createCatalogService,
             ListActiveCatalogsService listActiveCatalogsService,
-            UpdateCatalogService updateCatalogService) {
+            UpdateCatalogService updateCatalogService,
+            ArchiveCatalogService archiveCatalogService) {
         this.createCatalogService = createCatalogService;
         this.listActiveCatalogsService = listActiveCatalogsService;
         this.updateCatalogService = updateCatalogService;
+        this.archiveCatalogService = archiveCatalogService;
     }
 
     @GetMapping
@@ -59,5 +64,13 @@ public class CatalogController {
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
             @Valid @RequestBody UpdateCatalogRequest request) {
         return updateCatalogService.update(companyId, catalogId, authenticatedUser, request.toCommand());
+    }
+
+    @DeleteMapping("/{catalogId}")
+    public CatalogResponse archive(
+            @PathVariable UUID companyId,
+            @PathVariable UUID catalogId,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser) {
+        return archiveCatalogService.archive(companyId, catalogId, authenticatedUser);
     }
 }

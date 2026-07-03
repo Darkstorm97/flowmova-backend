@@ -1,6 +1,7 @@
 package com.flowmova.backend.catalog.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -435,6 +436,72 @@ class CatalogControllerTests {
                 .andExpect(jsonPath("$.fieldErrors[?(@.field == 'catalogCategoryId')]").exists())
                 .andExpect(jsonPath("$.fieldErrors[?(@.field == 'name')]").exists())
                 .andExpect(jsonPath("$.fieldErrors[?(@.field == 'priceAmount')]").exists());
+    }
+
+    @Test
+    void adminArchivesCatalog() throws Exception {
+        User admin = user("catalog-archive-admin");
+        Company company = company(admin);
+        CatalogCategory category = category(company, admin);
+        Catalog catalog = catalogRepository.save(new Catalog(
+                company,
+                category,
+                "Archived By API",
+                "Catalog to archive",
+                null,
+                new BigDecimal("30.00"),
+                admin));
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(delete("/api/companies/{companyId}/catalogs/{catalogId}", company.getId(), catalog.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(catalog.getId().toString()))
+                .andExpect(jsonPath("$.companyId").value(company.getId().toString()))
+                .andExpect(jsonPath("$.catalogCategoryId").value(category.getId().toString()))
+                .andExpect(jsonPath("$.status").value("ARCHIVED"));
+
+        Catalog archivedCatalog = catalogRepository.findById(catalog.getId()).orElseThrow();
+        assertThat(archivedCatalog.getStatus()).isEqualTo(CatalogStatus.ARCHIVED);
+        assertThat(archivedCatalog.getUpdatedBy().getId()).isEqualTo(admin.getId());
+
+        mockMvc.perform(get("/api/companies/{companyId}/catalogs", company.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id == '%s')]".formatted(catalog.getId())).doesNotExist());
+    }
+
+    @Test
+    void rejectsCatalogArchiveWithoutJwt() throws Exception {
+        mockMvc.perform(delete("/api/companies/{companyId}/catalogs/{catalogId}", UUID.randomUUID(), UUID.randomUUID()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void rejectsCatalogArchiveForEmployee() throws Exception {
+        User employee = user("catalog-archive-employee");
+        Company company = company(employee);
+        CatalogCategory category = category(company, employee);
+        Catalog catalog = catalogRepository.save(new Catalog(
+                company,
+                category,
+                "Employee Archive Catalog",
+                null,
+                null,
+                null,
+                employee));
+        companyUserRepository.save(new CompanyUser(company.getId(), employee, CompanyRole.EMPLOYEE));
+        String token = accessTokenGenerator.generate(employee).value();
+
+        mockMvc.perform(delete("/api/companies/{companyId}/catalogs/{catalogId}", company.getId(), catalog.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.message").value("Company admin role is required"));
+
+        assertThat(catalogRepository.findById(catalog.getId()).orElseThrow().getStatus())
+                .isEqualTo(CatalogStatus.ACTIVE);
     }
 
     @Test
