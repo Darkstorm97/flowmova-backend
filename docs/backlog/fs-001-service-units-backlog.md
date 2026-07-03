@@ -10,22 +10,28 @@ Il est construit a partir de FS-001, FS-002 et du DAT. En cas d'ambiguite, les F
 - Il n'y a pas de concept d'entreprise publique/privee dans le MVP.
 - Une entreprise `ACTIVE` est visible par les utilisateurs, authentifies ou non.
 - Une entreprise non active n'est pas visible publiquement.
+- Une entreprise possede une devise (`currency`) au format ISO 4217 sur 3 lettres, par defaut `CAD` dans le MVP.
+- La devise de l'entreprise est la devise de reference pour les prix de ses catalogues, articles et tickets.
 - Les utilisateurs peuvent rechercher et consulter les entreprises actives.
 - La fiche entreprise affiche les informations de l'entreprise, ses catalogues actifs classes par categories et ses unites de service disponibles.
 - Une entreprise peut posseder plusieurs categories de catalogues.
 - Une entreprise peut posseder plusieurs catalogues.
 - Les categories servent uniquement a organiser les catalogues.
 - Les catalogues representent les offres de reference de l'entreprise.
+- Un catalogue peut porter un prix indicatif optionnel dans la devise de l'entreprise.
 - Les articles representent les offres effectivement disponibles dans une unite de service.
 - Les articles appartiennent a une unite de service et sont issus d'un catalogue.
+- Un article peut reprendre le prix du catalogue ou definir son propre prix optionnel.
 - Dans le MVP, les catalogues n'ont pas de visibilite publique independante.
 - Un catalogue actif est consultable si son entreprise est active.
 - Le MVP privilegie l'archivage/desactivation logique plutot que la suppression physique.
 - Une unite de service represente une file de prise en charge par tickets.
 - Le seul type d'unite de service supporte dans le MVP est `TICKET_QUEUE`.
 - Les autres modes de fonctionnement comme reservation, commande, livraison ou drive sont hors perimetre MVP.
-- Une unite de service possede un lien public stable permettant d'y acceder directement.
-- Le backend fournit l'identifiant ou l'URL d'acces public de l'unite, mais ne genere pas d'image QR code.
+- Une unite de service possede toujours un emplacement par defaut cree avec elle.
+- Une unite de service peut posseder plusieurs emplacements, par exemple des tables dans un restaurant.
+- Le lien public stable et le QR code sont rattaches a un emplacement d'unite de service, notamment l'emplacement par defaut.
+- Le backend fournit l'identifiant ou l'URL d'acces public de l'emplacement, mais ne genere pas d'image QR code.
 - La generation et l'affichage du QR code sont hors backend et pourront etre geres cote frontend ou par un outil externe.
 - Une unite de service est creee avec le statut `CLOSED`.
 - Une unite de service peut etre creee sans article.
@@ -39,6 +45,14 @@ Il est construit a partir de FS-001, FS-002 et du DAT. En cas d'ambiguite, les F
 - Les articles d'une unite sont optionnels. S'ils existent et sont disponibles, ils sont affiches; sinon l'utilisateur peut creer un ticket general.
 - Un ticket peut contenir zero, une ou plusieurs lignes de ticket.
 - Un ticket avec zero ligne permet une prise en charge generale.
+- Un ticket est toujours rattache a une unite de service et a un emplacement de cette unite.
+- Si aucun emplacement n'est precise a la creation d'un ticket, l'emplacement par defaut de l'unite est utilise.
+- La creation de ticket utilise un seul endpoint pour les utilisateurs authentifies et les visiteurs non authentifies.
+- Pour un visiteur non authentifie, `guestName` est obligatoire.
+- Pour un utilisateur authentifie, le ticket est rattache au compte via le JWT et `guestName` n'est pas requis.
+- Le total d'un ticket est informatif et calcule a partir des lignes qui possedent un prix.
+- La devise du ticket est copiee depuis l'entreprise au moment de la creation du ticket pour conserver l'historique.
+- Les prix des lignes de ticket sont figes au moment de la creation pour ne pas modifier les anciens tickets si le catalogue ou l'article change ensuite.
 - Le numero de ticket est genere automatiquement.
 - Le numero de ticket est unique globalement sur la plateforme afin de faciliter la consultation par un utilisateur non authentifie.
 - Le format d'affichage MVP du numero de ticket est un identifiant lisible du type `T-000001`.
@@ -67,6 +81,10 @@ Il est construit a partir de FS-001, FS-002 et du DAT. En cas d'ambiguite, les F
 - La regle initiale de numerotation unique par unite est remplacee par une numerotation globale unique sur la plateforme pour simplifier le suivi par les utilisateurs non authentifies.
 - La consultation et certaines actions non authentifiees sont autorisees avec `ticketNumber` + `accessCode`; le numero seul ne suffit jamais.
 - L'annulation non authentifiee n'est plus refusee par principe: elle est autorisee seulement avec un code d'acces valide et une transition autorisee.
+- Le lien QR n'est plus rattache directement a l'unite de service: il est rattache a un emplacement. L'emplacement par defaut couvre le cas simple.
+- La creation de ticket n'est pas separee en deux routes distinctes authentifie/invite: le meme endpoint accepte un JWT optionnel.
+- Le prix catalogue est optionnel et sert de base au prix d'article; le ticket fige les montants au moment de sa creation.
+- La devise n'est pas portee par chaque prix de catalogue ou d'article: elle vient de l'entreprise, puis elle est copiee sur le ticket pour l'historique.
 
 ## Milestone 1 - Entreprises
 
@@ -126,6 +144,22 @@ Criteres d'acceptation:
 - Le statut de l'association est `ACTIVE`.
 - Une entreprise creee possede toujours au moins un administrateur.
 - Les tests couvrent l'association automatique.
+
+### COMPANY-003 - Ajouter la devise de compagnie
+
+**En tant que** administrateur d'entreprise,
+**je veux** definir la devise de mon entreprise,
+**afin de** utiliser une devise coherente pour les prix, articles et tickets.
+
+Criteres d'acceptation:
+
+- Une migration Flyway ajoute le champ `currency` a la table `companies`.
+- La devise est stockee sous forme de code ISO 4217 sur 3 lettres, par exemple `CAD`, `USD` ou `EUR`.
+- La valeur par defaut MVP est `CAD`.
+- La devise est obligatoire, normalisee en majuscules et validee.
+- La creation d'entreprise accepte une devise optionnelle; si elle est absente, `CAD` est utilise.
+- Les reponses entreprise exposent la devise.
+- Les collections Postman sont mises a jour si l'API de creation ou de consultation change.
 
 ### COMPANY-020 - Consulter mes entreprises
 
@@ -248,7 +282,7 @@ Criteres d'acceptation:
 Criteres d'acceptation:
 
 - Une migration Flyway cree la table `catalogs`.
-- Les champs sont presents: `id`, `company_id`, `catalog_category_id`, `name`, `description`, `image_url`, `status`, `created_at`, `updated_at`, `created_by`, `updated_by`, `version`.
+- Les champs sont presents: `id`, `company_id`, `catalog_category_id`, `name`, `description`, `image_url`, `price_amount`, `status`, `created_at`, `updated_at`, `created_by`, `updated_by`, `version`.
 - Un catalogue appartient obligatoirement a une entreprise.
 - Un catalogue appartient obligatoirement a une categorie.
 - La categorie doit appartenir a la meme entreprise que le catalogue.
@@ -280,6 +314,8 @@ Criteres d'acceptation:
 - Le nom est obligatoire.
 - La categorie est obligatoire.
 - La categorie doit appartenir a la meme entreprise.
+- Un prix indicatif optionnel peut etre renseigne.
+- Le prix utilise la devise de l'entreprise; aucune devise separee n'est stockee sur le catalogue.
 - Le catalogue est cree avec le statut `ACTIVE`.
 
 ### CATALOG-020 - Lister les catalogues par categorie
@@ -333,12 +369,12 @@ Criteres d'acceptation:
 Criteres d'acceptation:
 
 - Une migration Flyway cree la table `service_units`.
-- Les champs sont presents: `id`, `company_id`, `name`, `description`, `location`, `type`, `status`, `public_access_slug`, `settings`, `created_at`, `updated_at`, `created_by`, `updated_by`, `version`.
+- Les champs sont presents: `id`, `company_id`, `name`, `description`, `location`, `type`, `status`, `settings`, `created_at`, `updated_at`, `created_by`, `updated_by`, `version`.
 - Le seul type supporte au MVP est `TICKET_QUEUE`.
 - Les statuts supportes sont `CLOSED`, `OPEN`, `ARCHIVED`.
 - Une unite appartient obligatoirement a une entreprise.
-- `public_access_slug` est unique et stable.
-- Les index necessaires sont presents: `company_id`, `status`, `type`, `public_access_slug`.
+- Le lien public direct n'est pas stocke sur l'unite mais sur ses emplacements.
+- Les index necessaires sont presents: `company_id`, `status`, `type`.
 
 ### SERVICE-002 - Creer entite et repository ServiceUnit
 
@@ -367,22 +403,110 @@ Criteres d'acceptation:
 - Le type est `TICKET_QUEUE`.
 - L'unite est creee avec le statut `CLOSED`.
 - L'unite appartient a l'entreprise selectionnee.
-- Un `public_access_slug` unique est genere automatiquement.
+- Un emplacement par defaut est cree dans la meme transaction.
 - L'unite peut etre creee sans article.
 
-### SERVICE-011 - Consulter le lien public d'une unite de service
+### LOCATION-001 - Creer la table `service_unit_locations`
+
+**En tant que** backend,
+**je veux** persister les emplacements d'une unite de service,
+**afin de** rattacher les tickets et les liens QR a un contexte precis.
+
+Criteres d'acceptation:
+
+- Une migration Flyway cree la table `service_unit_locations`.
+- Les champs sont presents: `id`, `service_unit_id`, `name`, `description`, `type`, `is_default`, `public_access_slug`, `status`, `created_at`, `updated_at`, `created_by`, `updated_by`, `version`.
+- Un emplacement appartient obligatoirement a une unite de service.
+- Un seul emplacement par defaut actif existe par unite de service.
+- `public_access_slug` est unique et stable sur la plateforme.
+- Les index necessaires sont presents: `service_unit_id`, `status`, `is_default`, `public_access_slug`.
+
+### LOCATION-002 - Creer entite et repository ServiceUnitLocation
+
+**En tant que** developpeur,
+**je veux** disposer d'une entite et d'un repository ServiceUnitLocation,
+**afin de** gerer les emplacements et leurs liens publics.
+
+Criteres d'acceptation:
+
+- L'entite `ServiceUnitLocation` existe.
+- Les enums de type et de statut d'emplacement existent si necessaire.
+- Le repository permet de lister les emplacements par unite.
+- Le repository permet de retrouver l'emplacement par defaut d'une unite.
+- Le repository permet de retrouver un emplacement par `public_access_slug`.
+
+### LOCATION-010 - Creer l'emplacement par defaut d'une unite
+
+**En tant que** plateforme,
+**je veux** creer automatiquement un emplacement par defaut avec chaque unite de service,
+**afin de** permettre le parcours simple sans selection d'emplacement.
+
+Criteres d'acceptation:
+
+- La creation d'une unite cree un emplacement par defaut dans la meme transaction.
+- L'emplacement par defaut possede un `public_access_slug` unique.
+- Le nom par defaut est coherent, par exemple `Default` ou `Principal`.
+- Une unite ne peut pas se retrouver sans emplacement par defaut actif.
+- Si la creation de l'emplacement echoue, la creation de l'unite est annulee.
+
+### LOCATION-011 - Creer un emplacement dans une unite de service
 
 **En tant que** administrateur d'entreprise,
-**je veux** obtenir le lien public stable d'une unite de service,
+**je veux** creer des emplacements dans une unite de service,
+**afin de** representer des tables, comptoirs, zones ou points de prise en charge.
+
+Criteres d'acceptation:
+
+- Le role `ADMIN` est requis.
+- L'unite doit appartenir a l'entreprise administree.
+- Le nom de l'emplacement est obligatoire.
+- Un `public_access_slug` unique est genere automatiquement.
+- Le backend retourne le lien public ou l'identifiant public de l'emplacement.
+- Le backend ne genere pas d'image QR code.
+
+### LOCATION-020 - Consulter les emplacements d'une unite de service
+
+**En tant que** administrateur d'entreprise,
+**je veux** lister les emplacements d'une unite de service,
+**afin de** gerer les points de creation de tickets.
+
+Criteres d'acceptation:
+
+- Le role `ADMIN` est requis.
+- Les emplacements de l'unite sont retournes.
+- L'emplacement par defaut est identifiable.
+- Les emplacements d'une autre entreprise ne sont pas exposes.
+- Les resultats sont pagines si la liste peut grandir.
+
+### LOCATION-030 - Acceder a une unite par lien public d'emplacement
+
+**En tant que** utilisateur,
+**je veux** acceder directement a un emplacement d'une unite avec son lien public,
+**afin de** creer rapidement un ticket apres avoir recu un lien ou scanne un QR code.
+
+Criteres d'acceptation:
+
+- L'endpoint public permet de retrouver un emplacement par `public_access_slug`.
+- L'unite de l'emplacement doit etre `OPEN`.
+- L'entreprise de l'unite doit etre `ACTIVE`.
+- Un emplacement inactif n'est pas expose publiquement.
+- La reponse contient les informations publiques de l'entreprise, de l'unite et de l'emplacement.
+- La reponse permet de creer un ticket directement dans cet emplacement.
+- Le backend ne genere pas d'image QR code.
+
+### SERVICE-011 - Consulter le lien public par defaut d'une unite de service
+
+**En tant que** administrateur d'entreprise,
+**je veux** obtenir le lien public de l'emplacement par defaut d'une unite de service,
 **afin de** le partager ou de l'utiliser pour generer un QR code hors backend.
 
 Criteres d'acceptation:
 
 - Le role `ADMIN` est requis.
-- La reponse contient l'identifiant public ou l'URL publique de l'unite.
+- La reponse contient l'identifiant public ou l'URL publique de l'emplacement par defaut.
 - Le backend ne genere pas d'image QR code.
 - Le backend ne stocke pas d'image QR code.
-- Le lien reste stable tant que l'unite existe.
+- Le lien reste stable tant que l'emplacement par defaut existe.
 
 ### ITEM-001 - Creer la table `items`
 
@@ -393,7 +517,7 @@ Criteres d'acceptation:
 Criteres d'acceptation:
 
 - Une migration Flyway cree la table `items`.
-- Les champs sont presents: `id`, `service_unit_id`, `catalog_id`, `availability`, `configured_quantity`, `reserved_quantity`, `display_order`, `status`, `created_at`, `updated_at`, `version`.
+- Les champs sont presents: `id`, `service_unit_id`, `catalog_id`, `price_amount`, `availability`, `configured_quantity`, `reserved_quantity`, `display_order`, `status`, `created_at`, `updated_at`, `version`.
 - Un article appartient obligatoirement a une unite de service.
 - Un article reference obligatoirement un catalogue.
 - Le catalogue doit appartenir a la meme entreprise que l'unite.
@@ -425,6 +549,7 @@ Criteres d'acceptation:
 - L'association cree un article dans l'unite.
 - Le meme catalogue ne peut pas etre associe deux fois a la meme unite.
 - L'article cree peut avoir ses propres parametres: disponibilite, quantite configuree, ordre d'affichage.
+- L'article reprend le prix indicatif du catalogue par defaut si celui-ci existe.
 
 ### ITEM-010 - Configurer un article
 
@@ -438,6 +563,8 @@ Criteres d'acceptation:
 - La disponibilite peut etre modifiee.
 - La quantite configuree peut etre modifiee.
 - L'ordre d'affichage peut etre modifie.
+- Le prix de l'article peut etre modifie ou laisse vide.
+- Le prix utilise la devise de l'entreprise; aucune devise separee n'est stockee sur l'article.
 - La quantite reservee reste calculee et n'est pas modifiee directement.
 
 ### SERVICE-030 - Ouvrir une unite de service
@@ -510,19 +637,19 @@ Criteres d'acceptation:
 - Les articles non disponibles ou archives ne sont pas exposes publiquement.
 - La reponse permet la creation d'un ticket general sans ligne de ticket.
 
-### SERVICE-042 - Acceder a une unite par lien public
+### SERVICE-042 - Acceder a une unite par son emplacement par defaut
 
 **En tant que** utilisateur,
-**je veux** acceder directement a une unite de service avec son lien public,
+**je veux** acceder directement a une unite de service via son emplacement par defaut,
 **afin de** creer rapidement un ticket apres avoir recu un lien ou scanne un QR code.
 
 Criteres d'acceptation:
 
-- L'endpoint public permet de retrouver une unite par `public_access_slug`.
+- L'endpoint public utilise le `public_access_slug` de l'emplacement par defaut.
 - L'unite doit etre `OPEN`.
 - L'entreprise de l'unite doit etre `ACTIVE`.
 - Une unite `CLOSED` ou `ARCHIVED` n'est pas exposee par le lien public.
-- Le backend retourne les informations necessaires a l'affichage de l'unite.
+- Le backend retourne les informations necessaires a l'affichage de l'unite et de l'emplacement par defaut.
 - Le backend ne genere pas d'image QR code.
 
 ## Milestone 5 - Tickets
@@ -537,14 +664,18 @@ Criteres d'acceptation:
 
 - Une migration Flyway cree la table `tickets`.
 - Une migration Flyway cree la table `ticket_lines`.
-- `tickets` contient au minimum: `id`, `ticket_number`, `user_id`, `guest_name`, `guest_access_code_hash`, `service_unit_id`, `status`, `notes`, `created_at`, `updated_at`, `closed_at`, `version`.
-- `ticket_lines` contient au minimum: `id`, `ticket_id`, `item_id`, `quantity`, `notes`.
+- `tickets` contient au minimum: `id`, `ticket_number`, `user_id`, `guest_name`, `guest_access_code_hash`, `service_unit_id`, `service_unit_location_id`, `status`, `notes`, `currency`, `total_amount`, `created_at`, `updated_at`, `closed_at`, `version`.
+- `ticket_lines` contient au minimum: `id`, `ticket_id`, `item_id`, `quantity`, `unit_price_amount`, `line_total_amount`, `notes`.
 - `ticket_number` est unique globalement sur la plateforme.
 - Le format d'affichage MVP du numero est du type `T-000001`.
 - `guest_access_code_hash` est renseigne uniquement pour les tickets non authentifies.
 - Le code d'acces invite n'est jamais stocke en clair.
+- Chaque ticket reference une unite de service et un emplacement appartenant a cette unite.
 - Une ligne de ticket reference un article appartenant a la meme unite que le ticket.
-- Les index necessaires sont presents: `ticket_number` unique, `service_unit_id`, `user_id`, `status`.
+- Les prix de ligne sont figes a la creation du ticket.
+- Le total du ticket est calcule a titre informatif a partir des lignes qui possedent un prix.
+- La devise du ticket est copiee depuis l'entreprise au moment de la creation.
+- Les index necessaires sont presents: `ticket_number` unique, `service_unit_id`, `service_unit_location_id`, `user_id`, `status`.
 
 ### TICKET-002 - Creer entites et repositories Ticket
 
@@ -567,17 +698,22 @@ Criteres d'acceptation:
 
 Criteres d'acceptation:
 
-- L'endpoint de creation publique existe.
+- Le meme endpoint de creation est utilise pour les visiteurs et les utilisateurs authentifies: `POST /api/service-units/{serviceUnitId}/tickets`.
 - L'unite doit etre `OPEN`.
 - L'entreprise de l'unite doit etre `ACTIVE`.
+- `locationId` est optionnel dans la requete.
+- Si `locationId` est absent, l'emplacement par defaut de l'unite est utilise.
+- Si `locationId` est present, il doit appartenir a l'unite.
 - Le ticket peut contenir zero, une ou plusieurs lignes.
-- Le nom libre du visiteur peut etre renseigne.
+- `guestName` est obligatoire pour un visiteur non authentifie.
 - Le ticket n'est pas associe a un `user_id`.
 - Un code d'acces invite court est genere automatiquement.
 - Le hash du code d'acces invite est stocke dans `guest_access_code_hash`.
 - Le code d'acces invite en clair est retourne une seule fois dans la reponse.
 - Le ticket est cree avec le statut `CREATED`.
 - Un numero de ticket unique globalement est genere.
+- La devise du ticket est copiee depuis l'entreprise.
+- Les montants des lignes et le total informatif sont calcules lorsque les articles possedent un prix.
 - La reponse contient au minimum `ticketNumber` et `accessCode`.
 - Le visiteur est informe qu'il doit conserver le code pour suivre ou modifier son ticket.
 
@@ -589,15 +725,21 @@ Criteres d'acceptation:
 
 Criteres d'acceptation:
 
-- L'endpoint accepte un utilisateur authentifie.
+- Le meme endpoint de creation accepte un utilisateur authentifie avec JWT: `POST /api/service-units/{serviceUnitId}/tickets`.
 - L'unite doit etre `OPEN`.
 - L'entreprise de l'unite doit etre `ACTIVE`.
+- `locationId` est optionnel dans la requete.
+- Si `locationId` est absent, l'emplacement par defaut de l'unite est utilise.
+- Si `locationId` est present, il doit appartenir a l'unite.
 - Le ticket est associe au `user_id` authentifie.
+- `guestName` n'est pas requis pour un utilisateur authentifie.
 - Aucun code d'acces invite n'est genere pour un ticket authentifie.
 - `guest_access_code_hash` reste vide pour un ticket authentifie.
 - Le ticket peut contenir zero, une ou plusieurs lignes.
 - Le ticket est cree avec le statut `CREATED`.
 - Un numero de ticket unique globalement est genere.
+- La devise du ticket est copiee depuis l'entreprise.
+- Les montants des lignes et le total informatif sont calcules lorsque les articles possedent un prix.
 
 ### TICKET-020 - Consulter les tickets d'une unite
 
@@ -821,28 +963,32 @@ Pour obtenir rapidement un parcours FS-001 utilisable, traiter dans cet ordre:
 2. COMPANY-002
 3. COMPANY-010
 4. COMPANY-011
-5. COMPANY-030
-6. COMPANY-031
-7. CATCAT-001
-8. CATCAT-002
-9. CATCAT-010
-10. CATALOG-001
-11. CATALOG-002
-12. CATALOG-010
-13. CATALOG-020
-14. SERVICE-001
-15. SERVICE-002
-16. SERVICE-010
-17. SERVICE-011
-18. SERVICE-030
-19. SERVICE-040
-20. SERVICE-041
-21. SERVICE-042
-22. TICKET-001
-23. TICKET-002
-24. TICKET-010
-25. TICKET-022
+5. COMPANY-003
+6. COMPANY-030
+7. COMPANY-031
+8. CATCAT-001
+9. CATCAT-002
+10. CATCAT-010
+11. CATALOG-001
+12. CATALOG-002
+13. CATALOG-010
+14. CATALOG-020
+15. SERVICE-001
+16. SERVICE-002
+17. LOCATION-001
+18. LOCATION-002
+19. SERVICE-010
+20. LOCATION-010
+21. SERVICE-011
+22. SERVICE-030
+23. SERVICE-040
+24. SERVICE-041
+25. LOCATION-030
+26. TICKET-001
+27. TICKET-002
+28. TICKET-010
+29. TICKET-022
 
-Cette verticale permet d'obtenir: creation entreprise -> catalogue -> unite ouverte sans article obligatoire -> consultation publique par fiche ou lien direct -> creation ticket general -> consultation invitee avec numero et code.
+Cette verticale permet d'obtenir: creation entreprise avec devise -> catalogue avec prix optionnel -> unite ouverte sans article obligatoire -> emplacement par defaut et lien direct -> creation ticket general dans un emplacement -> consultation invitee avec numero et code.
 
-Les issues `ITEM-001`, `ITEM-002`, `SERVICE-020` et `ITEM-010` peuvent ensuite enrichir l'unite avec des articles disponibles.
+Les issues `LOCATION-011`, `LOCATION-020`, `ITEM-001`, `ITEM-002`, `SERVICE-020` et `ITEM-010` peuvent ensuite enrichir l'unite avec des emplacements supplementaires et des articles disponibles.
