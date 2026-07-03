@@ -50,6 +50,8 @@ Il est construit a partir de FS-001, FS-002 et du DAT. En cas d'ambiguite, les F
 - La creation de ticket utilise un seul endpoint pour les utilisateurs authentifies et les visiteurs non authentifies.
 - Pour un visiteur non authentifie, `guestName` est obligatoire.
 - Pour un utilisateur authentifie, le ticket est rattache au compte via le JWT et `guestName` n'est pas requis.
+- Un ticket peut recevoir un numero de telephone de contact optionnel, que le createur soit authentifie ou non.
+- Le numero de telephone du ticket est une information de contact copiee sur le ticket; il ne sert pas a authentifier l'acces au ticket.
 - Le total d'un ticket est informatif et calcule a partir des lignes qui possedent un prix.
 - La devise du ticket est copiee depuis l'entreprise au moment de la creation du ticket pour conserver l'historique.
 - Les prix des lignes de ticket sont figes au moment de la creation pour ne pas modifier les anciens tickets si le catalogue ou l'article change ensuite.
@@ -85,6 +87,7 @@ Il est construit a partir de FS-001, FS-002 et du DAT. En cas d'ambiguite, les F
 - La creation de ticket n'est pas separee en deux routes distinctes authentifie/invite: le meme endpoint accepte un JWT optionnel.
 - Le prix catalogue est optionnel et sert de base au prix d'article; le ticket fige les montants au moment de sa creation.
 - La devise n'est pas portee par chaque prix de catalogue ou d'article: elle vient de l'entreprise, puis elle est copiee sur le ticket pour l'historique.
+- Le telephone de contact d'un ticket est optionnel pour les visiteurs et les utilisateurs authentifies; il reste une donnee de contact, pas une preuve d'identite.
 
 ## Milestone 1 - Entreprises
 
@@ -664,12 +667,13 @@ Criteres d'acceptation:
 
 - Une migration Flyway cree la table `tickets`.
 - Une migration Flyway cree la table `ticket_lines`.
-- `tickets` contient au minimum: `id`, `ticket_number`, `user_id`, `guest_name`, `guest_access_code_hash`, `service_unit_id`, `service_unit_location_id`, `status`, `notes`, `currency`, `total_amount`, `created_at`, `updated_at`, `closed_at`, `version`.
+- `tickets` contient au minimum: `id`, `ticket_number`, `user_id`, `guest_name`, `customer_phone`, `guest_access_code_hash`, `service_unit_id`, `service_unit_location_id`, `status`, `notes`, `currency`, `total_amount`, `created_at`, `updated_at`, `closed_at`, `version`.
 - `ticket_lines` contient au minimum: `id`, `ticket_id`, `item_id`, `quantity`, `unit_price_amount`, `line_total_amount`, `notes`.
 - `ticket_number` est unique globalement sur la plateforme.
 - Le format d'affichage MVP du numero est du type `T-000001`.
 - `guest_access_code_hash` est renseigne uniquement pour les tickets non authentifies.
 - Le code d'acces invite n'est jamais stocke en clair.
+- `customer_phone` est optionnel et stocke tel que normalise pour permettre a l'entreprise de recontacter le client.
 - Chaque ticket reference une unite de service et un emplacement appartenant a cette unite.
 - Une ligne de ticket reference un article appartenant a la meme unite que le ticket.
 - Les prix de ligne sont figes a la creation du ticket.
@@ -687,6 +691,7 @@ Criteres d'acceptation:
 
 - Les entites `Ticket` et `TicketLine` existent.
 - L'enum `TicketStatus` existe avec `CREATED`, `CONFIRMED`, `CALLED`, `IN_PROGRESS`, `COMPLETED`, `CLOSED`, `CANCELLED`.
+- L'entite `Ticket` expose un champ `customerPhone` optionnel.
 - Les repositories permettent de lister les tickets par unite, utilisateur et statut.
 - Les transitions de statut sont preparees cote domaine ou service applicatif.
 
@@ -706,6 +711,7 @@ Criteres d'acceptation:
 - Si `locationId` est present, il doit appartenir a l'unite.
 - Le ticket peut contenir zero, une ou plusieurs lignes.
 - `guestName` est obligatoire pour un visiteur non authentifie.
+- `customerPhone` est optionnel pour un visiteur non authentifie.
 - Le ticket n'est pas associe a un `user_id`.
 - Un code d'acces invite court est genere automatiquement.
 - Le hash du code d'acces invite est stocke dans `guest_access_code_hash`.
@@ -733,6 +739,7 @@ Criteres d'acceptation:
 - Si `locationId` est present, il doit appartenir a l'unite.
 - Le ticket est associe au `user_id` authentifie.
 - `guestName` n'est pas requis pour un utilisateur authentifie.
+- `customerPhone` est optionnel pour un utilisateur authentifie et n'est pas automatiquement considere comme le telephone du profil utilisateur.
 - Aucun code d'acces invite n'est genere pour un ticket authentifie.
 - `guest_access_code_hash` reste vide pour un ticket authentifie.
 - Le ticket peut contenir zero, une ou plusieurs lignes.
