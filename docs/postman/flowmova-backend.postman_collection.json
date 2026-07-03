@@ -5,64 +5,13 @@
     "description": "Collection Postman pour tester les endpoints backend FlowMova deja implementes: auth, profil utilisateur courant, entreprises et actuator.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "variable": [
-    {
-      "key": "baseUrl",
-      "value": "http://localhost:8080",
-      "type": "string"
-    },
-    {
-      "key": "accessToken",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "testEmail",
-      "value": "postman.user@example.com",
-      "type": "string"
-    },
-    {
-      "key": "testPassword",
-      "value": "Password123!",
-      "type": "string"
-    },
-    {
-      "key": "companyName",
-      "value": "FlowMova Demo Company",
-      "type": "string"
-    },
-    {
-      "key": "companyCurrency",
-      "value": "CAD",
-      "type": "string"
-    },
-    {
-      "key": "companyId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "companySearchQuery",
-      "value": "FlowMova",
-      "type": "string"
-    },
-    {
-      "key": "catalogCategoryId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "catalogId",
-      "value": "",
-      "type": "string"
-    }
-  ],
   "item": [
     {
       "name": "Actuator",
       "item": [
         {
           "name": "Health",
+          "id": "6d682c3b-0632-406c-bae3-f2f92d5ede25",
           "request": {
             "method": "GET",
             "header": [],
@@ -82,6 +31,7 @@
         },
         {
           "name": "Info",
+          "id": "bf30c8f3-dac2-4c3d-9383-dcafd0819160",
           "request": {
             "method": "GET",
             "header": [],
@@ -99,7 +49,8 @@
           },
           "response": []
         }
-      ]
+      ],
+      "id": "ae771c5c-ead2-4fdd-a551-d9bd2667dd27"
     },
     {
       "name": "Auth",
@@ -128,6 +79,7 @@
               }
             }
           ],
+          "id": "875d1341-5af7-4f99-b850-75663c5e7d8c",
           "request": {
             "method": "POST",
             "header": [
@@ -177,6 +129,7 @@
               }
             }
           ],
+          "id": "220f2d93-9b4c-4684-bb74-66f92ee8a10c",
           "request": {
             "method": "POST",
             "header": [
@@ -206,6 +159,7 @@
         },
         {
           "name": "Login - Invalid Credentials",
+          "id": "76e5cd61-c67f-4869-bc24-1078c69ba458",
           "request": {
             "method": "POST",
             "header": [
@@ -233,7 +187,8 @@
           },
           "response": []
         }
-      ]
+      ],
+      "id": "5a5046bf-76bb-47a1-82c5-1495ac5ea732"
     },
     {
       "name": "Users",
@@ -262,6 +217,7 @@
               }
             }
           ],
+          "id": "7acf932e-cfa9-4304-b98f-3faf8b000a2d",
           "request": {
             "auth": {
               "type": "bearer",
@@ -315,6 +271,7 @@
               }
             }
           ],
+          "id": "0175effe-fcde-4ad6-8bb9-8c9097e88f93",
           "request": {
             "auth": {
               "type": "bearer",
@@ -360,6 +317,7 @@
         },
         {
           "name": "Me - Missing Token",
+          "id": "f6c29c9b-5192-4441-af68-f7919c29d117",
           "request": {
             "method": "GET",
             "header": [],
@@ -380,6 +338,7 @@
         },
         {
           "name": "Me - Invalid Token",
+          "id": "38dfeb1f-af8f-47d5-95b0-bffa967beb3e",
           "request": {
             "auth": {
               "type": "bearer",
@@ -410,6 +369,7 @@
         },
         {
           "name": "My Companies - Missing Token",
+          "id": "83eccdb5-0551-4692-be77-94361a5a6e3a",
           "request": {
             "method": "GET",
             "header": [],
@@ -443,7 +403,8 @@
           },
           "response": []
         }
-      ]
+      ],
+      "id": "92610e2b-45c2-494f-b106-9a70b315e287"
     },
     {
       "name": "Companies",
@@ -477,6 +438,7 @@
               }
             }
           ],
+          "id": "9f9a9e11-ddde-4d00-bfe1-a8a0b1df6edd",
           "request": {
             "method": "GET",
             "header": [],
@@ -539,6 +501,7 @@
               }
             }
           ],
+          "id": "5bfe6a6f-5b0a-4545-8fb1-7f993e60f5f4",
           "request": {
             "method": "GET",
             "header": [],
@@ -583,6 +546,7 @@
               }
             }
           ],
+          "id": "81b8d9d2-f2ae-4e8c-bfe6-031896191c53",
           "request": {
             "auth": {
               "type": "bearer",
@@ -621,6 +585,7 @@
         },
         {
           "name": "Create Company - Missing Token",
+          "id": "3ea75440-774d-4d79-a4f0-fe6e790a313c",
           "request": {
             "method": "POST",
             "header": [
@@ -649,6 +614,7 @@
         },
         {
           "name": "Create Company - Missing Name",
+          "id": "f1dfbbc3-747b-4e60-a26b-d48c5381a2ae",
           "request": {
             "auth": {
               "type": "bearer",
@@ -685,7 +651,8 @@
           },
           "response": []
         }
-      ]
+      ],
+      "id": "0c81c22c-0f06-4ddd-b3ff-15f9119b43ca"
     },
     {
       "name": "Catalog Categories",
@@ -717,6 +684,7 @@
               }
             }
           ],
+          "id": "aaefd737-dd69-49ea-9e22-ccdc9ee48732",
           "request": {
             "auth": {
               "type": "bearer",
@@ -773,6 +741,7 @@
               }
             }
           ],
+          "id": "fc47cbd1-d0aa-4b7e-917d-3c6f51f9aa40",
           "request": {
             "auth": {
               "type": "bearer",
@@ -811,11 +780,107 @@
           },
           "response": []
         }
-      ]
+      ],
+      "id": "1ee63047-9ba0-49b6-aabe-da5b1ecb63b6"
     },
     {
       "name": "Catalogs",
       "item": [
+        {
+          "name": "List Catalogs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response is an active catalog array', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.be.an('array');",
+                  "    json.forEach(function (catalog) {",
+                  "        pm.expect(catalog).to.have.property('id');",
+                  "        pm.expect(catalog).to.have.property('companyId', pm.collectionVariables.get('companyId'));",
+                  "        pm.expect(catalog).to.have.property('catalogCategoryId');",
+                  "        pm.expect(catalog).to.have.property('name');",
+                  "        pm.expect(catalog).to.have.property('status', 'ACTIVE');",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/companies/{{companyId}}/catalogs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "companies",
+                "{{companyId}}",
+                "catalogs"
+              ]
+            },
+            "description": "Liste publiquement les catalogues ACTIVE d'une entreprise ACTIVE, sans JWT. Le filtre catalogCategoryId est optionnel."
+          },
+          "response": []
+        },
+        {
+          "name": "List Catalogs by Category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response is filtered by catalogCategoryId', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.be.an('array');",
+                  "    json.forEach(function (catalog) {",
+                  "        pm.expect(catalog).to.have.property('catalogCategoryId', pm.collectionVariables.get('catalogCategoryId'));",
+                  "        pm.expect(catalog).to.have.property('status', 'ACTIVE');",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/companies/{{companyId}}/catalogs?catalogCategoryId={{catalogCategoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "companies",
+                "{{companyId}}",
+                "catalogs"
+              ],
+              "query": [
+                {
+                  "key": "catalogCategoryId",
+                  "value": "{{catalogCategoryId}}"
+                }
+              ]
+            },
+            "description": "Liste publiquement les catalogues ACTIVE d'une categorie. Retourne 400 BAD_REQUEST si la categorie n'appartient pas a l'entreprise."
+          },
+          "response": []
+        },
         {
           "name": "Create Catalog",
           "event": [
@@ -843,6 +908,7 @@
               }
             }
           ],
+          "id": "ffb360fa-efa9-4bfa-9ca6-55e99fa1c984",
           "request": {
             "auth": {
               "type": "bearer",
@@ -881,7 +947,56 @@
           },
           "response": []
         }
-      ]
+      ],
+      "id": "b35fc02d-2c1a-4486-beab-5167138ecc9d"
+    }
+  ],
+  "variable": [
+    {
+      "id": "32f85fd4-fa10-4154-bf10-4a1f7c60fe24",
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "id": "c1d23974-83f7-4385-b939-80954359ddbd",
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "id": "bb553c1d-0e2a-4cd6-b0f3-8da49e903e9f",
+      "key": "testEmail",
+      "value": "postman.user@example.com",
+      "type": "string"
+    },
+    {
+      "id": "97ee33ea-0b8a-43e1-80f7-26339f83fe38",
+      "key": "testPassword",
+      "value": "Password123!",
+      "type": "string"
+    },
+    {
+      "id": "079f6640-fe3d-429b-805e-07c19acbe266",
+      "key": "companyName",
+      "value": "FlowMova Demo Company",
+      "type": "string"
+    },
+    {
+      "id": "fc8e127e-baf2-46a4-aa06-837bb5c8c3ea",
+      "key": "companyId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "id": "38f21d4e-8452-4972-993f-91cb30941305",
+      "key": "catalogCategoryId",
+      "value": ""
+    },
+    {
+      "id": "072cb7d6-9d5d-419f-ba9d-a955bc96fe55",
+      "key": "catalogId",
+      "value": ""
     }
   ]
 }

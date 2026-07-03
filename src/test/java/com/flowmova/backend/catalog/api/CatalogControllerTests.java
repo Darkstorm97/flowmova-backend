@@ -1,6 +1,7 @@
 package com.flowmova.backend.catalog.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -223,6 +224,123 @@ class CatalogControllerTests {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.fieldErrors[?(@.field == 'priceAmount')]").exists());
+    }
+
+    @Test
+    void listsActiveCatalogsWithoutJwtOrderedByCategoryAndName() throws Exception {
+        User owner = user("catalog-list-public");
+        Company company = company(owner);
+        CatalogCategory secondCategory = catalogCategoryRepository.save(new CatalogCategory(
+                company,
+                "Z Services",
+                "Second category",
+                20,
+                owner));
+        CatalogCategory firstCategory = catalogCategoryRepository.save(new CatalogCategory(
+                company,
+                "A Services",
+                "First category",
+                10,
+                owner));
+        Catalog archived = catalogRepository.save(new Catalog(
+                company,
+                firstCategory,
+                "Archived Catalog",
+                "Hidden catalog",
+                null,
+                null,
+                owner));
+        archived.archive();
+        catalogRepository.saveAndFlush(archived);
+        Catalog alpha = catalogRepository.save(new Catalog(
+                company,
+                firstCategory,
+                "Alpha Catalog",
+                "Visible alpha",
+                null,
+                new BigDecimal("10.00"),
+                owner));
+        Catalog zeta = catalogRepository.save(new Catalog(
+                company,
+                secondCategory,
+                "Zeta Catalog",
+                "Visible zeta",
+                null,
+                null,
+                owner));
+
+        mockMvc.perform(get("/api/companies/{companyId}/catalogs", company.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].id").value(alpha.getId().toString()))
+                .andExpect(jsonPath("$[0].catalogCategoryId").value(firstCategory.getId().toString()))
+                .andExpect(jsonPath("$[0].name").value("Alpha Catalog"))
+                .andExpect(jsonPath("$[0].priceAmount").value(10.00))
+                .andExpect(jsonPath("$[0].status").value("ACTIVE"))
+                .andExpect(jsonPath("$[1].id").value(zeta.getId().toString()))
+                .andExpect(jsonPath("$[1].catalogCategoryId").value(secondCategory.getId().toString()))
+                .andExpect(jsonPath("$[1].name").value("Zeta Catalog"))
+                .andExpect(jsonPath("$[?(@.name == 'Archived Catalog')]").doesNotExist());
+    }
+
+    @Test
+    void listsActiveCatalogsFilteredByCategoryWithoutJwt() throws Exception {
+        User owner = user("catalog-list-filtered");
+        Company company = company(owner);
+        CatalogCategory targetCategory = category(company, owner);
+        CatalogCategory otherCategory = category(company, owner);
+        Catalog targetCatalog = catalogRepository.save(new Catalog(
+                company,
+                targetCategory,
+                "Target Catalog",
+                "Visible target",
+                null,
+                null,
+                owner));
+        catalogRepository.save(new Catalog(
+                company,
+                otherCategory,
+                "Other Catalog",
+                "Other category catalog",
+                null,
+                null,
+                owner));
+
+        mockMvc.perform(get("/api/companies/{companyId}/catalogs", company.getId())
+                        .param("catalogCategoryId", targetCategory.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(targetCatalog.getId().toString()))
+                .andExpect(jsonPath("$[0].catalogCategoryId").value(targetCategory.getId().toString()))
+                .andExpect(jsonPath("$[0].name").value("Target Catalog"));
+    }
+
+    @Test
+    void rejectsCatalogListingForDisabledCompany() throws Exception {
+        User owner = user("catalog-list-disabled-company");
+        Company disabledCompany = companyRepository.save(new Company(
+                "Disabled Catalog Company",
+                "Hidden catalogs",
+                owner));
+
+        mockMvc.perform(get("/api/companies/{companyId}/catalogs", disabledCompany.getId()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Company not found"));
+    }
+
+    @Test
+    void rejectsCatalogListingWithCategoryFromAnotherCompany() throws Exception {
+        User owner = user("catalog-list-wrong-category");
+        Company company = company(owner);
+        Company otherCompany = company(owner);
+        CatalogCategory otherCategory = category(otherCompany, owner);
+
+        mockMvc.perform(get("/api/companies/{companyId}/catalogs", company.getId())
+                        .param("catalogCategoryId", otherCategory.getId().toString()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("Catalog category is invalid"));
     }
 
     private User user(String emailPrefix) {

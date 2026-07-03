@@ -331,6 +331,10 @@ Criteres d'acceptation:
 
 - Les catalogues actifs d'une entreprise active sont consultables.
 - Les catalogues sont groupes ou filtrables par categorie.
+- Le meme endpoint accepte un query param optionnel `catalogCategoryId`.
+- Sans `catalogCategoryId`, tous les catalogues actifs de l'entreprise sont retournes.
+- Avec `catalogCategoryId`, seuls les catalogues actifs de cette categorie sont retournes.
+- Si `catalogCategoryId` ne correspond pas a une categorie de l'entreprise, une erreur `400 BAD_REQUEST` est retournee.
 - Les catalogues archives ne sont pas exposes publiquement.
 - Les catalogues d'une entreprise non active ne sont pas exposes publiquement.
 
