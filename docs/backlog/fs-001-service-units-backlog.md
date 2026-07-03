@@ -40,22 +40,33 @@ Il est construit a partir de FS-001, FS-002 et du DAT. En cas d'ambiguite, les F
 - Un ticket peut contenir zero, une ou plusieurs lignes de ticket.
 - Un ticket avec zero ligne permet une prise en charge generale.
 - Le numero de ticket est genere automatiquement.
-- Le numero de ticket est unique par unite de service.
+- Le numero de ticket est unique globalement sur la plateforme afin de faciliter la consultation par un utilisateur non authentifie.
+- Le format d'affichage MVP du numero de ticket est un identifiant lisible du type `T-000001`.
+- Le numero de ticket seul ne donne pas acces a un ticket.
+- Un ticket non authentifie retourne un code d'acces court en plus du numero de ticket.
+- Le code d'acces invite est retourne une seule fois a la creation du ticket.
+- Le code d'acces invite est stocke uniquement sous forme hashee.
+- Un visiteur non authentifie peut consulter son ticket avec `ticketNumber` + `accessCode`.
+- Un visiteur non authentifie peut annuler son ticket avec `ticketNumber` + `accessCode` si la transition est valide.
+- Un visiteur non authentifie peut confirmer que son ticket a ete traite avec `ticketNumber` + `accessCode` si la transition est valide.
 - Les utilisateurs autorises de l'entreprise peuvent gerer les tickets.
 - Dans le MVP, les roles `ADMIN` et `EMPLOYEE` peuvent gerer les tickets.
 - Dans le MVP, seul le role `ADMIN` gere l'entreprise, les categories, les catalogues, les unites de service et les articles.
 - Le createur authentifie peut annuler son propre ticket si le ticket est associe a son compte et si la transition est valide.
-- Un visiteur non authentifie ne peut pas annuler lui-meme son ticket dans le MVP.
-- Une annulation autonome par visiteur non authentifie necessitera un mecanisme dedie et une validation FS avant developpement.
+- Le createur authentifie peut confirmer que son propre ticket a ete traite si la transition est valide.
+- Un utilisateur authentifie accede a ses tickets par son compte et son JWT; aucun code d'acces invite n'est requis.
 
 ## Ambiguites resolues
 
 - Le Product Blueprint evoque un catalogue unique, mais FS-001 detaille plusieurs categories et plusieurs catalogues. Decision retenue: plusieurs catalogues classes par categories.
 - FS-001 evoque la visibilite publique/privee des entreprises. Decision MVP retenue: pas de visibilite publique/privee, seules les entreprises `ACTIVE` sont visibles.
 - FS-001 evoque plusieurs modes de fonctionnement possibles. Decision MVP retenue: uniquement `TICKET_QUEUE`.
-- FS-001 evoque l'annulation de ticket sans preciser tous les acteurs. Decision retenue: entreprise autorisee et createur authentifie seulement.
+- FS-001 evoque l'annulation de ticket sans preciser tous les acteurs. Decision retenue: entreprise autorisee, createur authentifie, ou visiteur non authentifie avec `ticketNumber` + `accessCode` valide.
 - La regle d'ouverture initiale exigeait au moins un article disponible. Decision corrigee: les articles sont optionnels et une unite peut etre ouverte sans article pour permettre les tickets generaux.
 - Le besoin de QR code est retenu sous forme de lien public stable. Decision retenue: le backend ne genere pas d'image QR code.
+- La regle initiale de numerotation unique par unite est remplacee par une numerotation globale unique sur la plateforme pour simplifier le suivi par les utilisateurs non authentifies.
+- La consultation et certaines actions non authentifiees sont autorisees avec `ticketNumber` + `accessCode`; le numero seul ne suffit jamais.
+- L'annulation non authentifiee n'est plus refusee par principe: elle est autorisee seulement avec un code d'acces valide et une transition autorisee.
 
 ## Milestone 1 - Entreprises
 
@@ -526,11 +537,14 @@ Criteres d'acceptation:
 
 - Une migration Flyway cree la table `tickets`.
 - Une migration Flyway cree la table `ticket_lines`.
-- `tickets` contient au minimum: `id`, `number`, `user_id`, `guest_name`, `service_unit_id`, `status`, `notes`, `created_at`, `updated_at`, `closed_at`, `version`.
+- `tickets` contient au minimum: `id`, `ticket_number`, `user_id`, `guest_name`, `guest_access_code_hash`, `service_unit_id`, `status`, `notes`, `created_at`, `updated_at`, `closed_at`, `version`.
 - `ticket_lines` contient au minimum: `id`, `ticket_id`, `item_id`, `quantity`, `notes`.
-- Le numero de ticket est unique par unite de service.
+- `ticket_number` est unique globalement sur la plateforme.
+- Le format d'affichage MVP du numero est du type `T-000001`.
+- `guest_access_code_hash` est renseigne uniquement pour les tickets non authentifies.
+- Le code d'acces invite n'est jamais stocke en clair.
 - Une ligne de ticket reference un article appartenant a la meme unite que le ticket.
-- Les index necessaires sont presents: `service_unit_id`, `user_id`, `status`, `(service_unit_id, number)`.
+- Les index necessaires sont presents: `ticket_number` unique, `service_unit_id`, `user_id`, `status`.
 
 ### TICKET-002 - Creer entites et repositories Ticket
 
@@ -559,8 +573,13 @@ Criteres d'acceptation:
 - Le ticket peut contenir zero, une ou plusieurs lignes.
 - Le nom libre du visiteur peut etre renseigne.
 - Le ticket n'est pas associe a un `user_id`.
+- Un code d'acces invite court est genere automatiquement.
+- Le hash du code d'acces invite est stocke dans `guest_access_code_hash`.
+- Le code d'acces invite en clair est retourne une seule fois dans la reponse.
 - Le ticket est cree avec le statut `CREATED`.
-- Un numero unique par unite est genere.
+- Un numero de ticket unique globalement est genere.
+- La reponse contient au minimum `ticketNumber` et `accessCode`.
+- Le visiteur est informe qu'il doit conserver le code pour suivre ou modifier son ticket.
 
 ### TICKET-011 - Creer un ticket authentifie
 
@@ -574,9 +593,11 @@ Criteres d'acceptation:
 - L'unite doit etre `OPEN`.
 - L'entreprise de l'unite doit etre `ACTIVE`.
 - Le ticket est associe au `user_id` authentifie.
+- Aucun code d'acces invite n'est genere pour un ticket authentifie.
+- `guest_access_code_hash` reste vide pour un ticket authentifie.
 - Le ticket peut contenir zero, une ou plusieurs lignes.
 - Le ticket est cree avec le statut `CREATED`.
-- Un numero unique par unite est genere.
+- Un numero de ticket unique globalement est genere.
 
 ### TICKET-020 - Consulter les tickets d'une unite
 
@@ -604,6 +625,22 @@ Criteres d'acceptation:
 - Les tickets non authentifies ne sont pas retournes.
 - Les tickets peuvent etre filtres par statut.
 - Les informations sensibles internes de l'entreprise ne sont pas exposees.
+
+### TICKET-022 - Consulter un ticket non authentifie avec numero et code
+
+**En tant que** visiteur non authentifie,
+**je veux** consulter mon ticket avec son numero et son code d'acces,
+**afin de** suivre ma demande sans creer de compte FlowMova.
+
+Criteres d'acceptation:
+
+- L'endpoint de consultation non authentifiee existe.
+- Le visiteur fournit `ticketNumber` et `accessCode`.
+- Le numero de ticket seul ne suffit pas.
+- Le backend compare le code fourni avec le hash stocke.
+- Si le numero ou le code est invalide, l'acces est refuse.
+- La reponse retourne uniquement les informations publiques du ticket.
+- Les informations internes de l'entreprise ne sont pas exposees.
 
 ### TICKET-030 - Changer l'etat d'un ticket
 
@@ -633,18 +670,62 @@ Criteres d'acceptation:
 - Un utilisateur ne peut pas annuler le ticket d'un autre utilisateur.
 - Un ticket deja finalise ne peut pas etre annule si le cycle de vie l'interdit.
 
-### TICKET-032 - Refuser l'annulation non authentifiee
+### TICKET-032 - Refuser les actions invitees avec numero ou code invalide
 
 **En tant que** plateforme,
-**je veux** refuser l'annulation autonome par un visiteur non authentifie,
-**afin de** eviter une modification sans identification fiable.
+**je veux** refuser les actions invitees lorsque le numero ou le code d'acces est invalide,
+**afin de** proteger les tickets non authentifies.
 
 Criteres d'acceptation:
 
-- Un ticket sans `user_id` ne peut pas etre annule par l'interface publique MVP.
-- Une tentative d'annulation non authentifiee retourne une erreur coherente.
-- L'annulation par utilisateur autorise de l'entreprise reste possible.
-- Aucun mecanisme de lien ou jeton public n'est introduit dans le MVP.
+- Le numero de ticket seul ne permet aucune consultation ou modification.
+- Un code d'acces invalide refuse l'action.
+- Un code d'acces absent refuse l'action.
+- Les refus retournent une erreur coherente sans exposer l'existence du ticket lorsque possible.
+- Les actions autorisees avec un code valide restent: consulter, annuler, confirmer que le ticket a ete traite.
+
+### TICKET-033 - Annuler un ticket non authentifie avec numero et code
+
+**En tant que** visiteur non authentifie,
+**je veux** annuler mon ticket avec son numero et son code d'acces,
+**afin de** retirer ma demande sans compte FlowMova.
+
+Criteres d'acceptation:
+
+- Le visiteur fournit `ticketNumber` et `accessCode`.
+- Le backend valide le code d'acces avec le hash stocke.
+- La transition vers `CANCELLED` doit etre valide.
+- Un numero ou un code invalide refuse l'annulation.
+- Un ticket deja finalise ne peut pas etre annule si le cycle de vie l'interdit.
+
+### TICKET-034 - Confirmer le traitement d'un ticket non authentifie avec numero et code
+
+**En tant que** visiteur non authentifie,
+**je veux** confirmer que mon ticket a ete traite avec son numero et son code d'acces,
+**afin de** indiquer que ma prise en charge est terminee sans compte FlowMova.
+
+Criteres d'acceptation:
+
+- Le visiteur fournit `ticketNumber` et `accessCode`.
+- Le backend valide le code d'acces avec le hash stocke.
+- L'action ne correspond pas a la confirmation operationnelle interne de l'entreprise.
+- La transition vers l'etat de traitement termine doit etre valide.
+- Un numero ou un code invalide refuse l'action.
+- Un ticket deja finalise ne peut pas etre modifie si le cycle de vie l'interdit.
+
+### TICKET-035 - Confirmer le traitement de son propre ticket authentifie
+
+**En tant que** utilisateur authentifie,
+**je veux** confirmer que mon propre ticket a ete traite,
+**afin de** indiquer que ma prise en charge est terminee depuis mon compte.
+
+Criteres d'acceptation:
+
+- L'utilisateur doit etre authentifie.
+- Le ticket doit etre associe au compte authentifie.
+- L'action ne correspond pas a la confirmation operationnelle interne de l'entreprise.
+- La transition vers l'etat de traitement termine doit etre valide.
+- Un utilisateur ne peut pas confirmer le traitement du ticket d'un autre utilisateur.
 
 ### TICKET-040 - Cloturer un ticket
 
@@ -760,7 +841,8 @@ Pour obtenir rapidement un parcours FS-001 utilisable, traiter dans cet ordre:
 22. TICKET-001
 23. TICKET-002
 24. TICKET-010
+25. TICKET-022
 
-Cette verticale permet d'obtenir: creation entreprise -> catalogue -> unite ouverte sans article obligatoire -> consultation publique par fiche ou lien direct -> creation ticket general.
+Cette verticale permet d'obtenir: creation entreprise -> catalogue -> unite ouverte sans article obligatoire -> consultation publique par fiche ou lien direct -> creation ticket general -> consultation invitee avec numero et code.
 
 Les issues `ITEM-001`, `ITEM-002`, `SERVICE-020` et `ITEM-010` peuvent ensuite enrichir l'unite avec des articles disponibles.
