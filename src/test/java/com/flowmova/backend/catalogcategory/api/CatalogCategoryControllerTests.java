@@ -1,6 +1,7 @@
 package com.flowmova.backend.catalogcategory.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -201,6 +202,102 @@ class CatalogCategoryControllerTests {
                 .findByCompanyIdOrderByDisplayOrderAscNameAsc(company.getId())
                 .getFirst();
         assertThat(category.getStatus()).isEqualTo(CatalogCategoryStatus.ACTIVE);
+    }
+
+    @Test
+    void adminListsCatalogCategoriesOrderedByDisplayOrderAndName() throws Exception {
+        User admin = user("catalog-category-list-admin");
+        Company company = company(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        CatalogCategory secondCategory = catalogCategoryRepository.saveAndFlush(new CatalogCategory(
+                company,
+                "Z Services",
+                "Second category",
+                20,
+                admin));
+        CatalogCategory firstCategory = catalogCategoryRepository.saveAndFlush(new CatalogCategory(
+                company,
+                "A Services",
+                "First category",
+                10,
+                admin));
+        catalogCategoryRepository.saveAndFlush(new CatalogCategory(
+                company(admin),
+                "Other Company Services",
+                "Other company category",
+                1,
+                admin));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(get("/api/companies/{companyId}/catalog-categories", company.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].id").value(firstCategory.getId().toString()))
+                .andExpect(jsonPath("$[0].name").value("A Services"))
+                .andExpect(jsonPath("$[0].displayOrder").value(10))
+                .andExpect(jsonPath("$[0].status").value("ACTIVE"))
+                .andExpect(jsonPath("$[1].id").value(secondCategory.getId().toString()))
+                .andExpect(jsonPath("$[1].name").value("Z Services"))
+                .andExpect(jsonPath("$[1].displayOrder").value(20));
+    }
+
+    @Test
+    void employeeListsCatalogCategories() throws Exception {
+        User employee = user("catalog-category-list-employee");
+        Company company = company(employee);
+        companyUserRepository.save(new CompanyUser(company.getId(), employee, CompanyRole.EMPLOYEE));
+        catalogCategoryRepository.saveAndFlush(new CatalogCategory(
+                company,
+                "Employee Visible Services",
+                "Visible to employee",
+                0,
+                employee));
+        String token = accessTokenGenerator.generate(employee).value();
+
+        mockMvc.perform(get("/api/companies/{companyId}/catalog-categories", company.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].name").value("Employee Visible Services"));
+    }
+
+    @Test
+    void rejectsCatalogCategoryListingWithoutJwt() throws Exception {
+        mockMvc.perform(get("/api/companies/{companyId}/catalog-categories", UUID.randomUUID()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void rejectsCatalogCategoryListingForNonMember() throws Exception {
+        User owner = user("catalog-category-list-owner");
+        User outsider = user("catalog-category-list-outsider");
+        Company company = company(owner);
+        companyUserRepository.save(new CompanyUser(company.getId(), owner, CompanyRole.ADMIN));
+        String token = accessTokenGenerator.generate(outsider).value();
+
+        mockMvc.perform(get("/api/companies/{companyId}/catalog-categories", company.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.message").value("Company membership is required"));
+    }
+
+    @Test
+    void rejectsCatalogCategoryListingForInactiveMember() throws Exception {
+        User user = user("catalog-category-list-inactive");
+        Company company = company(user);
+        CompanyUser inactiveMembership = new CompanyUser(company.getId(), user, CompanyRole.ADMIN);
+        inactiveMembership.deactivate();
+        companyUserRepository.save(inactiveMembership);
+        String token = accessTokenGenerator.generate(user).value();
+
+        mockMvc.perform(get("/api/companies/{companyId}/catalog-categories", company.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.message").value("Company membership is required"));
     }
 
     private User user(String emailPrefix) {
