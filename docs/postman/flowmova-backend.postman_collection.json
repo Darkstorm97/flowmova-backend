@@ -35,6 +35,11 @@
       "key": "companyId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "companySearchQuery",
+      "value": "FlowMova",
+      "type": "string"
     }
   ],
   "item": [
@@ -428,6 +433,70 @@
     {
       "name": "Companies",
       "item": [
+        {
+          "name": "Search Active Companies",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response is paginated and public', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('items');",
+                  "    pm.expect(json.items).to.be.an('array');",
+                  "    pm.expect(json).to.have.property('page');",
+                  "    pm.expect(json).to.have.property('size');",
+                  "    pm.expect(json).to.have.property('totalItems');",
+                  "    pm.expect(json).to.have.property('totalPages');",
+                  "    json.items.forEach(function (company) {",
+                  "        pm.expect(company).to.have.property('status', 'ACTIVE');",
+                  "        pm.expect(company).to.not.have.property('role');",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/companies?q={{companySearchQuery}}&page=0&size=20&sort=name,asc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "companies"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "{{companySearchQuery}}"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                },
+                {
+                  "key": "sort",
+                  "value": "name,asc"
+                }
+              ]
+            },
+            "description": "Recherche publique paginee des entreprises ACTIVE. Utilisable avec ou sans authentification."
+          },
+          "response": []
+        },
         {
           "name": "Create Company",
           "event": [

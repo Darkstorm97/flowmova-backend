@@ -132,6 +132,57 @@ class CompanyControllerTests {
     }
 
     @Test
+    void searchesActiveCompaniesWithoutJwtUsingPaginationAndNameFilter() throws Exception {
+        String uniquePrefix = "Public Search %s".formatted(UUID.randomUUID());
+        User owner = userRepository.save(new User(
+                "public-search-owner.%s@flowmova.test".formatted(UUID.randomUUID()),
+                passwordEncoder.encode("Password123!"),
+                "Public",
+                "Owner"));
+
+        Company alphaCompany = activeCompany(uniquePrefix + " Alpha Moving", "Visible alpha", owner);
+        activeCompany(uniquePrefix + " Beta Moving", "Visible beta", owner);
+        companyRepository.save(new Company(uniquePrefix + " Alpha Disabled", "Hidden disabled", owner));
+
+        mockMvc.perform(get("/api/companies")
+                        .param("q", uniquePrefix + " Alpha")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("sort", "name,asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].id").value(alphaCompany.getId().toString()))
+                .andExpect(jsonPath("$.items[0].name").value(uniquePrefix + " Alpha Moving"))
+                .andExpect(jsonPath("$.items[0].status").value("ACTIVE"))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(10))
+                .andExpect(jsonPath("$.totalItems").value(1))
+                .andExpect(jsonPath("$.totalPages").value(1));
+    }
+
+    @Test
+    void searchesActiveCompaniesExcludingDisabledCompanies() throws Exception {
+        String uniquePrefix = "Public Disabled %s".formatted(UUID.randomUUID());
+        User owner = userRepository.save(new User(
+                "public-search-disabled.%s@flowmova.test".formatted(UUID.randomUUID()),
+                passwordEncoder.encode("Password123!"),
+                "Public",
+                "Disabled"));
+
+        activeCompany(uniquePrefix + " Visible Company", "Visible", owner);
+        companyRepository.save(new Company(uniquePrefix + " Hidden Disabled Company", "Hidden", owner));
+
+        mockMvc.perform(get("/api/companies")
+                        .param("q", uniquePrefix)
+                        .param("page", "0")
+                        .param("size", "20")
+                        .param("sort", "name,asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[?(@.name == '%s Visible Company')]".formatted(uniquePrefix)).exists())
+                .andExpect(jsonPath("$.items[?(@.name == '%s Hidden Disabled Company')]".formatted(uniquePrefix)).doesNotExist());
+    }
+
+    @Test
     void listsCurrentUserCompaniesWithPaginationAndRoles() throws Exception {
         User user = userRepository.save(new User(
                 "company-list.%s@flowmova.test".formatted(UUID.randomUUID()),
