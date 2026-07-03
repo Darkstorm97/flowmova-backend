@@ -8,6 +8,8 @@ import com.flowmova.backend.companyaccess.domain.CompanyUser;
 import com.flowmova.backend.companyaccess.infrastructure.CompanyUserRepository;
 import com.flowmova.backend.user.domain.User;
 import com.flowmova.backend.user.infrastructure.UserRepository;
+import java.util.Currency;
+import java.util.Locale;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +39,7 @@ public class CreateCompanyService {
         Company company = new Company(
                 command.name().trim(),
                 normalizeDescription(command.description()),
+                normalizeCurrency(command.currency()),
                 creator);
         company.activate();
 
@@ -52,5 +55,24 @@ public class CreateCompanyService {
         }
 
         return description.trim();
+    }
+
+    private String normalizeCurrency(String currency) {
+        if (currency == null || currency.isBlank()) {
+            return Company.DEFAULT_CURRENCY;
+        }
+
+        String normalizedCurrency = currency.trim().toUpperCase(Locale.ROOT);
+        if (normalizedCurrency.length() != 3) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Currency must be a 3-letter ISO 4217 code");
+        }
+
+        try {
+            Currency.getInstance(normalizedCurrency);
+        } catch (IllegalArgumentException exception) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Currency must be a valid ISO 4217 code");
+        }
+
+        return normalizedCurrency;
     }
 }

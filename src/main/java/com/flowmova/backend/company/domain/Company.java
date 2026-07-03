@@ -22,6 +22,8 @@ import org.hibernate.type.SqlTypes;
 @Table(name = "companies")
 public class Company {
 
+    public static final String DEFAULT_CURRENCY = "CAD";
+
     @Id
     @Column(name = "id", nullable = false)
     private UUID id;
@@ -31,6 +33,9 @@ public class Company {
 
     @Column(name = "description")
     private String description;
+
+    @Column(name = "currency", nullable = false, length = 3)
+    private String currency = DEFAULT_CURRENCY;
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
@@ -61,9 +66,14 @@ public class Company {
     }
 
     public Company(String name, String description, User createdBy) {
+        this(name, description, DEFAULT_CURRENCY, createdBy);
+    }
+
+    public Company(String name, String description, String currency, User createdBy) {
         this.id = UUID.randomUUID();
         this.name = name;
         this.description = description;
+        this.currency = currency;
         this.createdBy = createdBy;
     }
 
@@ -81,6 +91,10 @@ public class Company {
 
     public String getDescription() {
         return description;
+    }
+
+    public String getCurrency() {
+        return currency;
     }
 
     public CompanyStatus getStatus() {

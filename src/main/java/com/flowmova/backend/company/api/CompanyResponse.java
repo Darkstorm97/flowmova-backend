@@ -9,6 +9,7 @@ public record CompanyResponse(
         UUID id,
         String name,
         String description,
+        String currency,
         CompanyStatus status,
         Instant createdAt,
         Instant updatedAt) {
@@ -18,6 +19,7 @@ public record CompanyResponse(
                 company.getId(),
                 company.getName(),
                 company.getDescription(),
+                company.getCurrency(),
                 company.getStatus(),
                 company.getCreatedAt(),
                 company.getUpdatedAt());

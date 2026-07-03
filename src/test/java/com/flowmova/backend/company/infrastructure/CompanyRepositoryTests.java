@@ -40,6 +40,7 @@ class CompanyRepositoryTests {
         assertThat(company.getCreatedAt()).isNotNull();
         assertThat(company.getUpdatedAt()).isNotNull();
         assertThat(company.getCreatedBy()).isEqualTo(owner);
+        assertThat(company.getCurrency()).isEqualTo("CAD");
         assertThat(company.getVersion()).isNotNull();
     }
 }

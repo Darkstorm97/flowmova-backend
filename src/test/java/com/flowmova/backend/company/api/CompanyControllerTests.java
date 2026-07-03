@@ -68,13 +68,15 @@ class CompanyControllerTests {
                         .content("""
                                 {
                                   "name": " FlowMova Demo ",
-                                  "description": " Demo company "
+                                  "description": " Demo company ",
+                                  "currency": "usd"
                                 }
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").exists())
                 .andExpect(jsonPath("$.name").value("FlowMova Demo"))
                 .andExpect(jsonPath("$.description").value("Demo company"))
+                .andExpect(jsonPath("$.currency").value("USD"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"))
                 .andExpect(jsonPath("$.createdAt").exists())
                 .andExpect(jsonPath("$.updatedAt").exists())
@@ -88,9 +90,31 @@ class CompanyControllerTests {
         CompanyUser companyUser = companyUserRepository.findByCompanyIdAndUserId(createdCompanyId, user.getId()).orElseThrow();
 
         assertThat(company.getStatus()).isEqualTo(CompanyStatus.ACTIVE);
+        assertThat(company.getCurrency()).isEqualTo("USD");
         assertThat(company.getCreatedBy().getId()).isEqualTo(user.getId());
         assertThat(companyUser.getRole()).isEqualTo(CompanyRole.ADMIN);
         assertThat(companyUser.getStatus()).isEqualTo(CompanyUserStatus.ACTIVE);
+    }
+
+    @Test
+    void defaultsCompanyCurrencyToCadWhenMissing() throws Exception {
+        User user = userRepository.save(new User(
+                "company-default-currency.%s@flowmova.test".formatted(UUID.randomUUID()),
+                passwordEncoder.encode("Password123!"),
+                "Company",
+                "Currency"));
+        String token = accessTokenGenerator.generate(user).value();
+
+        mockMvc.perform(post("/api/companies")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Default Currency Company"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.currency").value("CAD"));
     }
 
     @Test
@@ -132,6 +156,29 @@ class CompanyControllerTests {
     }
 
     @Test
+    void rejectsCompanyCreationWithUnsupportedCurrency() throws Exception {
+        User user = userRepository.save(new User(
+                "company-invalid-currency.%s@flowmova.test".formatted(UUID.randomUUID()),
+                passwordEncoder.encode("Password123!"),
+                "Company",
+                "Currency"));
+        String token = accessTokenGenerator.generate(user).value();
+
+        mockMvc.perform(post("/api/companies")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Invalid Currency Company",
+                                  "currency": "ZZZ"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("Currency must be a valid ISO 4217 code"));
+    }
+
+    @Test
     void searchesActiveCompaniesWithoutJwtUsingPaginationAndNameFilter() throws Exception {
         String uniquePrefix = "Public Search %s".formatted(UUID.randomUUID());
         User owner = userRepository.save(new User(
@@ -153,6 +200,7 @@ class CompanyControllerTests {
                 .andExpect(jsonPath("$.items.length()").value(1))
                 .andExpect(jsonPath("$.items[0].id").value(alphaCompany.getId().toString()))
                 .andExpect(jsonPath("$.items[0].name").value(uniquePrefix + " Alpha Moving"))
+                .andExpect(jsonPath("$.items[0].currency").value("CAD"))
                 .andExpect(jsonPath("$.items[0].status").value("ACTIVE"))
                 .andExpect(jsonPath("$.page").value(0))
                 .andExpect(jsonPath("$.size").value(10))
@@ -217,6 +265,7 @@ class CompanyControllerTests {
                 .andExpect(jsonPath("$.items.length()").value(1))
                 .andExpect(jsonPath("$.items[0].id").value(alphaCompany.getId().toString()))
                 .andExpect(jsonPath("$.items[0].name").value("Alpha Company"))
+                .andExpect(jsonPath("$.items[0].currency").value("CAD"))
                 .andExpect(jsonPath("$.items[0].role").value("ADMIN"))
                 .andExpect(jsonPath("$.items[0].status").value("ACTIVE"))
                 .andExpect(jsonPath("$.page").value(0))

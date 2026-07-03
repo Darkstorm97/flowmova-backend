@@ -6,9 +6,10 @@ import jakarta.validation.constraints.Size;
 
 public record CreateCompanyRequest(
         @NotBlank @Size(max = 150) String name,
-        @Size(max = 2_000) String description) {
+        @Size(max = 2_000) String description,
+        @Size(max = 3) String currency) {
 
     public CreateCompanyCommand toCommand() {
-        return new CreateCompanyCommand(name, description);
+        return new CreateCompanyCommand(name, description, currency);
     }
 }

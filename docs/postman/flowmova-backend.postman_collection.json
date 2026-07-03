@@ -32,6 +32,11 @@
       "type": "string"
     },
     {
+      "key": "companyCurrency",
+      "value": "CAD",
+      "type": "string"
+    },
+    {
       "key": "companyId",
       "value": "",
       "type": "string"
@@ -543,7 +548,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"{{companyName}}\",\n  \"description\": \"Company created from Postman\"\n}"
+              "raw": "{\n  \"name\": \"{{companyName}}\",\n  \"description\": \"Company created from Postman\",\n  \"currency\": \"{{companyCurrency}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/companies",
