@@ -1067,6 +1067,82 @@
         }
       ],
       "id": "b35fc02d-2c1a-4486-beab-5167138ecc9d"
+    },
+    {
+      "name": "Service Units",
+      "item": [
+        {
+          "name": "Create Service Unit",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response contains service unit and default location', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('id');",
+                  "    pm.expect(json).to.have.property('companyId', pm.collectionVariables.get('companyId'));",
+                  "    pm.expect(json).to.have.property('name');",
+                  "    pm.expect(json).to.have.property('type', 'TICKET_QUEUE');",
+                  "    pm.expect(json).to.have.property('status', 'CLOSED');",
+                  "    pm.expect(json).to.have.property('defaultLocation');",
+                  "    pm.expect(json.defaultLocation).to.have.property('id');",
+                  "    pm.expect(json.defaultLocation).to.have.property('type', 'DEFAULT');",
+                  "    pm.expect(json.defaultLocation).to.have.property('defaultLocation', true);",
+                  "    pm.expect(json.defaultLocation).to.have.property('publicAccessSlug');",
+                  "    pm.collectionVariables.set('serviceUnitId', json.id);",
+                  "    pm.collectionVariables.set('serviceUnitLocationId', json.defaultLocation.id);",
+                  "    pm.collectionVariables.set('publicAccessSlug', json.defaultLocation.publicAccessSlug);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"File principale\",\n  \"description\": \"File de prise en charge creee depuis Postman\",\n  \"location\": \"Accueil\",\n  \"type\": \"TICKET_QUEUE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/companies/{{companyId}}/service-units",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "companies",
+                "{{companyId}}",
+                "service-units"
+              ]
+            },
+            "description": "Cree une unite de service CLOSED avec son emplacement par defaut ACTIVE. Executer Login puis Create Company avant cet appel pour alimenter accessToken et companyId."
+          },
+          "response": []
+        }
+      ],
+      "id": "d8fdf891-1ed6-4f38-8411-913cb65a2391"
     }
   ],
   "variable": [
@@ -1114,6 +1190,21 @@
     {
       "id": "072cb7d6-9d5d-419f-ba9d-a955bc96fe55",
       "key": "catalogId",
+      "value": ""
+    },
+    {
+      "id": "82a15258-d7df-45b1-8f34-c8af8e875460",
+      "key": "serviceUnitId",
+      "value": ""
+    },
+    {
+      "id": "5222d4ec-8bf3-476c-b774-fc98644d698d",
+      "key": "serviceUnitLocationId",
+      "value": ""
+    },
+    {
+      "id": "824f1df6-f27c-40b3-a958-90bc0b7a4d7a",
+      "key": "publicAccessSlug",
       "value": ""
     }
   ]
