@@ -2,14 +2,18 @@ package com.flowmova.backend.serviceunit.api;
 
 import com.flowmova.backend.auth.domain.AuthenticatedUser;
 import com.flowmova.backend.serviceunit.application.ListAdminServiceUnitsService;
+import com.flowmova.backend.serviceunit.application.UpdateServiceUnitService;
 import com.flowmova.backend.serviceunit.domain.ServiceUnitStatus;
 import com.flowmova.backend.shared.api.PageResponse;
+import jakarta.validation.Valid;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -18,9 +22,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminServiceUnitController {
 
     private final ListAdminServiceUnitsService listAdminServiceUnitsService;
+    private final UpdateServiceUnitService updateServiceUnitService;
 
-    public AdminServiceUnitController(ListAdminServiceUnitsService listAdminServiceUnitsService) {
+    public AdminServiceUnitController(
+            ListAdminServiceUnitsService listAdminServiceUnitsService,
+            UpdateServiceUnitService updateServiceUnitService) {
         this.listAdminServiceUnitsService = listAdminServiceUnitsService;
+        this.updateServiceUnitService = updateServiceUnitService;
     }
 
     @GetMapping
@@ -30,5 +38,14 @@ public class AdminServiceUnitController {
             @RequestParam(required = false) ServiceUnitStatus status,
             Pageable pageable) {
         return PageResponse.from(listAdminServiceUnitsService.list(companyId, authenticatedUser, status, pageable));
+    }
+
+    @PutMapping("/{serviceUnitId}")
+    public ServiceUnitResponse update(
+            @PathVariable UUID companyId,
+            @PathVariable UUID serviceUnitId,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+            @Valid @RequestBody UpdateServiceUnitRequest request) {
+        return updateServiceUnitService.update(companyId, serviceUnitId, authenticatedUser, request.toCommand());
     }
 }

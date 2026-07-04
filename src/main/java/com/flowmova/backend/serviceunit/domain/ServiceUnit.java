@@ -110,6 +110,13 @@ public class ServiceUnit {
         this.updatedBy = updatedBy;
     }
 
+    public void update(String name, String description, String location, User updatedBy) {
+        this.name = name;
+        this.description = description;
+        this.location = location;
+        this.updatedBy = updatedBy;
+    }
+
     public UUID getId() {
         return id;
     }

@@ -3,6 +3,7 @@ package com.flowmova.backend.serviceunit.api;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -807,6 +808,237 @@ class ServiceUnitControllerTests {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("NOT_FOUND"))
                 .andExpect(jsonPath("$.message").value("Company not found"));
+    }
+
+    @Test
+    void adminUpdatesServiceUnitWithoutChangingStatusOrDefaultLocation() throws Exception {
+        User admin = user("service-unit-update-admin");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        ServiceUnit serviceUnit = new ServiceUnit(
+                company,
+                "Old Queue",
+                "Old description",
+                "Old location",
+                null,
+                admin);
+        serviceUnit.open(admin);
+        serviceUnit = serviceUnitRepository.save(serviceUnit);
+        ServiceUnitLocation defaultLocation = serviceUnitLocationRepository.save(new ServiceUnitLocation(
+                serviceUnit,
+                "Principal",
+                null,
+                ServiceUnitLocationType.DEFAULT,
+                true,
+                "loc-%s".formatted(UUID.randomUUID()),
+                admin));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(put(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}",
+                        company.getId(),
+                        serviceUnit.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": " Updated Queue ",
+                                  "description": " Updated description ",
+                                  "location": " Updated location "
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(serviceUnit.getId().toString()))
+                .andExpect(jsonPath("$.companyId").value(company.getId().toString()))
+                .andExpect(jsonPath("$.name").value("Updated Queue"))
+                .andExpect(jsonPath("$.description").value("Updated description"))
+                .andExpect(jsonPath("$.location").value("Updated location"))
+                .andExpect(jsonPath("$.status").value("OPEN"))
+                .andExpect(jsonPath("$.defaultLocation.id").value(defaultLocation.getId().toString()));
+
+        ServiceUnit updatedServiceUnit = serviceUnitRepository.findById(serviceUnit.getId()).orElseThrow();
+        assertThat(updatedServiceUnit.getName()).isEqualTo("Updated Queue");
+        assertThat(updatedServiceUnit.getDescription()).isEqualTo("Updated description");
+        assertThat(updatedServiceUnit.getLocation()).isEqualTo("Updated location");
+        assertThat(updatedServiceUnit.getStatus()).isEqualTo(ServiceUnitStatus.OPEN);
+        assertThat(updatedServiceUnit.getUpdatedBy().getId()).isEqualTo(admin.getId());
+    }
+
+    @Test
+    void adminUpdatesArchivedServiceUnit() throws Exception {
+        User admin = user("service-unit-update-archived");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        ServiceUnit serviceUnit = new ServiceUnit(
+                company,
+                "Archived Old Queue",
+                null,
+                null,
+                null,
+                admin);
+        serviceUnit.archive(admin);
+        serviceUnit = serviceUnitRepository.save(serviceUnit);
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(put(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}",
+                        company.getId(),
+                        serviceUnit.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Archived Updated Queue",
+                                  "description": "",
+                                  "location": ""
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Archived Updated Queue"))
+                .andExpect(jsonPath("$.description").doesNotExist())
+                .andExpect(jsonPath("$.location").doesNotExist())
+                .andExpect(jsonPath("$.status").value("ARCHIVED"))
+                .andExpect(jsonPath("$.defaultLocation").doesNotExist());
+    }
+
+    @Test
+    void rejectsServiceUnitUpdateWithoutJwt() throws Exception {
+        mockMvc.perform(put(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}",
+                        UUID.randomUUID(),
+                        UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Unauthorized Queue"
+                                }
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void rejectsServiceUnitUpdateForEmployee() throws Exception {
+        User employee = user("service-unit-update-employee");
+        Company company = activeCompany(employee);
+        companyUserRepository.save(new CompanyUser(company.getId(), employee, CompanyRole.EMPLOYEE));
+        ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Employee Update Queue",
+                null,
+                null,
+                null,
+                employee));
+        String token = accessTokenGenerator.generate(employee).value();
+
+        mockMvc.perform(put(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}",
+                        company.getId(),
+                        serviceUnit.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Employee Updated Queue"
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.message").value("Company admin role is required"));
+    }
+
+    @Test
+    void rejectsServiceUnitUpdateWithoutName() throws Exception {
+        User admin = user("service-unit-update-invalid");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Invalid Update Queue",
+                null,
+                null,
+                null,
+                admin));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(put(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}",
+                        company.getId(),
+                        serviceUnit.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": ""
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.fieldErrors[?(@.field == 'name')]").exists());
+    }
+
+    @Test
+    void rejectsServiceUnitUpdateForDisabledCompany() throws Exception {
+        User admin = user("service-unit-update-disabled-company");
+        Company disabledCompany = companyRepository.save(new Company(
+                "Disabled Service Unit Update Company",
+                "Hidden service unit update company",
+                admin));
+        companyUserRepository.save(new CompanyUser(disabledCompany.getId(), admin, CompanyRole.ADMIN));
+        ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
+                disabledCompany,
+                "Disabled Company Update Queue",
+                null,
+                null,
+                null,
+                admin));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(put(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}",
+                        disabledCompany.getId(),
+                        serviceUnit.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Disabled Company Updated Queue"
+                                }
+                                """))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Company not found"));
+    }
+
+    @Test
+    void rejectsServiceUnitUpdateForAnotherCompanyServiceUnit() throws Exception {
+        User admin = user("service-unit-update-other-company");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        Company otherCompany = activeCompany(admin);
+        ServiceUnit otherCompanyServiceUnit = serviceUnitRepository.save(new ServiceUnit(
+                otherCompany,
+                "Other Company Update Queue",
+                null,
+                null,
+                null,
+                admin));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(put(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}",
+                        company.getId(),
+                        otherCompanyServiceUnit.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Wrong Company Updated Queue"
+                                }
+                                """))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Service unit not found"));
     }
 
     private User user(String emailPrefix) {
