@@ -123,29 +123,31 @@ public class Ticket {
         recalculateTotalAmount();
     }
 
-    public void confirm() {
-        transitionTo(TicketStatus.CONFIRMED, TicketStatus.CREATED);
+    public void markReceived() {
+        transitionTo(TicketStatus.RECEIVED, TicketStatus.CREATED);
     }
 
-    public void call() {
-        transitionTo(TicketStatus.CALLED, TicketStatus.CONFIRMED);
+    public void markTreated() {
+        if (status != TicketStatus.CREATED && status != TicketStatus.RECEIVED) {
+            throw new IllegalStateException("Ticket transition is invalid");
+        }
+        this.status = TicketStatus.TREATED;
     }
 
-    public void startProgress() {
-        transitionTo(TicketStatus.IN_PROGRESS, TicketStatus.CALLED);
-    }
-
-    public void complete() {
-        transitionTo(TicketStatus.COMPLETED, TicketStatus.IN_PROGRESS);
+    public void confirmCustomerTreatment() {
+        transitionTo(TicketStatus.CUSTOMER_CONFIRMED, TicketStatus.TREATED);
     }
 
     public void close() {
-        transitionTo(TicketStatus.CLOSED, TicketStatus.COMPLETED);
+        if (status != TicketStatus.TREATED && status != TicketStatus.CUSTOMER_CONFIRMED) {
+            throw new IllegalStateException("Ticket transition is invalid");
+        }
+        this.status = TicketStatus.CLOSED;
         this.closedAt = Instant.now();
     }
 
     public void cancel() {
-        if (status == TicketStatus.CLOSED || status == TicketStatus.CANCELLED) {
+        if (status != TicketStatus.CREATED && status != TicketStatus.RECEIVED) {
             throw new IllegalStateException("Ticket transition is invalid");
         }
         this.status = TicketStatus.CANCELLED;

@@ -13,6 +13,8 @@ public interface TicketRepository extends JpaRepository<Ticket, UUID> {
 
     Optional<Ticket> findByTicketNumber(String ticketNumber);
 
+    Optional<Ticket> findByIdAndServiceUnitId(UUID id, UUID serviceUnitId);
+
     List<Ticket> findByServiceUnitIdOrderByCreatedAtDesc(UUID serviceUnitId);
 
     List<Ticket> findByServiceUnitIdAndStatusOrderByCreatedAtDesc(UUID serviceUnitId, TicketStatus status);

@@ -24,7 +24,8 @@ public record TicketResponse(
         BigDecimal totalAmount,
         List<TicketLineResponse> lines,
         Instant createdAt,
-        Instant updatedAt) {
+        Instant updatedAt,
+        Instant closedAt) {
 
     public static TicketResponse from(Ticket ticket, String accessCode) {
         return new TicketResponse(
@@ -42,6 +43,7 @@ public record TicketResponse(
                 ticket.getTotalAmount(),
                 ticket.getLines().stream().map(TicketLineResponse::from).toList(),
                 ticket.getCreatedAt(),
-                ticket.getUpdatedAt());
+                ticket.getUpdatedAt(),
+                ticket.getClosedAt());
     }
 }

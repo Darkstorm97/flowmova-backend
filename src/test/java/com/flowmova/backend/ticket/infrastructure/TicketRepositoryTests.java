@@ -120,7 +120,7 @@ class TicketRepositoryTests {
                 3,
                 fixture.item().getPriceAmount(),
                 null));
-        authenticatedTicket.confirm();
+        authenticatedTicket.markTreated();
         authenticatedTicket = ticketRepository.saveAndFlush(authenticatedTicket);
 
         Ticket guestTicket = new Ticket(
@@ -136,20 +136,20 @@ class TicketRepositoryTests {
         guestTicket = ticketRepository.saveAndFlush(guestTicket);
 
         assertThat(authenticatedTicket.getTotalAmount()).isEqualByComparingTo("29.97");
-        assertThat(authenticatedTicket.getStatus()).isEqualTo(TicketStatus.CONFIRMED);
+        assertThat(authenticatedTicket.getStatus()).isEqualTo(TicketStatus.TREATED);
         assertThat(authenticatedTicket.getGuestAccessCodeHash()).isNull();
         assertThat(ticketRepository.findByTicketNumber("T-100002")).contains(authenticatedTicket);
         assertThat(ticketRepository.findByServiceUnitIdOrderByCreatedAtDesc(fixture.serviceUnit().getId()))
                 .contains(authenticatedTicket, guestTicket);
         assertThat(ticketRepository.findByServiceUnitIdAndStatusOrderByCreatedAtDesc(
                 fixture.serviceUnit().getId(),
-                TicketStatus.CONFIRMED))
+                TicketStatus.TREATED))
                 .containsExactly(authenticatedTicket);
         assertThat(ticketRepository.findByUserIdOrderByCreatedAtDesc(fixture.user().getId()))
                 .containsExactly(authenticatedTicket);
         assertThat(ticketRepository.findByUserIdAndStatusOrderByCreatedAtDesc(
                 fixture.user().getId(),
-                TicketStatus.CONFIRMED))
+                TicketStatus.TREATED))
                 .containsExactly(authenticatedTicket);
     }
 
@@ -167,10 +167,9 @@ class TicketRepositoryTests {
                 null,
                 fixture.company().getCurrency());
 
-        ticket.confirm();
-        ticket.call();
-        ticket.startProgress();
-        ticket.complete();
+        ticket.markReceived();
+        ticket.markTreated();
+        ticket.confirmCustomerTreatment();
         ticket.close();
         ticket = ticketRepository.saveAndFlush(ticket);
 

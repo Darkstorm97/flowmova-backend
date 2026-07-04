@@ -739,7 +739,7 @@ Criteres d'acceptation:
 Criteres d'acceptation:
 
 - Les entites `Ticket` et `TicketLine` existent.
-- L'enum `TicketStatus` existe avec `CREATED`, `CONFIRMED`, `CALLED`, `IN_PROGRESS`, `COMPLETED`, `CLOSED`, `CANCELLED`.
+- L'enum `TicketStatus` existe avec `CREATED`, `RECEIVED`, `TREATED`, `CUSTOMER_CONFIRMED`, `CLOSED`, `CANCELLED`.
 - L'entite `Ticket` expose un champ `customerPhone` optionnel.
 - Les repositories permettent de lister les tickets par unite, utilisateur et statut.
 - Les transitions de statut sont preparees cote domaine ou service applicatif.
@@ -868,7 +868,14 @@ Criteres d'acceptation:
 
 - Les roles `ADMIN` et `EMPLOYEE` peuvent changer l'etat d'un ticket.
 - Les transitions invalides sont refusees.
-- Les transitions supportees couvrent: confirmer, appeler, demarrer, terminer, cloturer, annuler.
+- L'equipe peut passer un ticket `CREATED` vers `RECEIVED`, `TREATED` ou `CANCELLED`.
+- L'equipe peut passer un ticket `RECEIVED` vers `TREATED` ou `CANCELLED`.
+- L'equipe peut passer un ticket `TREATED` vers `CLOSED`.
+- L'equipe peut passer un ticket `CUSTOMER_CONFIRMED` vers `CLOSED`.
+- Les statuts finaux `CLOSED` et `CANCELLED` ne peuvent plus etre modifies par ce parcours.
+- `RECEIVED` signifie que l'equipe confirme la reception/acceptation du ticket, pas son traitement.
+- `TREATED` signifie que l'equipe confirme que le ticket est traite cote entreprise.
+- `CUSTOMER_CONFIRMED` signifie que le client confirme que le ticket a ete traite.
 - Les changements d'etat respectent le cycle de vie FS-001.
 - Les changements importants sont journalises.
 
@@ -884,7 +891,8 @@ Criteres d'acceptation:
 - Le ticket doit etre associe au compte authentifie.
 - La transition vers `CANCELLED` doit etre valide.
 - Un utilisateur ne peut pas annuler le ticket d'un autre utilisateur.
-- Un ticket deja finalise ne peut pas etre annule si le cycle de vie l'interdit.
+- Un ticket peut etre annule par son createur uniquement en statut `CREATED` ou `RECEIVED`.
+- Un ticket deja traite ou finalise ne peut pas etre annule par son createur.
 
 ### TICKET-032 - Refuser les actions invitees avec numero ou code invalide
 
@@ -912,7 +920,8 @@ Criteres d'acceptation:
 - Le backend valide le code d'acces avec le hash stocke.
 - La transition vers `CANCELLED` doit etre valide.
 - Un numero ou un code invalide refuse l'annulation.
-- Un ticket deja finalise ne peut pas etre annule si le cycle de vie l'interdit.
+- Un ticket invite peut etre annule uniquement en statut `CREATED` ou `RECEIVED`.
+- Un ticket deja traite ou finalise ne peut pas etre annule par le visiteur.
 
 ### TICKET-034 - Confirmer le traitement d'un ticket non authentifie avec numero et code
 
@@ -925,7 +934,7 @@ Criteres d'acceptation:
 - Le visiteur fournit `ticketNumber` et `accessCode`.
 - Le backend valide le code d'acces avec le hash stocke.
 - L'action ne correspond pas a la confirmation operationnelle interne de l'entreprise.
-- La transition vers l'etat de traitement termine doit etre valide.
+- La transition vers `CUSTOMER_CONFIRMED` est valide uniquement depuis `TREATED`.
 - Un numero ou un code invalide refuse l'action.
 - Un ticket deja finalise ne peut pas etre modifie si le cycle de vie l'interdit.
 
@@ -940,7 +949,7 @@ Criteres d'acceptation:
 - L'utilisateur doit etre authentifie.
 - Le ticket doit etre associe au compte authentifie.
 - L'action ne correspond pas a la confirmation operationnelle interne de l'entreprise.
-- La transition vers l'etat de traitement termine doit etre valide.
+- La transition vers `CUSTOMER_CONFIRMED` est valide uniquement depuis `TREATED`.
 - Un utilisateur ne peut pas confirmer le traitement du ticket d'un autre utilisateur.
 
 ### TICKET-040 - Cloturer un ticket
@@ -951,8 +960,8 @@ Criteres d'acceptation:
 
 Criteres d'acceptation:
 
-- Les roles `ADMIN` et `EMPLOYEE` peuvent cloturer un ticket.
-- La transition doit respecter le cycle de vie.
+- Les roles `ADMIN` et `EMPLOYEE` peuvent cloturer un ticket depuis `TREATED` ou `CUSTOMER_CONFIRMED`.
+- La transition vers `CLOSED` doit respecter le cycle de vie.
 - `closed_at` est renseigne a la cloture.
 - Un ticket cloture ne peut plus etre modifie librement.
 

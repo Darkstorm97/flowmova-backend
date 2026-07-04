@@ -2043,6 +2043,71 @@
             "description": "Liste les tickets d'une unite de service avec pagination pour un membre ADMIN ou EMPLOYEE de l'entreprise. Les query params status et ticketNumber sont optionnels; activer ticketNumber apres creation d'un ticket."
           },
           "response": []
+        },
+        {
+          "name": "Change Ticket Status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains updated ticket status', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('id', pm.collectionVariables.get('ticketId'));",
+                  "    pm.expect(json).to.have.property('status', 'RECEIVED');",
+                  "    pm.expect(json).to.not.have.property('accessCode');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"RECEIVED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/companies/{{companyId}}/admin/service-units/{{serviceUnitId}}/tickets/{{ticketId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "companies",
+                "{{companyId}}",
+                "admin",
+                "service-units",
+                "{{serviceUnitId}}",
+                "tickets",
+                "{{ticketId}}",
+                "status"
+              ]
+            },
+            "description": "Change le statut d'un ticket pour un membre ADMIN ou EMPLOYEE. Transitions equipe supportees: CREATED -> RECEIVED/TREATED/CANCELLED, RECEIVED -> TREATED/CANCELLED, TREATED -> CLOSED, CUSTOMER_CONFIRMED -> CLOSED. Le statut CUSTOMER_CONFIRMED est reserve aux actions client futures."
+          },
+          "response": []
         }
       ]
     }

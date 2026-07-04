@@ -10,7 +10,9 @@ import com.flowmova.backend.serviceunit.application.ListAdminServiceUnitsService
 import com.flowmova.backend.serviceunit.application.UpdateServiceUnitService;
 import com.flowmova.backend.serviceunit.domain.ServiceUnitStatus;
 import com.flowmova.backend.shared.api.PageResponse;
+import com.flowmova.backend.ticket.api.ChangeTicketStatusRequest;
 import com.flowmova.backend.ticket.api.TicketResponse;
+import com.flowmova.backend.ticket.application.ChangeTicketStatusService;
 import com.flowmova.backend.ticket.application.ListServiceUnitTicketsService;
 import com.flowmova.backend.ticket.domain.TicketStatus;
 import jakarta.validation.Valid;
@@ -19,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -37,18 +40,21 @@ public class AdminServiceUnitController {
     private final CreateItemService createItemService;
     private final UpdateItemService updateItemService;
     private final ListServiceUnitTicketsService listServiceUnitTicketsService;
+    private final ChangeTicketStatusService changeTicketStatusService;
 
     public AdminServiceUnitController(
             ListAdminServiceUnitsService listAdminServiceUnitsService,
             UpdateServiceUnitService updateServiceUnitService,
             CreateItemService createItemService,
             UpdateItemService updateItemService,
-            ListServiceUnitTicketsService listServiceUnitTicketsService) {
+            ListServiceUnitTicketsService listServiceUnitTicketsService,
+            ChangeTicketStatusService changeTicketStatusService) {
         this.listAdminServiceUnitsService = listAdminServiceUnitsService;
         this.updateServiceUnitService = updateServiceUnitService;
         this.createItemService = createItemService;
         this.updateItemService = updateItemService;
         this.listServiceUnitTicketsService = listServiceUnitTicketsService;
+        this.changeTicketStatusService = changeTicketStatusService;
     }
 
     @GetMapping
@@ -94,6 +100,21 @@ public class AdminServiceUnitController {
                 status,
                 ticketNumber,
                 pageable));
+    }
+
+    @PatchMapping("/{serviceUnitId}/tickets/{ticketId}/status")
+    public TicketResponse changeTicketStatus(
+            @PathVariable UUID companyId,
+            @PathVariable UUID serviceUnitId,
+            @PathVariable UUID ticketId,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+            @Valid @RequestBody ChangeTicketStatusRequest request) {
+        return changeTicketStatusService.change(
+                companyId,
+                serviceUnitId,
+                ticketId,
+                authenticatedUser,
+                request.toCommand());
     }
 
     @PutMapping("/{serviceUnitId}/items/{itemId}")

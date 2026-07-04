@@ -2,6 +2,7 @@ package com.flowmova.backend.ticket.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -245,30 +246,30 @@ class TicketControllerTests {
         User otherCustomer = user("my-tickets-other-customer");
         String token = accessTokenGenerator.generate(customer).value();
         String uniqueToken = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        String confirmedTicketNumber = "T-ME-%s".formatted(uniqueToken);
+        String treatedTicketNumber = "T-ME-%s".formatted(uniqueToken);
 
         saveAuthenticatedTicket("T-ME-HIDDEN-%s".formatted(uniqueToken), customer, fixture);
-        Ticket confirmedTicket = saveAuthenticatedTicket(confirmedTicketNumber, customer, fixture);
-        confirmedTicket.confirm();
-        ticketRepository.saveAndFlush(confirmedTicket);
+        Ticket treatedTicket = saveAuthenticatedTicket(treatedTicketNumber, customer, fixture);
+        treatedTicket.markTreated();
+        ticketRepository.saveAndFlush(treatedTicket);
         saveAuthenticatedTicket("T-OTHER-%s".formatted(uniqueToken), otherCustomer, fixture);
         saveGuestTicket("T-GUEST-%s".formatted(uniqueToken), fixture);
 
         mockMvc.perform(get("/api/users/me/tickets")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-                        .param("status", "CONFIRMED")
+                        .param("status", "TREATED")
                         .param("ticketNumber", uniqueToken.toLowerCase())
                         .param("page", "0")
                         .param("size", "10")
                         .param("sort", "ticketNumber,asc"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items.length()").value(1))
-                .andExpect(jsonPath("$.items[0].id").value(confirmedTicket.getId().toString()))
-                .andExpect(jsonPath("$.items[0].ticketNumber").value(confirmedTicketNumber))
+                .andExpect(jsonPath("$.items[0].id").value(treatedTicket.getId().toString()))
+                .andExpect(jsonPath("$.items[0].ticketNumber").value(treatedTicketNumber))
                 .andExpect(jsonPath("$.items[0].accessCode").doesNotExist())
                 .andExpect(jsonPath("$.items[0].guestName").doesNotExist())
                 .andExpect(jsonPath("$.items[0].userId").value(customer.getId().toString()))
-                .andExpect(jsonPath("$.items[0].status").value("CONFIRMED"))
+                .andExpect(jsonPath("$.items[0].status").value("TREATED"))
                 .andExpect(jsonPath("$.items[0].serviceUnitId").value(fixture.serviceUnit().getId().toString()))
                 .andExpect(jsonPath("$.items[?(@.ticketNumber == 'T-OTHER-%s')]".formatted(uniqueToken)).doesNotExist())
                 .andExpect(jsonPath("$.items[?(@.ticketNumber == 'T-GUEST-%s')]".formatted(uniqueToken)).doesNotExist())
@@ -318,9 +319,9 @@ class TicketControllerTests {
 
         Ticket createdTicket = saveGuestTicket(createdTicketNumber, fixture);
         saveAuthenticatedTicket("T-UNIT-AUTH-%s".formatted(uniqueToken), employee, fixture);
-        Ticket confirmedTicket = saveGuestTicket("T-UNIT-CONFIRMED-%s".formatted(uniqueToken), fixture);
-        confirmedTicket.confirm();
-        ticketRepository.saveAndFlush(confirmedTicket);
+        Ticket treatedTicket = saveGuestTicket("T-UNIT-TREATED-%s".formatted(uniqueToken), fixture);
+        treatedTicket.markTreated();
+        ticketRepository.saveAndFlush(treatedTicket);
         saveGuestTicket("T-OTHER-UNIT-%s".formatted(uniqueToken), otherFixture("unit-tickets-other", fixture.owner()));
 
         mockMvc.perform(get(
@@ -337,7 +338,7 @@ class TicketControllerTests {
                 .andExpect(jsonPath("$.items.length()").value(2))
                 .andExpect(jsonPath("$.items[?(@.id == '%s')]".formatted(createdTicket.getId())).exists())
                 .andExpect(jsonPath("$.items[?(@.ticketNumber == 'T-UNIT-AUTH-%s')]".formatted(uniqueToken)).exists())
-                .andExpect(jsonPath("$.items[?(@.ticketNumber == 'T-UNIT-CONFIRMED-%s')]".formatted(uniqueToken)).doesNotExist())
+                .andExpect(jsonPath("$.items[?(@.ticketNumber == 'T-UNIT-TREATED-%s')]".formatted(uniqueToken)).doesNotExist())
                 .andExpect(jsonPath("$.items[?(@.ticketNumber == 'T-OTHER-UNIT-%s')]".formatted(uniqueToken)).doesNotExist())
                 .andExpect(jsonPath("$.items[0].accessCode").doesNotExist())
                 .andExpect(jsonPath("$.page").value(0))
@@ -410,6 +411,209 @@ class TicketControllerTests {
                         "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/tickets",
                         UUID.randomUUID(),
                         UUID.randomUUID()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void employeeChangesTicketStatusFromCreatedToReceived() throws Exception {
+        Fixture fixture = fixture("ticket-status-received");
+        User employee = user("ticket-status-received-employee");
+        companyUserRepository.save(new CompanyUser(fixture.company().getId(), employee, CompanyRole.EMPLOYEE));
+        String token = accessTokenGenerator.generate(employee).value();
+        Ticket ticket = saveGuestTicket("T-STATUS-RECEIVED-%s".formatted(shortToken()), fixture);
+
+        mockMvc.perform(patch(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/tickets/{ticketId}/status",
+                        fixture.company().getId(),
+                        fixture.serviceUnit().getId(),
+                        ticket.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "RECEIVED"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(ticket.getId().toString()))
+                .andExpect(jsonPath("$.status").value("RECEIVED"))
+                .andExpect(jsonPath("$.closedAt").doesNotExist());
+
+        assertThat(ticketRepository.findById(ticket.getId()).orElseThrow().getStatus())
+                .isEqualTo(TicketStatus.RECEIVED);
+    }
+
+    @Test
+    void adminCanSkipReceivedAndMarkTicketTreated() throws Exception {
+        Fixture fixture = fixture("ticket-status-treated");
+        User admin = user("ticket-status-treated-admin");
+        companyUserRepository.save(new CompanyUser(fixture.company().getId(), admin, CompanyRole.ADMIN));
+        String token = accessTokenGenerator.generate(admin).value();
+        Ticket ticket = saveAuthenticatedTicket("T-STATUS-TREATED-%s".formatted(shortToken()), admin, fixture);
+
+        mockMvc.perform(patch(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/tickets/{ticketId}/status",
+                        fixture.company().getId(),
+                        fixture.serviceUnit().getId(),
+                        ticket.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "TREATED"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("TREATED"));
+
+        assertThat(ticketRepository.findById(ticket.getId()).orElseThrow().getStatus())
+                .isEqualTo(TicketStatus.TREATED);
+    }
+
+    @Test
+    void adminClosesCustomerConfirmedTicket() throws Exception {
+        Fixture fixture = fixture("ticket-status-closed");
+        User admin = user("ticket-status-closed-admin");
+        companyUserRepository.save(new CompanyUser(fixture.company().getId(), admin, CompanyRole.ADMIN));
+        String token = accessTokenGenerator.generate(admin).value();
+        Ticket ticket = saveGuestTicket("T-STATUS-CLOSED-%s".formatted(shortToken()), fixture);
+        ticket.markTreated();
+        ticket.confirmCustomerTreatment();
+        ticket = ticketRepository.saveAndFlush(ticket);
+
+        mockMvc.perform(patch(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/tickets/{ticketId}/status",
+                        fixture.company().getId(),
+                        fixture.serviceUnit().getId(),
+                        ticket.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "CLOSED"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CLOSED"))
+                .andExpect(jsonPath("$.closedAt").exists());
+    }
+
+    @Test
+    void rejectsInvalidTicketStatusTransition() throws Exception {
+        Fixture fixture = fixture("ticket-status-invalid");
+        User admin = user("ticket-status-invalid-admin");
+        companyUserRepository.save(new CompanyUser(fixture.company().getId(), admin, CompanyRole.ADMIN));
+        String token = accessTokenGenerator.generate(admin).value();
+        Ticket ticket = saveGuestTicket("T-STATUS-INVALID-%s".formatted(shortToken()), fixture);
+
+        mockMvc.perform(patch(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/tickets/{ticketId}/status",
+                        fixture.company().getId(),
+                        fixture.serviceUnit().getId(),
+                        ticket.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "CLOSED"
+                                }
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CONFLICT"))
+                .andExpect(jsonPath("$.message").value("Ticket transition is invalid"));
+    }
+
+    @Test
+    void rejectsCustomerConfirmedStatusFromCompanyTeam() throws Exception {
+        Fixture fixture = fixture("ticket-status-customer-confirmed");
+        User admin = user("ticket-status-customer-confirmed-admin");
+        companyUserRepository.save(new CompanyUser(fixture.company().getId(), admin, CompanyRole.ADMIN));
+        String token = accessTokenGenerator.generate(admin).value();
+        Ticket ticket = saveGuestTicket("T-STATUS-CUSTOMER-%s".formatted(shortToken()), fixture);
+        ticket.markTreated();
+        ticket = ticketRepository.saveAndFlush(ticket);
+
+        mockMvc.perform(patch(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/tickets/{ticketId}/status",
+                        fixture.company().getId(),
+                        fixture.serviceUnit().getId(),
+                        ticket.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "CUSTOMER_CONFIRMED"
+                                }
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CONFLICT"))
+                .andExpect(jsonPath("$.message").value("Ticket transition is invalid"));
+    }
+
+    @Test
+    void rejectsTicketStatusChangeForNonMember() throws Exception {
+        Fixture fixture = fixture("ticket-status-non-member");
+        User outsider = user("ticket-status-outsider");
+        String token = accessTokenGenerator.generate(outsider).value();
+        Ticket ticket = saveGuestTicket("T-STATUS-NONMEM-%s".formatted(shortToken()), fixture);
+
+        mockMvc.perform(patch(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/tickets/{ticketId}/status",
+                        fixture.company().getId(),
+                        fixture.serviceUnit().getId(),
+                        ticket.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "RECEIVED"
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.message").value("Company member role is required"));
+    }
+
+    @Test
+    void rejectsTicketStatusChangeForAnotherServiceUnit() throws Exception {
+        Fixture fixture = fixture("ticket-status-unit");
+        Fixture otherFixture = otherFixture("ticket-status-other-unit", fixture.owner());
+        User admin = user("ticket-status-unit-admin");
+        companyUserRepository.save(new CompanyUser(fixture.company().getId(), admin, CompanyRole.ADMIN));
+        String token = accessTokenGenerator.generate(admin).value();
+        Ticket otherTicket = saveGuestTicket("T-STATUS-OTHER-%s".formatted(shortToken()), otherFixture);
+
+        mockMvc.perform(patch(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/tickets/{ticketId}/status",
+                        fixture.company().getId(),
+                        fixture.serviceUnit().getId(),
+                        otherTicket.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "RECEIVED"
+                                }
+                                """))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Ticket not found"));
+    }
+
+    @Test
+    void rejectsTicketStatusChangeWithoutJwt() throws Exception {
+        mockMvc.perform(patch(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/tickets/{ticketId}/status",
+                        UUID.randomUUID(),
+                        UUID.randomUUID(),
+                        UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "RECEIVED"
+                                }
+                                """))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
     }
@@ -533,6 +737,10 @@ class TicketControllerTests {
                 .getContentAsString();
 
         return objectMapper.readTree(response);
+    }
+
+    private String shortToken() {
+        return UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
 
     private Ticket saveAuthenticatedTicket(String ticketNumber, User user, Fixture fixture) {
