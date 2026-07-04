@@ -888,6 +888,7 @@ Criteres d'acceptation:
 Criteres d'acceptation:
 
 - L'utilisateur doit etre authentifie.
+- L'endpoint `PATCH /api/users/me/tickets/{ticketId}/cancel` existe.
 - Le ticket doit etre associe au compte authentifie.
 - La transition vers `CANCELLED` doit etre valide.
 - Un utilisateur ne peut pas annuler le ticket d'un autre utilisateur.

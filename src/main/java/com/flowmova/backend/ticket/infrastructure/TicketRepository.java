@@ -15,6 +15,8 @@ public interface TicketRepository extends JpaRepository<Ticket, UUID> {
 
     Optional<Ticket> findByIdAndServiceUnitId(UUID id, UUID serviceUnitId);
 
+    Optional<Ticket> findByIdAndUserId(UUID id, UUID userId);
+
     List<Ticket> findByServiceUnitIdOrderByCreatedAtDesc(UUID serviceUnitId);
 
     List<Ticket> findByServiceUnitIdAndStatusOrderByCreatedAtDesc(UUID serviceUnitId, TicketStatus status);

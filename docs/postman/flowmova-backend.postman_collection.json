@@ -1968,6 +1968,59 @@
           "response": []
         },
         {
+          "name": "Cancel My Ticket",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains cancelled current user ticket', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('id', pm.collectionVariables.get('ticketId'));",
+                  "    pm.expect(json).to.have.property('status', 'CANCELLED');",
+                  "    pm.expect(json).to.not.have.property('accessCode');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me/tickets/{{ticketId}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me",
+                "tickets",
+                "{{ticketId}}",
+                "cancel"
+              ]
+            },
+            "description": "Annule le ticket associe au compte authentifie lorsque son statut est CREATED ou RECEIVED. Executer Create Authenticated Ticket avant cet appel."
+          },
+          "response": []
+        },
+        {
           "name": "List Service Unit Tickets",
           "event": [
             {
