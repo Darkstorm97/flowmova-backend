@@ -43,8 +43,12 @@ Il est construit a partir de FS-001, FS-002 et du DAT. En cas d'ambiguite, les F
 - Une unite de service peut etre ouverte uniquement si elle est correctement configuree.
 - La configuration minimale d'ouverture est: entreprise active, nom renseigne, type `TICKET_QUEUE`, statut actuel `CLOSED`.
 - Les articles d'une unite sont optionnels. S'ils existent et sont disponibles, ils sont affiches; sinon l'utilisateur peut creer un ticket general.
+- Dans le MVP, les quantites d'article sont representatives et informatives; elles ne bloquent pas la creation de ticket si la demande depasse la quantite configuree.
 - Un ticket peut contenir zero, une ou plusieurs lignes de ticket.
 - Un ticket avec zero ligne permet une prise en charge generale.
+- Une ligne de ticket peut preciser une quantite d'article.
+- Si la quantite d'une ligne de ticket est absente ou `null` dans la requete, le backend utilise `1`.
+- Si la quantite d'une ligne de ticket est fournie, elle doit etre superieure ou egale a `1`.
 - Un ticket est toujours rattache a une unite de service et a un emplacement de cette unite.
 - Si aucun emplacement n'est precise a la creation d'un ticket, l'emplacement par defaut de l'unite est utilise.
 - La creation de ticket utilise un seul endpoint pour les utilisateurs authentifies et les visiteurs non authentifies.
@@ -88,6 +92,8 @@ Il est construit a partir de FS-001, FS-002 et du DAT. En cas d'ambiguite, les F
 - Le prix catalogue est optionnel et sert de base au prix d'article; le ticket fige les montants au moment de sa creation.
 - La devise n'est pas portee par chaque prix de catalogue ou d'article: elle vient de l'entreprise, puis elle est copiee sur le ticket pour l'historique.
 - Le telephone de contact d'un ticket est optionnel pour les visiteurs et les utilisateurs authentifies; il reste une donnee de contact, pas une preuve d'identite.
+- Les quantites d'articles sont representatives au MVP: `configured_quantity` et `reserved_quantity` ne bloquent pas la creation de ticket et pourront servir plus tard a l'affichage, aux alertes ou aux controles operationnels.
+- La quantite d'une ligne de ticket est optionnelle dans les requetes de creation. Decision retenue: valeur par defaut `1`, et refus uniquement si une valeur fournie est inferieure a `1`.
 
 ## Milestone 1 - Entreprises
 
@@ -607,7 +613,9 @@ Criteres d'acceptation:
 - L'ordre d'affichage peut etre modifie.
 - Le prix de l'article peut etre modifie ou laisse vide.
 - Le prix utilise la devise de l'entreprise; aucune devise separee n'est stockee sur l'article.
+- La quantite configuree est representative dans le MVP; elle ne bloque pas la creation de ticket si elle est depassee.
 - La quantite reservee reste calculee et n'est pas modifiee directement.
+- La quantite reservee est representative dans le MVP; elle ne bloque pas la creation de ticket.
 
 ### SERVICE-030 - Ouvrir une unite de service
 
@@ -708,6 +716,7 @@ Criteres d'acceptation:
 - Une migration Flyway cree la table `ticket_lines`.
 - `tickets` contient au minimum: `id`, `ticket_number`, `user_id`, `guest_name`, `customer_phone`, `guest_access_code_hash`, `service_unit_id`, `service_unit_location_id`, `status`, `notes`, `currency`, `total_amount`, `created_at`, `updated_at`, `closed_at`, `version`.
 - `ticket_lines` contient au minimum: `id`, `ticket_id`, `item_id`, `quantity`, `unit_price_amount`, `line_total_amount`, `notes`.
+- `ticket_lines.quantity` est persiste avec une valeur superieure ou egale a `1`.
 - `ticket_number` est unique globalement sur la plateforme.
 - Le format d'affichage MVP du numero est du type `T-000001`.
 - `guest_access_code_hash` est renseigne uniquement pour les tickets non authentifies.
@@ -749,6 +758,9 @@ Criteres d'acceptation:
 - Si `locationId` est absent, l'emplacement par defaut de l'unite est utilise.
 - Si `locationId` est present, il doit appartenir a l'unite.
 - Le ticket peut contenir zero, une ou plusieurs lignes.
+- Pour chaque ligne, `quantity` est optionnel; si absent ou `null`, la valeur retenue est `1`.
+- Si `quantity` est fourni, il doit etre superieur ou egal a `1`.
+- Les quantites configurees ou reservees des articles ne bloquent pas la creation du ticket dans le MVP.
 - `guestName` est obligatoire pour un visiteur non authentifie.
 - `customerPhone` est optionnel pour un visiteur non authentifie.
 - Le ticket n'est pas associe a un `user_id`.
@@ -782,6 +794,9 @@ Criteres d'acceptation:
 - Aucun code d'acces invite n'est genere pour un ticket authentifie.
 - `guest_access_code_hash` reste vide pour un ticket authentifie.
 - Le ticket peut contenir zero, une ou plusieurs lignes.
+- Pour chaque ligne, `quantity` est optionnel; si absent ou `null`, la valeur retenue est `1`.
+- Si `quantity` est fourni, il doit etre superieur ou egal a `1`.
+- Les quantites configurees ou reservees des articles ne bloquent pas la creation du ticket dans le MVP.
 - Le ticket est cree avec le statut `CREATED`.
 - Un numero de ticket unique globalement est genere.
 - La devise du ticket est copiee depuis l'entreprise.
