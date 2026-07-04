@@ -1045,6 +1045,223 @@ class ServiceUnitControllerTests {
     }
 
     @Test
+    void adminClosesOpenServiceUnit() throws Exception {
+        User admin = user("service-unit-close-admin");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        ServiceUnit serviceUnit = new ServiceUnit(
+                company,
+                "Open To Close Queue",
+                null,
+                null,
+                null,
+                admin);
+        serviceUnit.open(admin);
+        serviceUnit = serviceUnitRepository.save(serviceUnit);
+        ServiceUnitLocation defaultLocation = serviceUnitLocationRepository.save(new ServiceUnitLocation(
+                serviceUnit,
+                "Principal",
+                null,
+                ServiceUnitLocationType.DEFAULT,
+                true,
+                "loc-%s".formatted(UUID.randomUUID()),
+                admin));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(post(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/close",
+                        company.getId(),
+                        serviceUnit.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(serviceUnit.getId().toString()))
+                .andExpect(jsonPath("$.status").value("CLOSED"))
+                .andExpect(jsonPath("$.defaultLocation.id").value(defaultLocation.getId().toString()));
+
+        ServiceUnit closedServiceUnit = serviceUnitRepository.findById(serviceUnit.getId()).orElseThrow();
+        assertThat(closedServiceUnit.getStatus()).isEqualTo(ServiceUnitStatus.CLOSED);
+        assertThat(closedServiceUnit.getUpdatedBy().getId()).isEqualTo(admin.getId());
+    }
+
+    @Test
+    void rejectsServiceUnitCloseWhenNotOpen() throws Exception {
+        User admin = user("service-unit-close-not-open");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Already Closed Queue",
+                null,
+                null,
+                null,
+                admin));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(post(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/close",
+                        company.getId(),
+                        serviceUnit.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("Service unit must be OPEN to be closed"));
+    }
+
+    @Test
+    void rejectsServiceUnitCloseForEmployee() throws Exception {
+        User employee = user("service-unit-close-employee");
+        Company company = activeCompany(employee);
+        companyUserRepository.save(new CompanyUser(company.getId(), employee, CompanyRole.EMPLOYEE));
+        ServiceUnit serviceUnit = new ServiceUnit(
+                company,
+                "Employee Close Queue",
+                null,
+                null,
+                null,
+                employee);
+        serviceUnit.open(employee);
+        serviceUnit = serviceUnitRepository.save(serviceUnit);
+        String token = accessTokenGenerator.generate(employee).value();
+
+        mockMvc.perform(post(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/close",
+                        company.getId(),
+                        serviceUnit.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.message").value("Company admin role is required"));
+    }
+
+    @Test
+    void adminArchivesClosedServiceUnit() throws Exception {
+        User admin = user("service-unit-archive-closed-admin");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Closed To Archive Queue",
+                null,
+                null,
+                null,
+                admin));
+        ServiceUnitLocation defaultLocation = serviceUnitLocationRepository.save(new ServiceUnitLocation(
+                serviceUnit,
+                "Principal",
+                null,
+                ServiceUnitLocationType.DEFAULT,
+                true,
+                "loc-%s".formatted(UUID.randomUUID()),
+                admin));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(post(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/archive",
+                        company.getId(),
+                        serviceUnit.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(serviceUnit.getId().toString()))
+                .andExpect(jsonPath("$.status").value("ARCHIVED"))
+                .andExpect(jsonPath("$.defaultLocation.id").value(defaultLocation.getId().toString()));
+
+        ServiceUnit archivedServiceUnit = serviceUnitRepository.findById(serviceUnit.getId()).orElseThrow();
+        assertThat(archivedServiceUnit.getStatus()).isEqualTo(ServiceUnitStatus.ARCHIVED);
+        assertThat(archivedServiceUnit.getUpdatedBy().getId()).isEqualTo(admin.getId());
+    }
+
+    @Test
+    void adminArchivesOpenServiceUnitAndItIsHiddenPublicly() throws Exception {
+        User admin = user("service-unit-archive-open-admin");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        ServiceUnit serviceUnit = new ServiceUnit(
+                company,
+                "Open To Archive Queue",
+                null,
+                null,
+                null,
+                admin);
+        serviceUnit.open(admin);
+        serviceUnit = serviceUnitRepository.save(serviceUnit);
+        serviceUnitLocationRepository.save(new ServiceUnitLocation(
+                serviceUnit,
+                "Principal",
+                null,
+                ServiceUnitLocationType.DEFAULT,
+                true,
+                "loc-%s".formatted(UUID.randomUUID()),
+                admin));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(post(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/archive",
+                        company.getId(),
+                        serviceUnit.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ARCHIVED"));
+
+        mockMvc.perform(get(
+                        "/api/companies/{companyId}/service-units/{serviceUnitId}",
+                        company.getId(),
+                        serviceUnit.getId()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Service unit not found"));
+    }
+
+    @Test
+    void rejectsServiceUnitArchiveWhenAlreadyArchived() throws Exception {
+        User admin = user("service-unit-archive-already");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        ServiceUnit serviceUnit = new ServiceUnit(
+                company,
+                "Already Archived Queue",
+                null,
+                null,
+                null,
+                admin);
+        serviceUnit.archive(admin);
+        serviceUnit = serviceUnitRepository.save(serviceUnit);
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(post(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/archive",
+                        company.getId(),
+                        serviceUnit.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("Service unit is already archived"));
+    }
+
+    @Test
+    void rejectsServiceUnitArchiveForEmployee() throws Exception {
+        User employee = user("service-unit-archive-employee");
+        Company company = activeCompany(employee);
+        companyUserRepository.save(new CompanyUser(company.getId(), employee, CompanyRole.EMPLOYEE));
+        ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Employee Archive Queue",
+                null,
+                null,
+                null,
+                employee));
+        String token = accessTokenGenerator.generate(employee).value();
+
+        mockMvc.perform(post(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/archive",
+                        company.getId(),
+                        serviceUnit.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.message").value("Company admin role is required"));
+    }
+
+    @Test
     void adminCreatesServiceUnitLocation() throws Exception {
         User admin = user("service-unit-location-create-admin");
         Company company = activeCompany(admin);

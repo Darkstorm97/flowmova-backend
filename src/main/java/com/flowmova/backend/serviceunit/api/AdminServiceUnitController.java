@@ -6,6 +6,8 @@ import com.flowmova.backend.item.api.ItemResponse;
 import com.flowmova.backend.item.api.UpdateItemRequest;
 import com.flowmova.backend.item.application.CreateItemService;
 import com.flowmova.backend.item.application.UpdateItemService;
+import com.flowmova.backend.serviceunit.application.ArchiveServiceUnitService;
+import com.flowmova.backend.serviceunit.application.CloseServiceUnitService;
 import com.flowmova.backend.serviceunitlocation.application.CreateServiceUnitLocationService;
 import com.flowmova.backend.serviceunitlocation.application.ListServiceUnitLocationsService;
 import com.flowmova.backend.serviceunit.application.ListAdminServiceUnitsService;
@@ -45,6 +47,8 @@ public class AdminServiceUnitController {
     private final ChangeTicketStatusService changeTicketStatusService;
     private final CreateServiceUnitLocationService createServiceUnitLocationService;
     private final ListServiceUnitLocationsService listServiceUnitLocationsService;
+    private final CloseServiceUnitService closeServiceUnitService;
+    private final ArchiveServiceUnitService archiveServiceUnitService;
 
     public AdminServiceUnitController(
             ListAdminServiceUnitsService listAdminServiceUnitsService,
@@ -54,7 +58,9 @@ public class AdminServiceUnitController {
             ListServiceUnitTicketsService listServiceUnitTicketsService,
             ChangeTicketStatusService changeTicketStatusService,
             CreateServiceUnitLocationService createServiceUnitLocationService,
-            ListServiceUnitLocationsService listServiceUnitLocationsService) {
+            ListServiceUnitLocationsService listServiceUnitLocationsService,
+            CloseServiceUnitService closeServiceUnitService,
+            ArchiveServiceUnitService archiveServiceUnitService) {
         this.listAdminServiceUnitsService = listAdminServiceUnitsService;
         this.updateServiceUnitService = updateServiceUnitService;
         this.createItemService = createItemService;
@@ -63,6 +69,8 @@ public class AdminServiceUnitController {
         this.changeTicketStatusService = changeTicketStatusService;
         this.createServiceUnitLocationService = createServiceUnitLocationService;
         this.listServiceUnitLocationsService = listServiceUnitLocationsService;
+        this.closeServiceUnitService = closeServiceUnitService;
+        this.archiveServiceUnitService = archiveServiceUnitService;
     }
 
     @GetMapping
@@ -104,6 +112,22 @@ public class AdminServiceUnitController {
                 serviceUnitId,
                 authenticatedUser,
                 pageable));
+    }
+
+    @PostMapping("/{serviceUnitId}/close")
+    public ServiceUnitResponse close(
+            @PathVariable UUID companyId,
+            @PathVariable UUID serviceUnitId,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser) {
+        return closeServiceUnitService.close(companyId, serviceUnitId, authenticatedUser);
+    }
+
+    @PostMapping("/{serviceUnitId}/archive")
+    public ServiceUnitResponse archive(
+            @PathVariable UUID companyId,
+            @PathVariable UUID serviceUnitId,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser) {
+        return archiveServiceUnitService.archive(companyId, serviceUnitId, authenticatedUser);
     }
 
     @PostMapping("/{serviceUnitId}/items")
