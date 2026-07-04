@@ -949,6 +949,7 @@ Criteres d'acceptation:
 
 Criteres d'acceptation:
 
+- L'endpoint `PATCH /api/users/me/tickets/{ticketId}/confirm-treatment` existe.
 - L'utilisateur doit etre authentifie.
 - Le ticket doit etre associe au compte authentifie.
 - L'action ne correspond pas a la confirmation operationnelle interne de l'entreprise.

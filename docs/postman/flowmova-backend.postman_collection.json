@@ -2131,6 +2131,59 @@
           "response": []
         },
         {
+          "name": "Confirm My Ticket Treatment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains customer-confirmed current user ticket', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('id', pm.collectionVariables.get('ticketId'));",
+                  "    pm.expect(json).to.have.property('status', 'CUSTOMER_CONFIRMED');",
+                  "    pm.expect(json).to.not.have.property('accessCode');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me/tickets/{{ticketId}}/confirm-treatment",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me",
+                "tickets",
+                "{{ticketId}}",
+                "confirm-treatment"
+              ]
+            },
+            "description": "Confirme cote utilisateur authentifie que son ticket a ete traite. Le ticket doit deja etre en statut TREATED, par exemple apres Change Ticket Status avec TREATED."
+          },
+          "response": []
+        },
+        {
           "name": "List Service Unit Tickets",
           "event": [
             {

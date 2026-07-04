@@ -3,6 +3,7 @@ package com.flowmova.backend.ticket.api;
 import com.flowmova.backend.auth.domain.AuthenticatedUser;
 import com.flowmova.backend.shared.api.PageResponse;
 import com.flowmova.backend.ticket.application.CancelCurrentUserTicketService;
+import com.flowmova.backend.ticket.application.ConfirmCurrentUserTicketTreatmentService;
 import com.flowmova.backend.ticket.application.ListCurrentUserTicketsService;
 import com.flowmova.backend.ticket.domain.TicketStatus;
 import java.util.UUID;
@@ -21,12 +22,15 @@ public class CurrentUserTicketController {
 
     private final ListCurrentUserTicketsService listCurrentUserTicketsService;
     private final CancelCurrentUserTicketService cancelCurrentUserTicketService;
+    private final ConfirmCurrentUserTicketTreatmentService confirmCurrentUserTicketTreatmentService;
 
     public CurrentUserTicketController(
             ListCurrentUserTicketsService listCurrentUserTicketsService,
-            CancelCurrentUserTicketService cancelCurrentUserTicketService) {
+            CancelCurrentUserTicketService cancelCurrentUserTicketService,
+            ConfirmCurrentUserTicketTreatmentService confirmCurrentUserTicketTreatmentService) {
         this.listCurrentUserTicketsService = listCurrentUserTicketsService;
         this.cancelCurrentUserTicketService = cancelCurrentUserTicketService;
+        this.confirmCurrentUserTicketTreatmentService = confirmCurrentUserTicketTreatmentService;
     }
 
     @GetMapping
@@ -47,5 +51,12 @@ public class CurrentUserTicketController {
             @PathVariable UUID ticketId,
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser) {
         return cancelCurrentUserTicketService.cancel(ticketId, authenticatedUser);
+    }
+
+    @PatchMapping("/{ticketId}/confirm-treatment")
+    public TicketResponse confirmTreatment(
+            @PathVariable UUID ticketId,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser) {
+        return confirmCurrentUserTicketTreatmentService.confirm(ticketId, authenticatedUser);
     }
 }

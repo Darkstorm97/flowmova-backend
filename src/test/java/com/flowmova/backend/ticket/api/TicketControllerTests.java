@@ -546,6 +546,65 @@ class TicketControllerTests {
     }
 
     @Test
+    void authenticatedUserConfirmsOwnTreatedTicket() throws Exception {
+        Fixture fixture = fixture("confirm-own-treated");
+        User customer = user("confirm-own-treated-customer");
+        String token = accessTokenGenerator.generate(customer).value();
+        Ticket ticket = saveAuthenticatedTicket("T-CONFIRM-TREATED-%s".formatted(shortToken()), customer, fixture);
+        ticket.markTreated();
+        ticket = ticketRepository.saveAndFlush(ticket);
+
+        mockMvc.perform(patch("/api/users/me/tickets/{ticketId}/confirm-treatment", ticket.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(ticket.getId().toString()))
+                .andExpect(jsonPath("$.accessCode").doesNotExist())
+                .andExpect(jsonPath("$.userId").value(customer.getId().toString()))
+                .andExpect(jsonPath("$.status").value("CUSTOMER_CONFIRMED"));
+
+        assertThat(ticketRepository.findById(ticket.getId()).orElseThrow().getStatus())
+                .isEqualTo(TicketStatus.CUSTOMER_CONFIRMED);
+    }
+
+    @Test
+    void rejectsOwnTreatmentConfirmationWhenTicketIsNotTreated() throws Exception {
+        Fixture fixture = fixture("confirm-own-created");
+        User customer = user("confirm-own-created-customer");
+        String token = accessTokenGenerator.generate(customer).value();
+        Ticket ticket = saveAuthenticatedTicket("T-CONFIRM-CREATED-%s".formatted(shortToken()), customer, fixture);
+
+        mockMvc.perform(patch("/api/users/me/tickets/{ticketId}/confirm-treatment", ticket.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CONFLICT"))
+                .andExpect(jsonPath("$.message").value("Ticket transition is invalid"));
+    }
+
+    @Test
+    void rejectsTreatmentConfirmationOfAnotherUsersTicket() throws Exception {
+        Fixture fixture = fixture("confirm-other-user");
+        User owner = user("confirm-other-owner");
+        User otherUser = user("confirm-other-user");
+        String token = accessTokenGenerator.generate(otherUser).value();
+        Ticket ticket = saveAuthenticatedTicket("T-CONFIRM-OTHER-%s".formatted(shortToken()), owner, fixture);
+        ticket.markTreated();
+        ticket = ticketRepository.saveAndFlush(ticket);
+
+        mockMvc.perform(patch("/api/users/me/tickets/{ticketId}/confirm-treatment", ticket.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Ticket not found"));
+    }
+
+    @Test
+    void rejectsCurrentUserTreatmentConfirmationWithoutJwt() throws Exception {
+        mockMvc.perform(patch("/api/users/me/tickets/{ticketId}/confirm-treatment", UUID.randomUUID()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
     void employeeListsServiceUnitTicketsWithPaginationStatusAndTicketNumberSearch() throws Exception {
         Fixture fixture = fixture("unit-tickets");
         User employee = user("unit-tickets-employee");
