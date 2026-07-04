@@ -12,6 +12,8 @@ public interface ServiceUnitRepository extends JpaRepository<ServiceUnit, UUID> 
 
     Optional<ServiceUnit> findByIdAndCompanyId(UUID id, UUID companyId);
 
+    Optional<ServiceUnit> findByIdAndCompanyIdAndStatus(UUID id, UUID companyId, ServiceUnitStatus status);
+
     List<ServiceUnit> findByCompanyIdOrderByNameAsc(UUID companyId);
 
     List<ServiceUnit> findByCompanyIdAndStatusOrderByNameAsc(UUID companyId, ServiceUnitStatus status);

@@ -3,6 +3,7 @@ package com.flowmova.backend.serviceunit.api;
 import com.flowmova.backend.auth.domain.AuthenticatedUser;
 import com.flowmova.backend.serviceunit.application.CreateServiceUnitService;
 import com.flowmova.backend.serviceunit.application.GetDefaultServiceUnitPublicLinkService;
+import com.flowmova.backend.serviceunit.application.GetOpenServiceUnitService;
 import com.flowmova.backend.serviceunit.application.ListOpenServiceUnitsService;
 import com.flowmova.backend.serviceunit.application.OpenServiceUnitService;
 import jakarta.validation.Valid;
@@ -26,21 +27,31 @@ public class ServiceUnitController {
     private final GetDefaultServiceUnitPublicLinkService getDefaultServiceUnitPublicLinkService;
     private final OpenServiceUnitService openServiceUnitService;
     private final ListOpenServiceUnitsService listOpenServiceUnitsService;
+    private final GetOpenServiceUnitService getOpenServiceUnitService;
 
     public ServiceUnitController(
             CreateServiceUnitService createServiceUnitService,
             GetDefaultServiceUnitPublicLinkService getDefaultServiceUnitPublicLinkService,
             OpenServiceUnitService openServiceUnitService,
-            ListOpenServiceUnitsService listOpenServiceUnitsService) {
+            ListOpenServiceUnitsService listOpenServiceUnitsService,
+            GetOpenServiceUnitService getOpenServiceUnitService) {
         this.createServiceUnitService = createServiceUnitService;
         this.getDefaultServiceUnitPublicLinkService = getDefaultServiceUnitPublicLinkService;
         this.openServiceUnitService = openServiceUnitService;
         this.listOpenServiceUnitsService = listOpenServiceUnitsService;
+        this.getOpenServiceUnitService = getOpenServiceUnitService;
     }
 
     @GetMapping
     public List<ServiceUnitResponse> listOpen(@PathVariable UUID companyId) {
         return listOpenServiceUnitsService.list(companyId);
+    }
+
+    @GetMapping("/{serviceUnitId}")
+    public ServiceUnitResponse getOpen(
+            @PathVariable UUID companyId,
+            @PathVariable UUID serviceUnitId) {
+        return getOpenServiceUnitService.get(companyId, serviceUnitId);
     }
 
     @PostMapping

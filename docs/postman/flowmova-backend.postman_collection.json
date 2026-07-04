@@ -1250,6 +1250,55 @@
           "response": []
         },
         {
+          "name": "Get Open Service Unit",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains opened service unit detail', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('id', pm.collectionVariables.get('serviceUnitId'));",
+                  "    pm.expect(json).to.have.property('companyId', pm.collectionVariables.get('companyId'));",
+                  "    pm.expect(json).to.have.property('type', 'TICKET_QUEUE');",
+                  "    pm.expect(json).to.have.property('status', 'OPEN');",
+                  "    pm.expect(json).to.have.property('defaultLocation');",
+                  "    pm.expect(json.defaultLocation).to.have.property('id', pm.collectionVariables.get('serviceUnitLocationId'));",
+                  "    pm.expect(json.defaultLocation).to.have.property('status', 'ACTIVE');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/companies/{{companyId}}/service-units/{{serviceUnitId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "companies",
+                "{{companyId}}",
+                "service-units",
+                "{{serviceUnitId}}"
+              ]
+            },
+            "description": "Consulte publiquement le detail d'une unite de service OPEN d'une entreprise ACTIVE. Executer Create Service Unit puis Open Service Unit avant cet appel."
+          },
+          "response": []
+        },
+        {
           "name": "Get Default Public Link",
           "event": [
             {

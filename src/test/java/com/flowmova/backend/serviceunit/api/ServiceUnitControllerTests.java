@@ -526,6 +526,138 @@ class ServiceUnitControllerTests {
                 .andExpect(jsonPath("$.message").value("Company not found"));
     }
 
+    @Test
+    void guestGetsOpenServiceUnit() throws Exception {
+        User admin = user("service-unit-get-admin");
+        Company company = activeCompany(admin);
+        ServiceUnit serviceUnit = new ServiceUnit(
+                company,
+                "Detail Open Queue",
+                "Visible detail queue",
+                "Counter",
+                null,
+                admin);
+        serviceUnit.open(admin);
+        serviceUnit = serviceUnitRepository.save(serviceUnit);
+        ServiceUnitLocation defaultLocation = serviceUnitLocationRepository.save(new ServiceUnitLocation(
+                serviceUnit,
+                "Principal",
+                null,
+                ServiceUnitLocationType.DEFAULT,
+                true,
+                "loc-%s".formatted(UUID.randomUUID()),
+                admin));
+
+        mockMvc.perform(get(
+                        "/api/companies/{companyId}/service-units/{serviceUnitId}",
+                        company.getId(),
+                        serviceUnit.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(serviceUnit.getId().toString()))
+                .andExpect(jsonPath("$.companyId").value(company.getId().toString()))
+                .andExpect(jsonPath("$.name").value("Detail Open Queue"))
+                .andExpect(jsonPath("$.description").value("Visible detail queue"))
+                .andExpect(jsonPath("$.location").value("Counter"))
+                .andExpect(jsonPath("$.type").value("TICKET_QUEUE"))
+                .andExpect(jsonPath("$.status").value("OPEN"))
+                .andExpect(jsonPath("$.defaultLocation.id").value(defaultLocation.getId().toString()))
+                .andExpect(jsonPath("$.defaultLocation.status").value("ACTIVE"));
+    }
+
+    @Test
+    void guestCannotGetClosedServiceUnit() throws Exception {
+        User admin = user("service-unit-get-closed");
+        Company company = activeCompany(admin);
+        ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Closed Detail Queue",
+                "Hidden detail queue",
+                null,
+                null,
+                admin));
+        serviceUnitLocationRepository.save(new ServiceUnitLocation(
+                serviceUnit,
+                "Principal",
+                null,
+                ServiceUnitLocationType.DEFAULT,
+                true,
+                "loc-%s".formatted(UUID.randomUUID()),
+                admin));
+
+        mockMvc.perform(get(
+                        "/api/companies/{companyId}/service-units/{serviceUnitId}",
+                        company.getId(),
+                        serviceUnit.getId()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Service unit not found"));
+    }
+
+    @Test
+    void guestCannotGetArchivedServiceUnit() throws Exception {
+        User admin = user("service-unit-get-archived");
+        Company company = activeCompany(admin);
+        ServiceUnit serviceUnit = new ServiceUnit(
+                company,
+                "Archived Detail Queue",
+                "Hidden archived detail queue",
+                null,
+                null,
+                admin);
+        serviceUnit.archive(admin);
+        serviceUnit = serviceUnitRepository.save(serviceUnit);
+        serviceUnitLocationRepository.save(new ServiceUnitLocation(
+                serviceUnit,
+                "Principal",
+                null,
+                ServiceUnitLocationType.DEFAULT,
+                true,
+                "loc-%s".formatted(UUID.randomUUID()),
+                admin));
+
+        mockMvc.perform(get(
+                        "/api/companies/{companyId}/service-units/{serviceUnitId}",
+                        company.getId(),
+                        serviceUnit.getId()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Service unit not found"));
+    }
+
+    @Test
+    void guestCannotGetOpenServiceUnitForDisabledCompany() throws Exception {
+        User admin = user("service-unit-get-disabled-company");
+        Company disabledCompany = companyRepository.save(new Company(
+                "Disabled Service Unit Detail Company",
+                "Hidden service unit detail company",
+                admin));
+        ServiceUnit serviceUnit = new ServiceUnit(
+                disabledCompany,
+                "Disabled Company Detail Queue",
+                null,
+                null,
+                null,
+                admin);
+        serviceUnit.open(admin);
+        serviceUnit = serviceUnitRepository.save(serviceUnit);
+        serviceUnitLocationRepository.save(new ServiceUnitLocation(
+                serviceUnit,
+                "Principal",
+                null,
+                ServiceUnitLocationType.DEFAULT,
+                true,
+                "loc-%s".formatted(UUID.randomUUID()),
+                admin));
+
+        mockMvc.perform(get(
+                        "/api/companies/{companyId}/service-units/{serviceUnitId}",
+                        disabledCompany.getId(),
+                        serviceUnit.getId()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Company not found"));
+    }
+
     private User user(String emailPrefix) {
         return userRepository.save(new User(
                 "%s.%s@flowmova.test".formatted(emailPrefix, UUID.randomUUID()),
