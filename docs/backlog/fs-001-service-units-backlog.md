@@ -515,6 +515,23 @@ Criteres d'acceptation:
 - Le backend ne stocke pas d'image QR code.
 - Le lien reste stable tant que l'emplacement par defaut existe.
 
+### SERVICE-012 - Consulter les unites de service en administration
+
+**En tant que** administrateur d'entreprise,
+**je veux** consulter toutes les unites de service de mon entreprise,
+**afin de** gerer les unites ouvertes, fermees ou archivees depuis l'espace admin.
+
+Criteres d'acceptation:
+
+- Le role `ADMIN` est requis.
+- L'entreprise doit etre `ACTIVE`.
+- La liste retourne les unites `OPEN`, `CLOSED` et `ARCHIVED` de l'entreprise.
+- Les unites d'une autre entreprise ne sont pas exposees.
+- La reponse inclut l'emplacement par defaut lorsqu'il existe.
+- Un filtre optionnel par `status` permet de limiter les resultats.
+- Les resultats sont pagines.
+- L'endpoint n'est pas public et requiert un JWT valide.
+
 ### ITEM-001 - Creer la table `items`
 
 **En tant que** backend,
@@ -991,14 +1008,15 @@ Pour obtenir rapidement un parcours FS-001 utilisable, traiter dans cet ordre:
 19. SERVICE-010
 20. LOCATION-010
 21. SERVICE-011
-22. SERVICE-030
-23. SERVICE-040
-24. SERVICE-041
-25. LOCATION-030
-26. TICKET-001
-27. TICKET-002
-28. TICKET-010
-29. TICKET-022
+22. SERVICE-012
+23. SERVICE-030
+24. SERVICE-040
+25. SERVICE-041
+26. LOCATION-030
+27. TICKET-001
+28. TICKET-002
+29. TICKET-010
+30. TICKET-022
 
 Cette verticale permet d'obtenir: creation entreprise avec devise -> catalogue avec prix optionnel -> unite ouverte sans article obligatoire -> emplacement par defaut et lien direct -> creation ticket general dans un emplacement -> consultation invitee avec numero et code.
 
