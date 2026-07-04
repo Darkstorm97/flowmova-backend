@@ -92,6 +92,10 @@ mvn spring-boot:run
 
 L'application demarre par defaut sur le port `8080`.
 
+Variables d'environnement utiles:
+
+- `FLOWMOVA_PUBLIC_BASE_URL`: URL publique de base utilisee pour construire les liens publics des emplacements. Valeur locale par defaut: `http://localhost:3000`.
+
 PostgreSQL local est fourni par Docker Compose:
 
 - host: `localhost`
