@@ -732,7 +732,7 @@
                   "        pm.expect(category).to.have.property('companyId', pm.collectionVariables.get('companyId'));",
                   "        pm.expect(category).to.have.property('name');",
                   "        pm.expect(category).to.have.property('displayOrder');",
-                  "        pm.expect(category).to.have.property('status');",
+                  "        pm.expect(category).to.have.property('status', 'ACTIVE');",
                   "    });",
                   "});"
                 ],
@@ -743,14 +743,7 @@
           "id": "aaefd737-dd69-49ea-9e22-ccdc9ee48732",
           "request": {
             "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{accessToken}}",
-                  "type": "string"
-                }
-              ]
+              "type": "noauth"
             },
             "method": "GET",
             "header": [],
@@ -766,7 +759,7 @@
                 "catalog-categories"
               ]
             },
-            "description": "Liste les categories de catalogue internes d'une entreprise pour un membre actif ADMIN ou EMPLOYEE. Executer Login puis Create Company avant cet appel pour alimenter accessToken et companyId."
+            "description": "Liste publiquement les categories ACTIVE d'une entreprise ACTIVE. Executer Create Company puis Create Catalog Category avant cet appel pour alimenter companyId."
           },
           "response": []
         },

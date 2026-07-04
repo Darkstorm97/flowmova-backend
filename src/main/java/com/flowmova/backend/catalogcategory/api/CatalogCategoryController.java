@@ -31,10 +31,8 @@ public class CatalogCategoryController {
     }
 
     @GetMapping
-    public List<CatalogCategoryResponse> list(
-            @PathVariable UUID companyId,
-            @AuthenticationPrincipal AuthenticatedUser authenticatedUser) {
-        return listCatalogCategoriesService.list(companyId, authenticatedUser);
+    public List<CatalogCategoryResponse> list(@PathVariable UUID companyId) {
+        return listCatalogCategoriesService.list(companyId);
     }
 
     @PostMapping

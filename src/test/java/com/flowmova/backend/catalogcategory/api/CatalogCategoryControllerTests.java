@@ -263,41 +263,73 @@ class CatalogCategoryControllerTests {
     }
 
     @Test
-    void rejectsCatalogCategoryListingWithoutJwt() throws Exception {
-        mockMvc.perform(get("/api/companies/{companyId}/catalog-categories", UUID.randomUUID()))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    void publicUserListsActiveCatalogCategoriesWithoutJwt() throws Exception {
+        User owner = user("catalog-category-list-public");
+        Company company = company(owner);
+        catalogCategoryRepository.saveAndFlush(new CatalogCategory(
+                company,
+                "Public Visible Services",
+                "Visible publicly",
+                0,
+                owner));
+        CatalogCategory archivedCategory = catalogCategoryRepository.saveAndFlush(new CatalogCategory(
+                company,
+                "Public Archived Services",
+                "Hidden publicly",
+                1,
+                owner));
+        archivedCategory.archive();
+        catalogCategoryRepository.saveAndFlush(archivedCategory);
+
+        mockMvc.perform(get("/api/companies/{companyId}/catalog-categories", company.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].name").value("Public Visible Services"))
+                .andExpect(jsonPath("$[0].status").value("ACTIVE"))
+                .andExpect(jsonPath("$[?(@.id == '%s')]".formatted(archivedCategory.getId())).doesNotExist());
     }
 
     @Test
-    void rejectsCatalogCategoryListingForNonMember() throws Exception {
+    void publicUserListsCatalogCategoriesEvenWhenNotCompanyMember() throws Exception {
         User owner = user("catalog-category-list-owner");
         User outsider = user("catalog-category-list-outsider");
         Company company = company(owner);
         companyUserRepository.save(new CompanyUser(company.getId(), owner, CompanyRole.ADMIN));
+        catalogCategoryRepository.saveAndFlush(new CatalogCategory(
+                company,
+                "Public Non Member Services",
+                "Visible publicly",
+                0,
+                owner));
         String token = accessTokenGenerator.generate(outsider).value();
 
         mockMvc.perform(get("/api/companies/{companyId}/catalog-categories", company.getId())
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
-                .andExpect(jsonPath("$.message").value("Company membership is required"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].name").value("Public Non Member Services"));
     }
 
     @Test
-    void rejectsCatalogCategoryListingForInactiveMember() throws Exception {
+    void publicUserListsCatalogCategoriesEvenWhenMembershipIsInactive() throws Exception {
         User user = user("catalog-category-list-inactive");
         Company company = company(user);
         CompanyUser inactiveMembership = new CompanyUser(company.getId(), user, CompanyRole.ADMIN);
         inactiveMembership.deactivate();
         companyUserRepository.save(inactiveMembership);
+        catalogCategoryRepository.saveAndFlush(new CatalogCategory(
+                company,
+                "Public Inactive Member Services",
+                "Visible publicly",
+                0,
+                user));
         String token = accessTokenGenerator.generate(user).value();
 
         mockMvc.perform(get("/api/companies/{companyId}/catalog-categories", company.getId())
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
-                .andExpect(jsonPath("$.message").value("Company membership is required"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].name").value("Public Inactive Member Services"));
     }
 
     private User user(String emailPrefix) {
