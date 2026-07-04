@@ -1142,6 +1142,63 @@
           "response": []
         },
         {
+          "name": "Open Service Unit",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains opened service unit', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('id', pm.collectionVariables.get('serviceUnitId'));",
+                  "    pm.expect(json).to.have.property('companyId', pm.collectionVariables.get('companyId'));",
+                  "    pm.expect(json).to.have.property('type', 'TICKET_QUEUE');",
+                  "    pm.expect(json).to.have.property('status', 'OPEN');",
+                  "    pm.expect(json).to.have.property('defaultLocation');",
+                  "    pm.expect(json.defaultLocation).to.have.property('id', pm.collectionVariables.get('serviceUnitLocationId'));",
+                  "    pm.expect(json.defaultLocation).to.have.property('status', 'ACTIVE');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/companies/{{companyId}}/service-units/{{serviceUnitId}}/open",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "companies",
+                "{{companyId}}",
+                "service-units",
+                "{{serviceUnitId}}",
+                "open"
+              ]
+            },
+            "description": "Ouvre une unite de service CLOSED afin de permettre la creation de tickets. Executer Login, Create Company puis Create Service Unit avant cet appel."
+          },
+          "response": []
+        },
+        {
           "name": "Get Default Public Link",
           "event": [
             {

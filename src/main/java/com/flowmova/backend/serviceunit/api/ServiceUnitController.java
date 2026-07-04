@@ -3,6 +3,7 @@ package com.flowmova.backend.serviceunit.api;
 import com.flowmova.backend.auth.domain.AuthenticatedUser;
 import com.flowmova.backend.serviceunit.application.CreateServiceUnitService;
 import com.flowmova.backend.serviceunit.application.GetDefaultServiceUnitPublicLinkService;
+import com.flowmova.backend.serviceunit.application.OpenServiceUnitService;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -21,12 +22,15 @@ public class ServiceUnitController {
 
     private final CreateServiceUnitService createServiceUnitService;
     private final GetDefaultServiceUnitPublicLinkService getDefaultServiceUnitPublicLinkService;
+    private final OpenServiceUnitService openServiceUnitService;
 
     public ServiceUnitController(
             CreateServiceUnitService createServiceUnitService,
-            GetDefaultServiceUnitPublicLinkService getDefaultServiceUnitPublicLinkService) {
+            GetDefaultServiceUnitPublicLinkService getDefaultServiceUnitPublicLinkService,
+            OpenServiceUnitService openServiceUnitService) {
         this.createServiceUnitService = createServiceUnitService;
         this.getDefaultServiceUnitPublicLinkService = getDefaultServiceUnitPublicLinkService;
+        this.openServiceUnitService = openServiceUnitService;
     }
 
     @PostMapping
@@ -44,5 +48,13 @@ public class ServiceUnitController {
             @PathVariable UUID serviceUnitId,
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser) {
         return getDefaultServiceUnitPublicLinkService.getDefaultPublicLink(companyId, serviceUnitId, authenticatedUser);
+    }
+
+    @PostMapping("/{serviceUnitId}/open")
+    public ServiceUnitResponse open(
+            @PathVariable UUID companyId,
+            @PathVariable UUID serviceUnitId,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser) {
+        return openServiceUnitService.open(companyId, serviceUnitId, authenticatedUser);
     }
 }

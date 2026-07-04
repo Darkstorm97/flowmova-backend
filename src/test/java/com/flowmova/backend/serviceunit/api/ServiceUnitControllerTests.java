@@ -293,6 +293,145 @@ class ServiceUnitControllerTests {
                 .andExpect(jsonPath("$.message").value("Default location not found"));
     }
 
+    @Test
+    void adminOpensServiceUnit() throws Exception {
+        User admin = user("service-unit-open-admin");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Openable Queue",
+                "Queue ready to open",
+                null,
+                null,
+                admin));
+        ServiceUnitLocation defaultLocation = serviceUnitLocationRepository.save(new ServiceUnitLocation(
+                serviceUnit,
+                "Principal",
+                null,
+                ServiceUnitLocationType.DEFAULT,
+                true,
+                "loc-%s".formatted(UUID.randomUUID()),
+                admin));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(post(
+                        "/api/companies/{companyId}/service-units/{serviceUnitId}/open",
+                        company.getId(),
+                        serviceUnit.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(serviceUnit.getId().toString()))
+                .andExpect(jsonPath("$.companyId").value(company.getId().toString()))
+                .andExpect(jsonPath("$.status").value("OPEN"))
+                .andExpect(jsonPath("$.defaultLocation.id").value(defaultLocation.getId().toString()))
+                .andExpect(jsonPath("$.defaultLocation.status").value("ACTIVE"));
+
+        ServiceUnit openedServiceUnit = serviceUnitRepository.findById(serviceUnit.getId()).orElseThrow();
+        assertThat(openedServiceUnit.getStatus()).isEqualTo(ServiceUnitStatus.OPEN);
+        assertThat(openedServiceUnit.getUpdatedBy().getId()).isEqualTo(admin.getId());
+    }
+
+    @Test
+    void rejectsServiceUnitOpenWithoutJwt() throws Exception {
+        mockMvc.perform(post(
+                        "/api/companies/{companyId}/service-units/{serviceUnitId}/open",
+                        UUID.randomUUID(),
+                        UUID.randomUUID()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void rejectsServiceUnitOpenForEmployee() throws Exception {
+        User employee = user("service-unit-open-employee");
+        Company company = activeCompany(employee);
+        companyUserRepository.save(new CompanyUser(company.getId(), employee, CompanyRole.EMPLOYEE));
+        ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Employee Open Queue",
+                null,
+                null,
+                null,
+                employee));
+        serviceUnitLocationRepository.save(new ServiceUnitLocation(
+                serviceUnit,
+                "Principal",
+                null,
+                ServiceUnitLocationType.DEFAULT,
+                true,
+                "loc-%s".formatted(UUID.randomUUID()),
+                employee));
+        String token = accessTokenGenerator.generate(employee).value();
+
+        mockMvc.perform(post(
+                        "/api/companies/{companyId}/service-units/{serviceUnitId}/open",
+                        company.getId(),
+                        serviceUnit.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.message").value("Company admin role is required"));
+    }
+
+    @Test
+    void rejectsServiceUnitOpenWhenServiceUnitIsNotClosed() throws Exception {
+        User admin = user("service-unit-open-not-closed");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        ServiceUnit serviceUnit = new ServiceUnit(
+                company,
+                "Already Open Queue",
+                null,
+                null,
+                null,
+                admin);
+        serviceUnit.open(admin);
+        serviceUnit = serviceUnitRepository.save(serviceUnit);
+        serviceUnitLocationRepository.save(new ServiceUnitLocation(
+                serviceUnit,
+                "Principal",
+                null,
+                ServiceUnitLocationType.DEFAULT,
+                true,
+                "loc-%s".formatted(UUID.randomUUID()),
+                admin));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(post(
+                        "/api/companies/{companyId}/service-units/{serviceUnitId}/open",
+                        company.getId(),
+                        serviceUnit.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("Service unit must be CLOSED to be opened"));
+    }
+
+    @Test
+    void rejectsServiceUnitOpenWhenDefaultLocationIsMissing() throws Exception {
+        User admin = user("service-unit-open-missing-default");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Missing Default Open Queue",
+                null,
+                null,
+                null,
+                admin));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(post(
+                        "/api/companies/{companyId}/service-units/{serviceUnitId}/open",
+                        company.getId(),
+                        serviceUnit.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Default location not found"));
+    }
+
     private User user(String emailPrefix) {
         return userRepository.save(new User(
                 "%s.%s@flowmova.test".formatted(emailPrefix, UUID.randomUUID()),
