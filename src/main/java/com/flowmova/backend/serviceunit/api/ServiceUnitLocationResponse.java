@@ -14,6 +14,7 @@ public record ServiceUnitLocationResponse(
         ServiceUnitLocationType type,
         boolean defaultLocation,
         String publicAccessSlug,
+        String publicUrl,
         ServiceUnitLocationStatus status,
         Instant createdAt,
         Instant updatedAt) {
@@ -27,6 +28,22 @@ public record ServiceUnitLocationResponse(
                 location.getType(),
                 location.isDefaultLocation(),
                 location.getPublicAccessSlug(),
+                null,
+                location.getStatus(),
+                location.getCreatedAt(),
+                location.getUpdatedAt());
+    }
+
+    public static ServiceUnitLocationResponse from(ServiceUnitLocation location, String publicUrl) {
+        return new ServiceUnitLocationResponse(
+                location.getId(),
+                location.getServiceUnit().getId(),
+                location.getName(),
+                location.getDescription(),
+                location.getType(),
+                location.isDefaultLocation(),
+                location.getPublicAccessSlug(),
+                publicUrl,
                 location.getStatus(),
                 location.getCreatedAt(),
                 location.getUpdatedAt());

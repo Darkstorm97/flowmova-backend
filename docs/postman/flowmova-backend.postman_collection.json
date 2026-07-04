@@ -1403,6 +1403,154 @@
           "response": []
         },
         {
+          "name": "Create Service Unit Location",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response contains custom service unit location', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('id');",
+                  "    pm.expect(json).to.have.property('serviceUnitId', pm.collectionVariables.get('serviceUnitId'));",
+                  "    pm.expect(json).to.have.property('name', 'Table 12');",
+                  "    pm.expect(json).to.have.property('type', 'CUSTOM');",
+                  "    pm.expect(json).to.have.property('defaultLocation', false);",
+                  "    pm.expect(json).to.have.property('publicAccessSlug');",
+                  "    pm.expect(json.publicAccessSlug).to.match(/^loc-[a-z0-9]{12,32}$/);",
+                  "    pm.expect(json).to.have.property('publicUrl');",
+                  "    pm.expect(json.publicUrl).to.include('/public/locations/' + json.publicAccessSlug);",
+                  "    pm.expect(json).to.have.property('status', 'ACTIVE');",
+                  "    pm.collectionVariables.set('serviceUnitCustomLocationId', json.id);",
+                  "    pm.collectionVariables.set('serviceUnitCustomLocationSlug', json.publicAccessSlug);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Table 12\",\n  \"description\": \"Emplacement cree depuis Postman\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/companies/{{companyId}}/admin/service-units/{{serviceUnitId}}/locations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "companies",
+                "{{companyId}}",
+                "admin",
+                "service-units",
+                "{{serviceUnitId}}",
+                "locations"
+              ]
+            },
+            "description": "Cree un emplacement CUSTOM dans une unite de service. Executer Login, Create Company puis Create Service Unit avant cet appel. Le backend retourne le slug et l'URL publique; il ne genere pas d'image QR code."
+          },
+          "response": []
+        },
+        {
+          "name": "List Service Unit Locations",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains paginated locations', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('items');",
+                  "    pm.expect(json.items).to.be.an('array');",
+                  "    pm.expect(json).to.have.property('page');",
+                  "    pm.expect(json).to.have.property('size');",
+                  "    pm.expect(json).to.have.property('totalItems');",
+                  "    pm.expect(json).to.have.property('totalPages');",
+                  "    const defaultLocation = json.items.find(item => item.id === pm.collectionVariables.get('serviceUnitLocationId'));",
+                  "    pm.expect(defaultLocation).to.exist;",
+                  "    pm.expect(defaultLocation).to.have.property('defaultLocation', true);",
+                  "    const customLocationId = pm.collectionVariables.get('serviceUnitCustomLocationId');",
+                  "    if (customLocationId) {",
+                  "        const customLocation = json.items.find(item => item.id === customLocationId);",
+                  "        pm.expect(customLocation).to.exist;",
+                  "        pm.expect(customLocation).to.have.property('type', 'CUSTOM');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/companies/{{companyId}}/admin/service-units/{{serviceUnitId}}/locations?page=0&size=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "companies",
+                "{{companyId}}",
+                "admin",
+                "service-units",
+                "{{serviceUnitId}}",
+                "locations"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Liste cote admin les emplacements d'une unite de service avec pagination. L'emplacement par defaut est identifiable via defaultLocation=true."
+          },
+          "response": []
+        },
+        {
           "name": "List Admin Service Units",
           "event": [
             {

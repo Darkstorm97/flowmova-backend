@@ -6,6 +6,8 @@ import com.flowmova.backend.item.api.ItemResponse;
 import com.flowmova.backend.item.api.UpdateItemRequest;
 import com.flowmova.backend.item.application.CreateItemService;
 import com.flowmova.backend.item.application.UpdateItemService;
+import com.flowmova.backend.serviceunitlocation.application.CreateServiceUnitLocationService;
+import com.flowmova.backend.serviceunitlocation.application.ListServiceUnitLocationsService;
 import com.flowmova.backend.serviceunit.application.ListAdminServiceUnitsService;
 import com.flowmova.backend.serviceunit.application.UpdateServiceUnitService;
 import com.flowmova.backend.serviceunit.domain.ServiceUnitStatus;
@@ -41,6 +43,8 @@ public class AdminServiceUnitController {
     private final UpdateItemService updateItemService;
     private final ListServiceUnitTicketsService listServiceUnitTicketsService;
     private final ChangeTicketStatusService changeTicketStatusService;
+    private final CreateServiceUnitLocationService createServiceUnitLocationService;
+    private final ListServiceUnitLocationsService listServiceUnitLocationsService;
 
     public AdminServiceUnitController(
             ListAdminServiceUnitsService listAdminServiceUnitsService,
@@ -48,13 +52,17 @@ public class AdminServiceUnitController {
             CreateItemService createItemService,
             UpdateItemService updateItemService,
             ListServiceUnitTicketsService listServiceUnitTicketsService,
-            ChangeTicketStatusService changeTicketStatusService) {
+            ChangeTicketStatusService changeTicketStatusService,
+            CreateServiceUnitLocationService createServiceUnitLocationService,
+            ListServiceUnitLocationsService listServiceUnitLocationsService) {
         this.listAdminServiceUnitsService = listAdminServiceUnitsService;
         this.updateServiceUnitService = updateServiceUnitService;
         this.createItemService = createItemService;
         this.updateItemService = updateItemService;
         this.listServiceUnitTicketsService = listServiceUnitTicketsService;
         this.changeTicketStatusService = changeTicketStatusService;
+        this.createServiceUnitLocationService = createServiceUnitLocationService;
+        this.listServiceUnitLocationsService = listServiceUnitLocationsService;
     }
 
     @GetMapping
@@ -73,6 +81,29 @@ public class AdminServiceUnitController {
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
             @Valid @RequestBody UpdateServiceUnitRequest request) {
         return updateServiceUnitService.update(companyId, serviceUnitId, authenticatedUser, request.toCommand());
+    }
+
+    @PostMapping("/{serviceUnitId}/locations")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ServiceUnitLocationResponse createLocation(
+            @PathVariable UUID companyId,
+            @PathVariable UUID serviceUnitId,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+            @Valid @RequestBody CreateServiceUnitLocationRequest request) {
+        return createServiceUnitLocationService.create(companyId, serviceUnitId, authenticatedUser, request.toCommand());
+    }
+
+    @GetMapping("/{serviceUnitId}/locations")
+    public PageResponse<ServiceUnitLocationResponse> listLocations(
+            @PathVariable UUID companyId,
+            @PathVariable UUID serviceUnitId,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+            Pageable pageable) {
+        return PageResponse.from(listServiceUnitLocationsService.list(
+                companyId,
+                serviceUnitId,
+                authenticatedUser,
+                pageable));
     }
 
     @PostMapping("/{serviceUnitId}/items")

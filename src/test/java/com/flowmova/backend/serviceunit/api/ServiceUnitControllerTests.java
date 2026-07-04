@@ -1045,6 +1045,207 @@ class ServiceUnitControllerTests {
     }
 
     @Test
+    void adminCreatesServiceUnitLocation() throws Exception {
+        User admin = user("service-unit-location-create-admin");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Location Create Queue",
+                null,
+                null,
+                null,
+                admin));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        String response = mockMvc.perform(post(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/locations",
+                        company.getId(),
+                        serviceUnit.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": " Table 12 ",
+                                  "description": " Pres de la fenetre "
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").exists())
+                .andExpect(jsonPath("$.serviceUnitId").value(serviceUnit.getId().toString()))
+                .andExpect(jsonPath("$.name").value("Table 12"))
+                .andExpect(jsonPath("$.description").value("Pres de la fenetre"))
+                .andExpect(jsonPath("$.type").value("CUSTOM"))
+                .andExpect(jsonPath("$.defaultLocation").value(false))
+                .andExpect(jsonPath("$.publicAccessSlug").value(org.hamcrest.Matchers.matchesPattern("loc-[a-z0-9]{12,32}")))
+                .andExpect(jsonPath("$.publicUrl").value(org.hamcrest.Matchers.containsString("/public/locations/loc-")))
+                .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode responseJson = objectMapper.readTree(response);
+        ServiceUnitLocation location = serviceUnitLocationRepository
+                .findById(UUID.fromString(responseJson.get("id").asText()))
+                .orElseThrow();
+
+        assertThat(location.getServiceUnit().getId()).isEqualTo(serviceUnit.getId());
+        assertThat(location.getType()).isEqualTo(ServiceUnitLocationType.CUSTOM);
+        assertThat(location.isDefaultLocation()).isFalse();
+        assertThat(location.getCreatedBy().getId()).isEqualTo(admin.getId());
+    }
+
+    @Test
+    void rejectsServiceUnitLocationCreationForEmployee() throws Exception {
+        User employee = user("service-unit-location-create-employee");
+        Company company = activeCompany(employee);
+        companyUserRepository.save(new CompanyUser(company.getId(), employee, CompanyRole.EMPLOYEE));
+        ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Location Employee Queue",
+                null,
+                null,
+                null,
+                employee));
+        String token = accessTokenGenerator.generate(employee).value();
+
+        mockMvc.perform(post(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/locations",
+                        company.getId(),
+                        serviceUnit.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Table employee"
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.message").value("Company admin role is required"));
+    }
+
+    @Test
+    void rejectsServiceUnitLocationCreationWithoutName() throws Exception {
+        User admin = user("service-unit-location-create-invalid");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Location Invalid Queue",
+                null,
+                null,
+                null,
+                admin));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(post(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/locations",
+                        company.getId(),
+                        serviceUnit.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": ""
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.fieldErrors[?(@.field == 'name')]").exists());
+    }
+
+    @Test
+    void adminListsServiceUnitLocationsWithPagination() throws Exception {
+        User admin = user("service-unit-location-list-admin");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        Company otherCompany = activeCompany(admin);
+        ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Location List Queue",
+                null,
+                null,
+                null,
+                admin));
+        ServiceUnit otherServiceUnit = serviceUnitRepository.save(new ServiceUnit(
+                otherCompany,
+                "Other Location Queue",
+                null,
+                null,
+                null,
+                admin));
+        ServiceUnitLocation defaultLocation = serviceUnitLocationRepository.save(new ServiceUnitLocation(
+                serviceUnit,
+                "Principal",
+                null,
+                ServiceUnitLocationType.DEFAULT,
+                true,
+                "loc-%s".formatted(UUID.randomUUID()),
+                admin));
+        serviceUnitLocationRepository.save(new ServiceUnitLocation(
+                serviceUnit,
+                "Table 2",
+                "Second table",
+                ServiceUnitLocationType.CUSTOM,
+                false,
+                "loc-%s".formatted(UUID.randomUUID()),
+                admin));
+        serviceUnitLocationRepository.save(new ServiceUnitLocation(
+                otherServiceUnit,
+                "Other Table",
+                null,
+                ServiceUnitLocationType.CUSTOM,
+                false,
+                "loc-%s".formatted(UUID.randomUUID()),
+                admin));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(get(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/locations",
+                        company.getId(),
+                        serviceUnit.getId())
+                        .param("page", "0")
+                        .param("size", "10")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(10))
+                .andExpect(jsonPath("$.totalItems").value(2))
+                .andExpect(jsonPath("$.totalPages").value(1))
+                .andExpect(jsonPath("$.items[0].id").value(defaultLocation.getId().toString()))
+                .andExpect(jsonPath("$.items[0].defaultLocation").value(true))
+                .andExpect(jsonPath("$.items[0].publicUrl").value(org.hamcrest.Matchers.containsString("/public/locations/loc-")))
+                .andExpect(jsonPath("$.items[?(@.serviceUnitId == '%s')]".formatted(otherServiceUnit.getId())).doesNotExist());
+    }
+
+    @Test
+    void rejectsServiceUnitLocationListForAnotherCompanyServiceUnit() throws Exception {
+        User admin = user("service-unit-location-list-other-company");
+        Company company = activeCompany(admin);
+        Company otherCompany = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        ServiceUnit otherServiceUnit = serviceUnitRepository.save(new ServiceUnit(
+                otherCompany,
+                "Other Company Location Queue",
+                null,
+                null,
+                null,
+                admin));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(get(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/locations",
+                        company.getId(),
+                        otherServiceUnit.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Service unit not found"));
+    }
+
+    @Test
     void adminUpdatesServiceUnitWithoutChangingStatusOrDefaultLocation() throws Exception {
         User admin = user("service-unit-update-admin");
         Company company = activeCompany(admin);
