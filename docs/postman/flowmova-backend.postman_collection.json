@@ -1959,6 +1959,83 @@
             "description": "Liste les tickets du compte authentifie avec pagination. Les query params status et ticketNumber sont optionnels; activer ticketNumber apres Create Authenticated Ticket ou Create Guest Ticket selon le scenario souhaite."
           },
           "response": []
+        },
+        {
+          "name": "List Service Unit Tickets",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains paginated service unit tickets', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('items');",
+                  "    pm.expect(json.items).to.be.an('array');",
+                  "    pm.expect(json).to.have.property('page');",
+                  "    pm.expect(json).to.have.property('size');",
+                  "    pm.expect(json).to.have.property('totalItems');",
+                  "    pm.expect(json).to.have.property('totalPages');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/companies/{{companyId}}/admin/service-units/{{serviceUnitId}}/tickets?page=0&size=20&status=&ticketNumber={{ticketNumber}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "companies",
+                "{{companyId}}",
+                "admin",
+                "service-units",
+                "{{serviceUnitId}}",
+                "tickets"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "ticketNumber",
+                  "value": "{{ticketNumber}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Liste les tickets d'une unite de service avec pagination pour un membre ADMIN ou EMPLOYEE de l'entreprise. Les query params status et ticketNumber sont optionnels; activer ticketNumber apres creation d'un ticket."
+          },
+          "response": []
         }
       ]
     }

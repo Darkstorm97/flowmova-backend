@@ -10,6 +10,9 @@ import com.flowmova.backend.serviceunit.application.ListAdminServiceUnitsService
 import com.flowmova.backend.serviceunit.application.UpdateServiceUnitService;
 import com.flowmova.backend.serviceunit.domain.ServiceUnitStatus;
 import com.flowmova.backend.shared.api.PageResponse;
+import com.flowmova.backend.ticket.api.TicketResponse;
+import com.flowmova.backend.ticket.application.ListServiceUnitTicketsService;
+import com.flowmova.backend.ticket.domain.TicketStatus;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
@@ -33,16 +36,19 @@ public class AdminServiceUnitController {
     private final UpdateServiceUnitService updateServiceUnitService;
     private final CreateItemService createItemService;
     private final UpdateItemService updateItemService;
+    private final ListServiceUnitTicketsService listServiceUnitTicketsService;
 
     public AdminServiceUnitController(
             ListAdminServiceUnitsService listAdminServiceUnitsService,
             UpdateServiceUnitService updateServiceUnitService,
             CreateItemService createItemService,
-            UpdateItemService updateItemService) {
+            UpdateItemService updateItemService,
+            ListServiceUnitTicketsService listServiceUnitTicketsService) {
         this.listAdminServiceUnitsService = listAdminServiceUnitsService;
         this.updateServiceUnitService = updateServiceUnitService;
         this.createItemService = createItemService;
         this.updateItemService = updateItemService;
+        this.listServiceUnitTicketsService = listServiceUnitTicketsService;
     }
 
     @GetMapping
@@ -71,6 +77,23 @@ public class AdminServiceUnitController {
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
             @Valid @RequestBody CreateItemRequest request) {
         return createItemService.create(companyId, serviceUnitId, authenticatedUser, request.toCommand());
+    }
+
+    @GetMapping("/{serviceUnitId}/tickets")
+    public PageResponse<TicketResponse> listTickets(
+            @PathVariable UUID companyId,
+            @PathVariable UUID serviceUnitId,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+            @RequestParam(required = false) TicketStatus status,
+            @RequestParam(required = false) String ticketNumber,
+            Pageable pageable) {
+        return PageResponse.from(listServiceUnitTicketsService.list(
+                companyId,
+                serviceUnitId,
+                authenticatedUser,
+                status,
+                ticketNumber,
+                pageable));
     }
 
     @PutMapping("/{serviceUnitId}/items/{itemId}")

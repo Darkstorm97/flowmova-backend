@@ -810,10 +810,17 @@ Criteres d'acceptation:
 
 Criteres d'acceptation:
 
+- L'endpoint `GET /api/companies/{companyId}/admin/service-units/{serviceUnitId}/tickets` existe.
 - L'utilisateur doit appartenir a l'entreprise de l'unite.
 - Les roles `ADMIN` et `EMPLOYEE` peuvent consulter les tickets.
+- L'entreprise doit etre `ACTIVE`.
+- L'unite doit appartenir a l'entreprise.
 - Les tickets sont filtres par unite.
+- La liste est paginee.
 - Les tickets peuvent etre filtres par statut.
+- Les tickets peuvent etre recherches par numero de ticket.
+- La recherche par numero est limitee aux tickets de l'unite.
+- La recherche par numero accepte une valeur partielle et est insensible a la casse.
 - Les donnees d'une autre entreprise ne sont pas exposees.
 
 ### TICKET-021 - Consulter mes tickets

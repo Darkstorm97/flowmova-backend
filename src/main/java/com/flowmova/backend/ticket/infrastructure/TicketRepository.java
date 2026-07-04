@@ -35,4 +35,19 @@ public interface TicketRepository extends JpaRepository<Ticket, UUID> {
             TicketStatus status,
             String ticketNumber,
             Pageable pageable);
+
+    Page<Ticket> findByServiceUnitId(UUID serviceUnitId, Pageable pageable);
+
+    Page<Ticket> findByServiceUnitIdAndStatus(UUID serviceUnitId, TicketStatus status, Pageable pageable);
+
+    Page<Ticket> findByServiceUnitIdAndTicketNumberContainingIgnoreCase(
+            UUID serviceUnitId,
+            String ticketNumber,
+            Pageable pageable);
+
+    Page<Ticket> findByServiceUnitIdAndStatusAndTicketNumberContainingIgnoreCase(
+            UUID serviceUnitId,
+            TicketStatus status,
+            String ticketNumber,
+            Pageable pageable);
 }

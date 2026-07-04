@@ -15,6 +15,9 @@ import com.flowmova.backend.catalogcategory.domain.CatalogCategory;
 import com.flowmova.backend.catalogcategory.infrastructure.CatalogCategoryRepository;
 import com.flowmova.backend.company.domain.Company;
 import com.flowmova.backend.company.infrastructure.CompanyRepository;
+import com.flowmova.backend.companyaccess.domain.CompanyRole;
+import com.flowmova.backend.companyaccess.domain.CompanyUser;
+import com.flowmova.backend.companyaccess.infrastructure.CompanyUserRepository;
 import com.flowmova.backend.item.domain.Item;
 import com.flowmova.backend.item.domain.ItemAvailability;
 import com.flowmova.backend.item.infrastructure.ItemRepository;
@@ -52,6 +55,9 @@ class TicketControllerTests {
 
     @Autowired
     private CompanyRepository companyRepository;
+
+    @Autowired
+    private CompanyUserRepository companyUserRepository;
 
     @Autowired
     private CatalogCategoryRepository catalogCategoryRepository;
@@ -302,6 +308,113 @@ class TicketControllerTests {
     }
 
     @Test
+    void employeeListsServiceUnitTicketsWithPaginationStatusAndTicketNumberSearch() throws Exception {
+        Fixture fixture = fixture("unit-tickets");
+        User employee = user("unit-tickets-employee");
+        companyUserRepository.save(new CompanyUser(fixture.company().getId(), employee, CompanyRole.EMPLOYEE));
+        String token = accessTokenGenerator.generate(employee).value();
+        String uniqueToken = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        String createdTicketNumber = "T-UNIT-%s".formatted(uniqueToken);
+
+        Ticket createdTicket = saveGuestTicket(createdTicketNumber, fixture);
+        saveAuthenticatedTicket("T-UNIT-AUTH-%s".formatted(uniqueToken), employee, fixture);
+        Ticket confirmedTicket = saveGuestTicket("T-UNIT-CONFIRMED-%s".formatted(uniqueToken), fixture);
+        confirmedTicket.confirm();
+        ticketRepository.saveAndFlush(confirmedTicket);
+        saveGuestTicket("T-OTHER-UNIT-%s".formatted(uniqueToken), otherFixture("unit-tickets-other", fixture.owner()));
+
+        mockMvc.perform(get(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/tickets",
+                        fixture.company().getId(),
+                        fixture.serviceUnit().getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .param("status", "CREATED")
+                        .param("ticketNumber", uniqueToken.toLowerCase())
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("sort", "ticketNumber,asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.items[?(@.id == '%s')]".formatted(createdTicket.getId())).exists())
+                .andExpect(jsonPath("$.items[?(@.ticketNumber == 'T-UNIT-AUTH-%s')]".formatted(uniqueToken)).exists())
+                .andExpect(jsonPath("$.items[?(@.ticketNumber == 'T-UNIT-CONFIRMED-%s')]".formatted(uniqueToken)).doesNotExist())
+                .andExpect(jsonPath("$.items[?(@.ticketNumber == 'T-OTHER-UNIT-%s')]".formatted(uniqueToken)).doesNotExist())
+                .andExpect(jsonPath("$.items[0].accessCode").doesNotExist())
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(10))
+                .andExpect(jsonPath("$.totalItems").value(2))
+                .andExpect(jsonPath("$.totalPages").value(1));
+    }
+
+    @Test
+    void adminListsServiceUnitTicketsWithoutFilters() throws Exception {
+        Fixture fixture = fixture("unit-tickets-admin");
+        User admin = user("unit-tickets-admin-user");
+        companyUserRepository.save(new CompanyUser(fixture.company().getId(), admin, CompanyRole.ADMIN));
+        String token = accessTokenGenerator.generate(admin).value();
+        String uniqueToken = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+
+        Ticket guestTicket = saveGuestTicket("T-UNIT-GUEST-%s".formatted(uniqueToken), fixture);
+        Ticket authTicket = saveAuthenticatedTicket("T-UNIT-AUTH-%s".formatted(uniqueToken), admin, fixture);
+
+        mockMvc.perform(get(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/tickets",
+                        fixture.company().getId(),
+                        fixture.serviceUnit().getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .param("page", "0")
+                        .param("size", "20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[?(@.id == '%s')]".formatted(guestTicket.getId())).exists())
+                .andExpect(jsonPath("$.items[?(@.id == '%s')]".formatted(authTicket.getId())).exists())
+                .andExpect(jsonPath("$.totalItems").value(2));
+    }
+
+    @Test
+    void rejectsServiceUnitTicketListForNonMember() throws Exception {
+        Fixture fixture = fixture("unit-tickets-non-member");
+        User outsider = user("unit-tickets-outsider");
+        String token = accessTokenGenerator.generate(outsider).value();
+
+        mockMvc.perform(get(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/tickets",
+                        fixture.company().getId(),
+                        fixture.serviceUnit().getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.message").value("Company member role is required"));
+    }
+
+    @Test
+    void rejectsServiceUnitTicketListForAnotherCompanyServiceUnit() throws Exception {
+        Fixture fixture = fixture("unit-tickets-company");
+        Fixture otherFixture = fixture("unit-tickets-other-company");
+        User admin = user("unit-tickets-company-admin");
+        companyUserRepository.save(new CompanyUser(fixture.company().getId(), admin, CompanyRole.ADMIN));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(get(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/tickets",
+                        fixture.company().getId(),
+                        otherFixture.serviceUnit().getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Service unit not found"));
+    }
+
+    @Test
+    void rejectsServiceUnitTicketListWithoutJwt() throws Exception {
+        mockMvc.perform(get(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/tickets",
+                        UUID.randomUUID(),
+                        UUID.randomUUID()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
     void rejectsGuestTicketWithoutGuestName() throws Exception {
         Fixture fixture = fixture("guest-name-required");
 
@@ -475,6 +588,57 @@ class TicketControllerTests {
         ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
                 company,
                 "Ticket Queue",
+                null,
+                null,
+                null,
+                owner));
+        serviceUnit.open(owner);
+        serviceUnit = serviceUnitRepository.saveAndFlush(serviceUnit);
+        ServiceUnitLocation defaultLocation = serviceUnitLocationRepository.save(new ServiceUnitLocation(
+                serviceUnit,
+                "Principal",
+                null,
+                ServiceUnitLocationType.DEFAULT,
+                true,
+                "loc-%s".formatted(UUID.randomUUID()),
+                owner));
+        Item item = itemRepository.saveAndFlush(new Item(
+                serviceUnit,
+                catalog,
+                new BigDecimal("4.50"),
+                ItemAvailability.AVAILABLE,
+                null,
+                0));
+
+        return new Fixture(owner, company, serviceUnit, defaultLocation, item);
+    }
+
+    private Fixture otherFixture(String emailPrefix, User owner) {
+        Company company = new Company(
+                "Other Ticket Company %s".formatted(UUID.randomUUID()),
+                "Other company for ticket tests",
+                "USD",
+                owner);
+        company.activate();
+        company = companyRepository.save(company);
+
+        CatalogCategory category = catalogCategoryRepository.save(new CatalogCategory(
+                company,
+                "Other Ticket Category %s".formatted(UUID.randomUUID()),
+                null,
+                0,
+                owner));
+        Catalog catalog = catalogRepository.save(new Catalog(
+                company,
+                category,
+                "Other Counter Service",
+                null,
+                null,
+                new BigDecimal("4.50"),
+                owner));
+        ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Other Ticket Queue",
                 null,
                 null,
                 null,
