@@ -658,6 +658,157 @@ class ServiceUnitControllerTests {
                 .andExpect(jsonPath("$.message").value("Company not found"));
     }
 
+    @Test
+    void adminListsServiceUnitsWithPagination() throws Exception {
+        User admin = user("service-unit-admin-list");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        Company otherCompany = activeCompany(admin);
+
+        ServiceUnit archivedServiceUnit = new ServiceUnit(
+                company,
+                "Archive Queue",
+                "Archived admin queue",
+                null,
+                null,
+                admin);
+        archivedServiceUnit.archive(admin);
+        archivedServiceUnit = serviceUnitRepository.save(archivedServiceUnit);
+        serviceUnitLocationRepository.save(new ServiceUnitLocation(
+                archivedServiceUnit,
+                "Principal",
+                null,
+                ServiceUnitLocationType.DEFAULT,
+                true,
+                "loc-%s".formatted(UUID.randomUUID()),
+                admin));
+
+        ServiceUnit closedServiceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Closed Queue",
+                "Closed admin queue",
+                null,
+                null,
+                admin));
+        ServiceUnitLocation closedDefaultLocation = serviceUnitLocationRepository.save(new ServiceUnitLocation(
+                closedServiceUnit,
+                "Principal",
+                null,
+                ServiceUnitLocationType.DEFAULT,
+                true,
+                "loc-%s".formatted(UUID.randomUUID()),
+                admin));
+
+        ServiceUnit openServiceUnit = new ServiceUnit(
+                company,
+                "Open Queue",
+                "Open admin queue",
+                null,
+                null,
+                admin);
+        openServiceUnit.open(admin);
+        serviceUnitRepository.save(openServiceUnit);
+
+        ServiceUnit otherCompanyServiceUnit = new ServiceUnit(
+                otherCompany,
+                "Other Company Queue",
+                null,
+                null,
+                null,
+                admin);
+        otherCompanyServiceUnit.open(admin);
+        serviceUnitRepository.save(otherCompanyServiceUnit);
+
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(get("/api/companies/{companyId}/admin/service-units", company.getId())
+                        .param("page", "0")
+                        .param("size", "2")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(2))
+                .andExpect(jsonPath("$.totalItems").value(3))
+                .andExpect(jsonPath("$.totalPages").value(2))
+                .andExpect(jsonPath("$.items[0].id").value(archivedServiceUnit.getId().toString()))
+                .andExpect(jsonPath("$.items[0].status").value("ARCHIVED"))
+                .andExpect(jsonPath("$.items[1].id").value(closedServiceUnit.getId().toString()))
+                .andExpect(jsonPath("$.items[1].status").value("CLOSED"))
+                .andExpect(jsonPath("$.items[1].defaultLocation.id").value(closedDefaultLocation.getId().toString()));
+    }
+
+    @Test
+    void adminFiltersServiceUnitsByStatus() throws Exception {
+        User admin = user("service-unit-admin-filter");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        ServiceUnit closedServiceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Closed Filter Queue",
+                null,
+                null,
+                null,
+                admin));
+        ServiceUnit openServiceUnit = new ServiceUnit(
+                company,
+                "Open Filter Queue",
+                null,
+                null,
+                null,
+                admin);
+        openServiceUnit.open(admin);
+        serviceUnitRepository.save(openServiceUnit);
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(get("/api/companies/{companyId}/admin/service-units", company.getId())
+                        .param("status", "CLOSED")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.totalItems").value(1))
+                .andExpect(jsonPath("$.items[0].id").value(closedServiceUnit.getId().toString()))
+                .andExpect(jsonPath("$.items[0].status").value("CLOSED"));
+    }
+
+    @Test
+    void rejectsAdminServiceUnitListWithoutJwt() throws Exception {
+        mockMvc.perform(get("/api/companies/{companyId}/admin/service-units", UUID.randomUUID()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void rejectsAdminServiceUnitListForEmployee() throws Exception {
+        User employee = user("service-unit-admin-list-employee");
+        Company company = activeCompany(employee);
+        companyUserRepository.save(new CompanyUser(company.getId(), employee, CompanyRole.EMPLOYEE));
+        String token = accessTokenGenerator.generate(employee).value();
+
+        mockMvc.perform(get("/api/companies/{companyId}/admin/service-units", company.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.message").value("Company admin role is required"));
+    }
+
+    @Test
+    void rejectsAdminServiceUnitListForDisabledCompany() throws Exception {
+        User admin = user("service-unit-admin-list-disabled-company");
+        Company disabledCompany = companyRepository.save(new Company(
+                "Disabled Admin Service Unit List Company",
+                "Hidden admin service unit list company",
+                admin));
+        companyUserRepository.save(new CompanyUser(disabledCompany.getId(), admin, CompanyRole.ADMIN));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(get("/api/companies/{companyId}/admin/service-units", disabledCompany.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Company not found"));
+    }
+
     private User user(String emailPrefix) {
         return userRepository.save(new User(
                 "%s.%s@flowmova.test".formatted(emailPrefix, UUID.randomUUID()),

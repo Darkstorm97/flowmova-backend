@@ -28,7 +28,7 @@ public record ServiceUnitResponse(
                 serviceUnit.getLocation(),
                 serviceUnit.getType(),
                 serviceUnit.getStatus(),
-                ServiceUnitLocationResponse.from(defaultLocation),
+                defaultLocation == null ? null : ServiceUnitLocationResponse.from(defaultLocation),
                 serviceUnit.getCreatedAt(),
                 serviceUnit.getUpdatedAt());
     }
