@@ -48,6 +48,60 @@
             "description": "Endpoint actuator info expose publiquement."
           },
           "response": []
+        },
+        {
+          "name": "Get Public Location Access",
+          "id": "2f5e917e-c52f-47b5-810d-b74d6fd925aa",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains public location context', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('company');",
+                  "    pm.expect(json.company).to.have.property('id', pm.collectionVariables.get('companyId'));",
+                  "    pm.expect(json.company).to.have.property('status', 'ACTIVE');",
+                  "    pm.expect(json).to.have.property('serviceUnit');",
+                  "    pm.expect(json.serviceUnit).to.have.property('id', pm.collectionVariables.get('serviceUnitId'));",
+                  "    pm.expect(json.serviceUnit).to.have.property('companyId', pm.collectionVariables.get('companyId'));",
+                  "    pm.expect(json.serviceUnit).to.have.property('status', 'OPEN');",
+                  "    pm.expect(json).to.have.property('location');",
+                  "    pm.expect(json.location).to.have.property('id', pm.collectionVariables.get('serviceUnitLocationId'));",
+                  "    pm.expect(json.location).to.have.property('serviceUnitId', pm.collectionVariables.get('serviceUnitId'));",
+                  "    pm.expect(json.location).to.have.property('publicAccessSlug', pm.collectionVariables.get('publicAccessSlug'));",
+                  "    pm.expect(json.location).to.have.property('status', 'ACTIVE');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/public/locations/{{publicAccessSlug}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "public",
+                "locations",
+                "{{publicAccessSlug}}"
+              ]
+            },
+            "description": "Consulte publiquement le contexte d'un emplacement via son slug de lien/QR code: entreprise ACTIVE, unite de service OPEN et emplacement ACTIVE. Executer Create Service Unit, Open Service Unit, puis Get Default Public Link avant cet appel."
+          },
+          "response": []
         }
       ],
       "id": "ae771c5c-ead2-4fdd-a551-d9bd2667dd27"

@@ -660,6 +660,167 @@ class ServiceUnitControllerTests {
     }
 
     @Test
+    void guestGetsPublicLocationAccess() throws Exception {
+        User admin = user("public-location-access-admin");
+        Company company = activeCompany(admin);
+        ServiceUnit serviceUnit = new ServiceUnit(
+                company,
+                "Public Access Queue",
+                "Queue accessed by public slug",
+                "Counter",
+                null,
+                admin);
+        serviceUnit.open(admin);
+        serviceUnit = serviceUnitRepository.save(serviceUnit);
+        ServiceUnitLocation location = serviceUnitLocationRepository.save(new ServiceUnitLocation(
+                serviceUnit,
+                "Table 12",
+                "Public table",
+                ServiceUnitLocationType.CUSTOM,
+                false,
+                "loc-%s".formatted(UUID.randomUUID()),
+                admin));
+
+        mockMvc.perform(get("/api/public/locations/{publicAccessSlug}", location.getPublicAccessSlug()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.company.id").value(company.getId().toString()))
+                .andExpect(jsonPath("$.company.name").value(company.getName()))
+                .andExpect(jsonPath("$.company.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.serviceUnit.id").value(serviceUnit.getId().toString()))
+                .andExpect(jsonPath("$.serviceUnit.companyId").value(company.getId().toString()))
+                .andExpect(jsonPath("$.serviceUnit.name").value("Public Access Queue"))
+                .andExpect(jsonPath("$.serviceUnit.status").value("OPEN"))
+                .andExpect(jsonPath("$.location.id").value(location.getId().toString()))
+                .andExpect(jsonPath("$.location.serviceUnitId").value(serviceUnit.getId().toString()))
+                .andExpect(jsonPath("$.location.name").value("Table 12"))
+                .andExpect(jsonPath("$.location.publicAccessSlug").value(location.getPublicAccessSlug()))
+                .andExpect(jsonPath("$.location.status").value("ACTIVE"));
+    }
+
+    @Test
+    void guestCannotGetPublicLocationForClosedServiceUnit() throws Exception {
+        User admin = user("public-location-closed-unit");
+        Company company = activeCompany(admin);
+        ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Closed Public Queue",
+                null,
+                null,
+                null,
+                admin));
+        ServiceUnitLocation location = serviceUnitLocationRepository.save(new ServiceUnitLocation(
+                serviceUnit,
+                "Principal",
+                null,
+                ServiceUnitLocationType.DEFAULT,
+                true,
+                "loc-%s".formatted(UUID.randomUUID()),
+                admin));
+
+        mockMvc.perform(get("/api/public/locations/{publicAccessSlug}", location.getPublicAccessSlug()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Public location not found"));
+    }
+
+    @Test
+    void guestCannotGetPublicLocationForArchivedServiceUnit() throws Exception {
+        User admin = user("public-location-archived-unit");
+        Company company = activeCompany(admin);
+        ServiceUnit serviceUnit = new ServiceUnit(
+                company,
+                "Archived Public Queue",
+                null,
+                null,
+                null,
+                admin);
+        serviceUnit.archive(admin);
+        serviceUnit = serviceUnitRepository.save(serviceUnit);
+        ServiceUnitLocation location = serviceUnitLocationRepository.save(new ServiceUnitLocation(
+                serviceUnit,
+                "Principal",
+                null,
+                ServiceUnitLocationType.DEFAULT,
+                true,
+                "loc-%s".formatted(UUID.randomUUID()),
+                admin));
+
+        mockMvc.perform(get("/api/public/locations/{publicAccessSlug}", location.getPublicAccessSlug()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Public location not found"));
+    }
+
+    @Test
+    void guestCannotGetArchivedPublicLocation() throws Exception {
+        User admin = user("public-location-archived-location");
+        Company company = activeCompany(admin);
+        ServiceUnit serviceUnit = new ServiceUnit(
+                company,
+                "Archived Location Queue",
+                null,
+                null,
+                null,
+                admin);
+        serviceUnit.open(admin);
+        serviceUnit = serviceUnitRepository.save(serviceUnit);
+        ServiceUnitLocation location = new ServiceUnitLocation(
+                serviceUnit,
+                "Archived Place",
+                null,
+                ServiceUnitLocationType.CUSTOM,
+                false,
+                "loc-%s".formatted(UUID.randomUUID()),
+                admin);
+        location.archive(admin);
+        location = serviceUnitLocationRepository.save(location);
+
+        mockMvc.perform(get("/api/public/locations/{publicAccessSlug}", location.getPublicAccessSlug()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Public location not found"));
+    }
+
+    @Test
+    void guestCannotGetPublicLocationForDisabledCompany() throws Exception {
+        User admin = user("public-location-disabled-company");
+        Company disabledCompany = companyRepository.save(new Company(
+                "Disabled Public Location Company",
+                "Hidden public location company",
+                admin));
+        ServiceUnit serviceUnit = new ServiceUnit(
+                disabledCompany,
+                "Disabled Company Public Queue",
+                null,
+                null,
+                null,
+                admin);
+        serviceUnit.open(admin);
+        serviceUnit = serviceUnitRepository.save(serviceUnit);
+        ServiceUnitLocation location = serviceUnitLocationRepository.save(new ServiceUnitLocation(
+                serviceUnit,
+                "Principal",
+                null,
+                ServiceUnitLocationType.DEFAULT,
+                true,
+                "loc-%s".formatted(UUID.randomUUID()),
+                admin));
+
+        mockMvc.perform(get("/api/public/locations/{publicAccessSlug}", location.getPublicAccessSlug()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Public location not found"));
+    }
+
+    @Test
+    void guestCannotGetUnknownPublicLocation() throws Exception {
+        mockMvc.perform(get("/api/public/locations/{publicAccessSlug}", "loc-unknown"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Public location not found"));
+    }
+
+    @Test
     void adminListsServiceUnitsWithPagination() throws Exception {
         User admin = user("service-unit-admin-list");
         Company company = activeCompany(admin);
