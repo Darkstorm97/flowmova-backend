@@ -566,6 +566,30 @@ class ServiceUnitControllerTests {
                 true,
                 "loc-%s".formatted(UUID.randomUUID()),
                 admin));
+        ServiceUnitLocation tableLocation = serviceUnitLocationRepository.save(new ServiceUnitLocation(
+                serviceUnit,
+                "Table 4",
+                "Public table",
+                ServiceUnitLocationType.CUSTOM,
+                false,
+                "loc-%s".formatted(UUID.randomUUID()),
+                admin));
+        Catalog availableCatalog = catalog(company, admin, "Visible Sandwich", new BigDecimal("8.50"));
+        Catalog unavailableCatalog = catalog(company, admin, "Unavailable Sandwich", new BigDecimal("9.50"));
+        Item availableItem = itemRepository.saveAndFlush(new Item(
+                serviceUnit,
+                availableCatalog,
+                new BigDecimal("8.00"),
+                ItemAvailability.AVAILABLE,
+                12,
+                1));
+        itemRepository.saveAndFlush(new Item(
+                serviceUnit,
+                unavailableCatalog,
+                new BigDecimal("9.00"),
+                ItemAvailability.UNAVAILABLE,
+                5,
+                2));
 
         mockMvc.perform(get(
                         "/api/companies/{companyId}/service-units/{serviceUnitId}",
@@ -580,7 +604,15 @@ class ServiceUnitControllerTests {
                 .andExpect(jsonPath("$.type").value("TICKET_QUEUE"))
                 .andExpect(jsonPath("$.status").value("OPEN"))
                 .andExpect(jsonPath("$.defaultLocation.id").value(defaultLocation.getId().toString()))
-                .andExpect(jsonPath("$.defaultLocation.status").value("ACTIVE"));
+                .andExpect(jsonPath("$.defaultLocation.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.locations.length()").value(2))
+                .andExpect(jsonPath("$.locations[0].id").value(defaultLocation.getId().toString()))
+                .andExpect(jsonPath("$.locations[1].id").value(tableLocation.getId().toString()))
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].id").value(availableItem.getId().toString()))
+                .andExpect(jsonPath("$.items[0].catalog.name").value("Visible Sandwich"))
+                .andExpect(jsonPath("$.items[0].priceAmount").value(8.00))
+                .andExpect(jsonPath("$.items[0].availability").value("AVAILABLE"));
     }
 
     @Test
@@ -698,6 +730,24 @@ class ServiceUnitControllerTests {
                 false,
                 "loc-%s".formatted(UUID.randomUUID()),
                 admin));
+        Catalog availableCatalog = catalog(company, admin, "Visible Coffee", new BigDecimal("3.50"));
+        Catalog archivedCatalog = catalog(company, admin, "Archived Coffee", new BigDecimal("4.50"));
+        archivedCatalog.archive(admin);
+        catalogRepository.saveAndFlush(archivedCatalog);
+        Item availableItem = itemRepository.saveAndFlush(new Item(
+                serviceUnit,
+                availableCatalog,
+                new BigDecimal("3.25"),
+                ItemAvailability.AVAILABLE,
+                50,
+                1));
+        itemRepository.saveAndFlush(new Item(
+                serviceUnit,
+                archivedCatalog,
+                new BigDecimal("4.25"),
+                ItemAvailability.AVAILABLE,
+                20,
+                2));
 
         mockMvc.perform(get("/api/public/locations/{publicAccessSlug}", location.getPublicAccessSlug()))
                 .andExpect(status().isOk())
@@ -712,7 +762,12 @@ class ServiceUnitControllerTests {
                 .andExpect(jsonPath("$.location.serviceUnitId").value(serviceUnit.getId().toString()))
                 .andExpect(jsonPath("$.location.name").value("Table 12"))
                 .andExpect(jsonPath("$.location.publicAccessSlug").value(location.getPublicAccessSlug()))
-                .andExpect(jsonPath("$.location.status").value("ACTIVE"));
+                .andExpect(jsonPath("$.location.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].id").value(availableItem.getId().toString()))
+                .andExpect(jsonPath("$.items[0].catalog.name").value("Visible Coffee"))
+                .andExpect(jsonPath("$.items[0].priceAmount").value(3.25))
+                .andExpect(jsonPath("$.items[0].availability").value("AVAILABLE"));
     }
 
     @Test

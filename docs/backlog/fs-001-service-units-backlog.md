@@ -504,6 +504,7 @@ Criteres d'acceptation:
 - L'entreprise de l'unite doit etre `ACTIVE`.
 - Un emplacement inactif n'est pas expose publiquement.
 - La reponse contient les informations publiques de l'entreprise, de l'unite et de l'emplacement.
+- La reponse contient les articles actifs/disponibles de l'unite lorsque ceux-ci existent.
 - La reponse permet de creer un ticket directement dans cet emplacement.
 - Le backend ne genere pas d'image QR code.
 
@@ -981,7 +982,10 @@ Criteres d'acceptation:
 
 - L'unite doit etre `OPEN`.
 - L'entreprise doit etre `ACTIVE`.
+- Le detail public d'une unite retourne ses emplacements actifs.
 - Les articles actifs/disponibles sont affiches lorsqu'ils existent.
+- Les articles bases sur un catalogue archive ne sont pas exposes.
+- Le detail public par QR code/emplacement retourne aussi les articles actifs/disponibles de l'unite.
 - Une unite sans article permet la creation d'un ticket general.
 - Les informations necessaires a la creation d'un ticket sont presentes.
 - Le parcours ne requiert pas d'authentification.

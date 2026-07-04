@@ -1,5 +1,6 @@
 package com.flowmova.backend.item.infrastructure;
 
+import com.flowmova.backend.catalog.domain.CatalogStatus;
 import com.flowmova.backend.item.domain.Item;
 import com.flowmova.backend.item.domain.ItemAvailability;
 import com.flowmova.backend.item.domain.ItemStatus;
@@ -22,4 +23,10 @@ public interface ItemRepository extends JpaRepository<Item, UUID> {
             UUID serviceUnitId,
             ItemStatus status,
             ItemAvailability availability);
+
+    List<Item> findByServiceUnitIdAndStatusAndAvailabilityAndCatalogStatusOrderByDisplayOrderAscCatalogNameAsc(
+            UUID serviceUnitId,
+            ItemStatus status,
+            ItemAvailability availability,
+            CatalogStatus catalogStatus);
 }

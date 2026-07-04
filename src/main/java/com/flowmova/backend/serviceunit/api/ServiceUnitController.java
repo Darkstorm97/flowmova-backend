@@ -48,7 +48,7 @@ public class ServiceUnitController {
     }
 
     @GetMapping("/{serviceUnitId}")
-    public ServiceUnitResponse getOpen(
+    public PublicServiceUnitDetailResponse getOpen(
             @PathVariable UUID companyId,
             @PathVariable UUID serviceUnitId) {
         return getOpenServiceUnitService.get(companyId, serviceUnitId);

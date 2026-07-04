@@ -75,6 +75,8 @@
                   "    pm.expect(json.location).to.have.property('serviceUnitId', pm.collectionVariables.get('serviceUnitId'));",
                   "    pm.expect(json.location).to.have.property('publicAccessSlug', pm.collectionVariables.get('publicAccessSlug'));",
                   "    pm.expect(json.location).to.have.property('status', 'ACTIVE');",
+                  "    pm.expect(json).to.have.property('items');",
+                  "    pm.expect(json.items).to.be.an('array');",
                   "});"
                 ],
                 "type": "text/javascript"
@@ -99,7 +101,7 @@
                 "{{publicAccessSlug}}"
               ]
             },
-            "description": "Consulte publiquement le contexte d'un emplacement via son slug de lien/QR code: entreprise ACTIVE, unite de service OPEN et emplacement ACTIVE. Executer Create Service Unit, Open Service Unit, puis Get Default Public Link avant cet appel."
+            "description": "Consulte publiquement le contexte d'un emplacement via son slug de lien/QR code: entreprise ACTIVE, unite de service OPEN, emplacement ACTIVE et articles actifs/disponibles de l'unite. Executer Create Service Unit, Open Service Unit, puis Get Default Public Link avant cet appel."
           },
           "response": []
         }
@@ -1502,6 +1504,11 @@
                   "    pm.expect(json).to.have.property('defaultLocation');",
                   "    pm.expect(json.defaultLocation).to.have.property('id', pm.collectionVariables.get('serviceUnitLocationId'));",
                   "    pm.expect(json.defaultLocation).to.have.property('status', 'ACTIVE');",
+                  "    pm.expect(json).to.have.property('locations');",
+                  "    pm.expect(json.locations).to.be.an('array');",
+                  "    pm.expect(json.locations.length).to.be.greaterThan(0);",
+                  "    pm.expect(json).to.have.property('items');",
+                  "    pm.expect(json.items).to.be.an('array');",
                   "});"
                 ],
                 "type": "text/javascript"
@@ -1635,7 +1642,7 @@
                 "{{serviceUnitId}}"
               ]
             },
-            "description": "Consulte publiquement le detail d'une unite de service OPEN d'une entreprise ACTIVE. Executer Create Service Unit puis Open Service Unit avant cet appel."
+            "description": "Consulte publiquement le detail d'une unite de service OPEN d'une entreprise ACTIVE avec ses emplacements actifs et ses articles actifs/disponibles. Executer Create Service Unit puis Open Service Unit avant cet appel."
           },
           "response": []
         },

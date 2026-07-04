@@ -11,6 +11,10 @@ public interface ServiceUnitLocationRepository extends JpaRepository<ServiceUnit
 
     List<ServiceUnitLocation> findByServiceUnitIdOrderByDefaultLocationDescNameAsc(UUID serviceUnitId);
 
+    List<ServiceUnitLocation> findByServiceUnitIdAndStatusOrderByDefaultLocationDescNameAsc(
+            UUID serviceUnitId,
+            ServiceUnitLocationStatus status);
+
     Optional<ServiceUnitLocation> findByServiceUnitIdAndDefaultLocationTrueAndStatus(
             UUID serviceUnitId,
             ServiceUnitLocationStatus status);

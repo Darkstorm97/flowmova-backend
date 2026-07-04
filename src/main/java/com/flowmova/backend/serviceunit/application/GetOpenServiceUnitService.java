@@ -2,13 +2,19 @@ package com.flowmova.backend.serviceunit.application;
 
 import com.flowmova.backend.company.domain.CompanyStatus;
 import com.flowmova.backend.company.infrastructure.CompanyRepository;
-import com.flowmova.backend.serviceunit.api.ServiceUnitResponse;
+import com.flowmova.backend.catalog.domain.CatalogStatus;
+import com.flowmova.backend.item.domain.Item;
+import com.flowmova.backend.item.domain.ItemAvailability;
+import com.flowmova.backend.item.domain.ItemStatus;
+import com.flowmova.backend.item.infrastructure.ItemRepository;
+import com.flowmova.backend.serviceunit.api.PublicServiceUnitDetailResponse;
 import com.flowmova.backend.serviceunit.domain.ServiceUnit;
 import com.flowmova.backend.serviceunit.domain.ServiceUnitStatus;
 import com.flowmova.backend.serviceunit.infrastructure.ServiceUnitRepository;
 import com.flowmova.backend.serviceunitlocation.domain.ServiceUnitLocation;
 import com.flowmova.backend.serviceunitlocation.domain.ServiceUnitLocationStatus;
 import com.flowmova.backend.serviceunitlocation.infrastructure.ServiceUnitLocationRepository;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -21,18 +27,21 @@ public class GetOpenServiceUnitService {
     private final ServiceUnitRepository serviceUnitRepository;
     private final ServiceUnitLocationRepository serviceUnitLocationRepository;
     private final CompanyRepository companyRepository;
+    private final ItemRepository itemRepository;
 
     public GetOpenServiceUnitService(
             ServiceUnitRepository serviceUnitRepository,
             ServiceUnitLocationRepository serviceUnitLocationRepository,
-            CompanyRepository companyRepository) {
+            CompanyRepository companyRepository,
+            ItemRepository itemRepository) {
         this.serviceUnitRepository = serviceUnitRepository;
         this.serviceUnitLocationRepository = serviceUnitLocationRepository;
         this.companyRepository = companyRepository;
+        this.itemRepository = itemRepository;
     }
 
     @Transactional(readOnly = true)
-    public ServiceUnitResponse get(UUID companyId, UUID serviceUnitId) {
+    public PublicServiceUnitDetailResponse get(UUID companyId, UUID serviceUnitId) {
         companyRepository.findByIdAndStatus(companyId, CompanyStatus.ACTIVE)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Company not found"));
 
@@ -44,6 +53,17 @@ public class GetOpenServiceUnitService {
                 .findByServiceUnitIdAndDefaultLocationTrueAndStatus(serviceUnit.getId(), ServiceUnitLocationStatus.ACTIVE)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Default location not found"));
 
-        return ServiceUnitResponse.from(serviceUnit, defaultLocation);
+        List<ServiceUnitLocation> locations = serviceUnitLocationRepository
+                .findByServiceUnitIdAndStatusOrderByDefaultLocationDescNameAsc(
+                        serviceUnit.getId(),
+                        ServiceUnitLocationStatus.ACTIVE);
+        List<Item> items = itemRepository
+                .findByServiceUnitIdAndStatusAndAvailabilityAndCatalogStatusOrderByDisplayOrderAscCatalogNameAsc(
+                        serviceUnit.getId(),
+                        ItemStatus.ACTIVE,
+                        ItemAvailability.AVAILABLE,
+                        CatalogStatus.ACTIVE);
+
+        return PublicServiceUnitDetailResponse.from(serviceUnit, defaultLocation, locations, items);
     }
 }
