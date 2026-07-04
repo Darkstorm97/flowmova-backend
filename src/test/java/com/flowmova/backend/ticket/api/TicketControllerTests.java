@@ -240,6 +240,90 @@ class TicketControllerTests {
     }
 
     @Test
+    void guestCancelsCreatedTicketWithTicketNumberAndAccessCode() throws Exception {
+        Fixture fixture = fixture("guest-cancel-created");
+        JsonNode createdTicket = createGuestTicket(fixture);
+
+        mockMvc.perform(patch("/api/tickets/guest-access/cancel")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ticketNumber": "%s",
+                                  "accessCode": "%s"
+                                }
+                                """.formatted(
+                                        createdTicket.get("ticketNumber").asText(),
+                                        createdTicket.get("accessCode").asText())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").doesNotExist())
+                .andExpect(jsonPath("$.accessCode").doesNotExist())
+                .andExpect(jsonPath("$.userId").doesNotExist())
+                .andExpect(jsonPath("$.ticketNumber").value(createdTicket.get("ticketNumber").asText()))
+                .andExpect(jsonPath("$.status").value("CANCELLED"));
+
+        Ticket ticket = ticketRepository.findByTicketNumber(createdTicket.get("ticketNumber").asText()).orElseThrow();
+        assertThat(ticket.getStatus()).isEqualTo(TicketStatus.CANCELLED);
+    }
+
+    @Test
+    void guestCancelsReceivedTicketWithTicketNumberAndAccessCode() throws Exception {
+        Fixture fixture = fixture("guest-cancel-received");
+        Ticket ticket = saveGuestTicket("T-GUEST-CANCEL-%s".formatted(shortToken()), fixture);
+        ticket.markReceived();
+        ticket = ticketRepository.saveAndFlush(ticket);
+
+        mockMvc.perform(patch("/api/tickets/guest-access/cancel")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ticketNumber": "%s",
+                                  "accessCode": "ACCESS01"
+                                }
+                                """.formatted(ticket.getTicketNumber())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ticketNumber").value(ticket.getTicketNumber()))
+                .andExpect(jsonPath("$.status").value("CANCELLED"));
+    }
+
+    @Test
+    void rejectsGuestTicketCancellationWithInvalidCode() throws Exception {
+        Fixture fixture = fixture("guest-cancel-invalid-code");
+        JsonNode createdTicket = createGuestTicket(fixture);
+
+        mockMvc.perform(patch("/api/tickets/guest-access/cancel")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ticketNumber": "%s",
+                                  "accessCode": "BADCODE1"
+                                }
+                                """.formatted(createdTicket.get("ticketNumber").asText())))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.message").value("Ticket access is invalid"));
+    }
+
+    @Test
+    void rejectsGuestTicketCancellationWhenAlreadyTreated() throws Exception {
+        Fixture fixture = fixture("guest-cancel-treated");
+        Ticket ticket = saveGuestTicket("T-GUEST-TREATED-%s".formatted(shortToken()), fixture);
+        ticket.markTreated();
+        ticket = ticketRepository.saveAndFlush(ticket);
+
+        mockMvc.perform(patch("/api/tickets/guest-access/cancel")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ticketNumber": "%s",
+                                  "accessCode": "ACCESS01"
+                                }
+                                """.formatted(ticket.getTicketNumber())))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CONFLICT"))
+                .andExpect(jsonPath("$.message").value("Ticket transition is invalid"));
+    }
+
+    @Test
     void authenticatedUserListsOwnTicketsWithPaginationStatusAndTicketNumberSearch() throws Exception {
         Fixture fixture = fixture("my-tickets");
         User customer = user("my-tickets-customer");

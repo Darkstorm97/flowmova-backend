@@ -917,6 +917,7 @@ Criteres d'acceptation:
 
 Criteres d'acceptation:
 
+- L'endpoint public `PATCH /api/tickets/guest-access/cancel` existe.
 - Le visiteur fournit `ticketNumber` et `accessCode`.
 - Le backend valide le code d'acces avec le hash stocke.
 - La transition vers `CANCELLED` doit etre valide.

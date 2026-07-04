@@ -1894,6 +1894,61 @@
           "response": []
         },
         {
+          "name": "Cancel Guest Ticket",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains cancelled public guest ticket', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('ticketNumber', pm.collectionVariables.get('ticketNumber'));",
+                  "    pm.expect(json).to.have.property('status', 'CANCELLED');",
+                  "    pm.expect(json).to.not.have.property('id');",
+                  "    pm.expect(json).to.not.have.property('accessCode');",
+                  "    pm.expect(json).to.not.have.property('userId');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ticketNumber\": \"{{ticketNumber}}\",\n  \"accessCode\": \"{{ticketAccessCode}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/guest-access/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                "guest-access",
+                "cancel"
+              ]
+            },
+            "description": "Annule un ticket visiteur avec ticketNumber + accessCode. Executer Create Guest Ticket avant cet appel pour alimenter ticketNumber et ticketAccessCode. L'annulation est valide seulement depuis CREATED ou RECEIVED."
+          },
+          "response": []
+        },
+        {
           "name": "List My Tickets",
           "event": [
             {
