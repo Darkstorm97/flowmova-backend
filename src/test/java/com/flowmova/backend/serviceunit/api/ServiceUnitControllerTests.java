@@ -110,6 +110,7 @@ class ServiceUnitControllerTests {
                 .andExpect(jsonPath("$.location").value("Hall"))
                 .andExpect(jsonPath("$.type").value("TICKET_QUEUE"))
                 .andExpect(jsonPath("$.status").value("CLOSED"))
+                .andExpect(jsonPath("$.oneActiveTicketPerUser").value(false))
                 .andExpect(jsonPath("$.defaultLocation.id").exists())
                 .andExpect(jsonPath("$.defaultLocation.name").value("Principal"))
                 .andExpect(jsonPath("$.defaultLocation.type").value("DEFAULT"))
@@ -137,6 +138,35 @@ class ServiceUnitControllerTests {
         assertThat(defaultLocation.isDefaultLocation()).isTrue();
         assertThat(defaultLocation.getStatus()).isEqualTo(ServiceUnitLocationStatus.ACTIVE);
         assertThat(defaultLocation.getCreatedBy().getId()).isEqualTo(admin.getId());
+    }
+
+    @Test
+    void adminCreatesServiceUnitWithActiveTicketLimit() throws Exception {
+        User admin = user("service-unit-active-ticket-limit");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        String response = mockMvc.perform(post("/api/companies/{companyId}/service-units", company.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Anti spam queue",
+                                  "type": "TICKET_QUEUE",
+                                  "oneActiveTicketPerUser": true
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.oneActiveTicketPerUser").value(true))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        ServiceUnit serviceUnit = serviceUnitRepository.findById(
+                        UUID.fromString(objectMapper.readTree(response).get("id").asText()))
+                .orElseThrow();
+        assertThat(serviceUnit.isOneActiveTicketPerUser()).isTrue();
     }
 
     @Test
@@ -1496,7 +1526,8 @@ class ServiceUnitControllerTests {
                                 {
                                   "name": " Updated Queue ",
                                   "description": " Updated description ",
-                                  "location": " Updated location "
+                                  "location": " Updated location ",
+                                  "oneActiveTicketPerUser": true
                                 }
                                 """))
                 .andExpect(status().isOk())
@@ -1506,6 +1537,7 @@ class ServiceUnitControllerTests {
                 .andExpect(jsonPath("$.description").value("Updated description"))
                 .andExpect(jsonPath("$.location").value("Updated location"))
                 .andExpect(jsonPath("$.status").value("OPEN"))
+                .andExpect(jsonPath("$.oneActiveTicketPerUser").value(true))
                 .andExpect(jsonPath("$.defaultLocation.id").value(defaultLocation.getId().toString()));
 
         ServiceUnit updatedServiceUnit = serviceUnitRepository.findById(serviceUnit.getId()).orElseThrow();
@@ -1513,6 +1545,7 @@ class ServiceUnitControllerTests {
         assertThat(updatedServiceUnit.getDescription()).isEqualTo("Updated description");
         assertThat(updatedServiceUnit.getLocation()).isEqualTo("Updated location");
         assertThat(updatedServiceUnit.getStatus()).isEqualTo(ServiceUnitStatus.OPEN);
+        assertThat(updatedServiceUnit.isOneActiveTicketPerUser()).isTrue();
         assertThat(updatedServiceUnit.getUpdatedBy().getId()).isEqualTo(admin.getId());
     }
 

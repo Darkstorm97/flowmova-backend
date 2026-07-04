@@ -15,6 +15,7 @@ public record ServiceUnitResponse(
         String location,
         ServiceUnitType type,
         ServiceUnitStatus status,
+        boolean oneActiveTicketPerUser,
         ServiceUnitLocationResponse defaultLocation,
         Instant createdAt,
         Instant updatedAt) {
@@ -28,6 +29,7 @@ public record ServiceUnitResponse(
                 serviceUnit.getLocation(),
                 serviceUnit.getType(),
                 serviceUnit.getStatus(),
+                serviceUnit.isOneActiveTicketPerUser(),
                 defaultLocation == null ? null : ServiceUnitLocationResponse.from(defaultLocation),
                 serviceUnit.getCreatedAt(),
                 serviceUnit.getUpdatedAt());

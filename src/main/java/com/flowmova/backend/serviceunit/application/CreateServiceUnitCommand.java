@@ -6,5 +6,6 @@ public record CreateServiceUnitCommand(
         String name,
         String description,
         String location,
-        ServiceUnitType type) {
+        ServiceUnitType type,
+        boolean oneActiveTicketPerUser) {
 }

@@ -2,6 +2,7 @@ package com.flowmova.backend.ticket.infrastructure;
 
 import com.flowmova.backend.ticket.domain.Ticket;
 import com.flowmova.backend.ticket.domain.TicketStatus;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -16,6 +17,11 @@ public interface TicketRepository extends JpaRepository<Ticket, UUID> {
     Optional<Ticket> findByIdAndServiceUnitId(UUID id, UUID serviceUnitId);
 
     Optional<Ticket> findByIdAndUserId(UUID id, UUID userId);
+
+    boolean existsByUserIdAndServiceUnitIdAndStatusIn(
+            UUID userId,
+            UUID serviceUnitId,
+            Collection<TicketStatus> statuses);
 
     List<Ticket> findByServiceUnitIdOrderByCreatedAtDesc(UUID serviceUnitId);
 

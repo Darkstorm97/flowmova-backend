@@ -15,6 +15,7 @@ import com.flowmova.backend.serviceunitlocation.infrastructure.ServiceUnitLocati
 import com.flowmova.backend.ticket.api.TicketResponse;
 import com.flowmova.backend.ticket.domain.Ticket;
 import com.flowmova.backend.ticket.domain.TicketLine;
+import com.flowmova.backend.ticket.domain.TicketStatus;
 import com.flowmova.backend.ticket.infrastructure.TicketRepository;
 import com.flowmova.backend.user.domain.User;
 import com.flowmova.backend.user.infrastructure.UserRepository;
@@ -33,6 +34,9 @@ public class CreateTicketService {
 
     private static final char[] ACCESS_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789".toCharArray();
     private static final int ACCESS_CODE_LENGTH = 8;
+    private static final List<TicketStatus> ACTIVE_TICKET_STATUSES = List.of(
+            TicketStatus.CREATED,
+            TicketStatus.RECEIVED);
 
     private final TicketRepository ticketRepository;
     private final ServiceUnitRepository serviceUnitRepository;
@@ -68,6 +72,7 @@ public class CreateTicketService {
 
         ServiceUnitLocation location = resolveLocation(serviceUnitId, command.locationId());
         User user = resolveUser(authenticatedUser);
+        validateActiveTicketLimit(serviceUnit, user);
         String guestName = user == null ? requireGuestName(command.guestName()) : null;
         String accessCode = user == null ? generateAccessCode() : null;
         String accessCodeHash = accessCode == null ? null : passwordEncoder.encode(accessCode);
@@ -120,6 +125,23 @@ public class CreateTicketService {
         }
         return userRepository.findById(authenticatedUser.userId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authenticated user not found"));
+    }
+
+    private void validateActiveTicketLimit(ServiceUnit serviceUnit, User user) {
+        if (!serviceUnit.isOneActiveTicketPerUser()) {
+            return;
+        }
+
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication is required");
+        }
+
+        if (ticketRepository.existsByUserIdAndServiceUnitIdAndStatusIn(
+                user.getId(),
+                serviceUnit.getId(),
+                ACTIVE_TICKET_STATUSES)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Active ticket already exists");
+        }
     }
 
     private List<CreateTicketLineCommand> lines(CreateTicketCommand command) {

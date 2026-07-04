@@ -25,6 +25,8 @@ import org.hibernate.type.SqlTypes;
 @Table(name = "service_units")
 public class ServiceUnit {
 
+    private static final String ONE_ACTIVE_TICKET_PER_USER_SETTING = "oneActiveTicketPerUser";
+
     @Id
     @Column(name = "id", nullable = false)
     private UUID id;
@@ -110,11 +112,18 @@ public class ServiceUnit {
         this.updatedBy = updatedBy;
     }
 
-    public void update(String name, String description, String location, User updatedBy) {
+    public void update(String name, String description, String location, Boolean oneActiveTicketPerUser, User updatedBy) {
         this.name = name;
         this.description = description;
         this.location = location;
+        if (oneActiveTicketPerUser != null) {
+            setOneActiveTicketPerUser(oneActiveTicketPerUser);
+        }
         this.updatedBy = updatedBy;
+    }
+
+    public void setOneActiveTicketPerUser(boolean oneActiveTicketPerUser) {
+        this.settings.put(ONE_ACTIVE_TICKET_PER_USER_SETTING, oneActiveTicketPerUser);
     }
 
     public UUID getId() {
@@ -147,6 +156,11 @@ public class ServiceUnit {
 
     public Map<String, Object> getSettings() {
         return Map.copyOf(settings);
+    }
+
+    public boolean isOneActiveTicketPerUser() {
+        Object value = settings.get(ONE_ACTIVE_TICKET_PER_USER_SETTING);
+        return value instanceof Boolean booleanValue && booleanValue;
     }
 
     public Instant getCreatedAt() {

@@ -17,9 +17,16 @@ public record CreateServiceUnitRequest(
         String location,
 
         @NotNull
-        ServiceUnitType type) {
+        ServiceUnitType type,
+
+        Boolean oneActiveTicketPerUser) {
 
     public CreateServiceUnitCommand toCommand() {
-        return new CreateServiceUnitCommand(name, description, location, type);
+        return new CreateServiceUnitCommand(
+                name,
+                description,
+                location,
+                type,
+                Boolean.TRUE.equals(oneActiveTicketPerUser));
     }
 }

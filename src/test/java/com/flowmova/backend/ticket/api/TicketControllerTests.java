@@ -175,6 +175,76 @@ class TicketControllerTests {
     }
 
     @Test
+    void rejectsGuestTicketWhenServiceUnitRequiresAuthenticatedUserWithoutActiveTicket() throws Exception {
+        Fixture fixture = fixture("guest-active-ticket-limit");
+        fixture.serviceUnit().setOneActiveTicketPerUser(true);
+        serviceUnitRepository.saveAndFlush(fixture.serviceUnit());
+
+        mockMvc.perform(post("/api/service-units/{serviceUnitId}/tickets", fixture.serviceUnit().getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "guestName": "Alice Client"
+                                }
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
+                .andExpect(jsonPath("$.message").value("Authentication is required"));
+    }
+
+    @Test
+    void rejectsAuthenticatedTicketWhenUserAlreadyHasActiveTicketInSameServiceUnit() throws Exception {
+        Fixture fixture = fixture("auth-active-ticket-limit");
+        fixture.serviceUnit().setOneActiveTicketPerUser(true);
+        serviceUnitRepository.saveAndFlush(fixture.serviceUnit());
+        User customer = user("active-ticket-customer");
+        Ticket activeTicket = saveAuthenticatedTicket("T-ACTIVE-%s".formatted(shortToken()), customer, fixture);
+        activeTicket.markReceived();
+        ticketRepository.saveAndFlush(activeTicket);
+        String token = accessTokenGenerator.generate(customer).value();
+
+        mockMvc.perform(post("/api/service-units/{serviceUnitId}/tickets", fixture.serviceUnit().getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "lines": []
+                                }
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CONFLICT"))
+                .andExpect(jsonPath("$.message").value("Active ticket already exists"));
+    }
+
+    @Test
+    void authenticatedUserCreatesTicketWhenPreviousTicketIsTreatedOrInAnotherServiceUnit() throws Exception {
+        Fixture fixture = fixture("auth-treated-ticket-limit");
+        fixture.serviceUnit().setOneActiveTicketPerUser(true);
+        serviceUnitRepository.saveAndFlush(fixture.serviceUnit());
+        Fixture otherFixture = otherFixture("auth-treated-ticket-limit-other", fixture.owner());
+        otherFixture.serviceUnit().setOneActiveTicketPerUser(true);
+        serviceUnitRepository.saveAndFlush(otherFixture.serviceUnit());
+        User customer = user("treated-ticket-customer");
+        Ticket treatedTicket = saveAuthenticatedTicket("T-TREATED-%s".formatted(shortToken()), customer, fixture);
+        treatedTicket.markTreated();
+        ticketRepository.saveAndFlush(treatedTicket);
+        saveAuthenticatedTicket("T-OTHER-%s".formatted(shortToken()), customer, otherFixture);
+        String token = accessTokenGenerator.generate(customer).value();
+
+        mockMvc.perform(post("/api/service-units/{serviceUnitId}/tickets", fixture.serviceUnit().getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "lines": []
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.userId").value(customer.getId().toString()))
+                .andExpect(jsonPath("$.status").value("CREATED"));
+    }
+
+    @Test
     void guestGetsTicketWithTicketNumberAndAccessCode() throws Exception {
         Fixture fixture = fixture("guest-get-ticket");
         JsonNode createdTicket = createGuestTicket(fixture);
