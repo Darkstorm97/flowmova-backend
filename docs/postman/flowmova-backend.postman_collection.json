@@ -1697,6 +1697,139 @@
         }
       ],
       "id": "d8fdf891-1ed6-4f38-8411-913cb65a2391"
+    },
+    {
+      "name": "Tickets",
+      "item": [
+        {
+          "name": "Create Guest Ticket",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response contains guest ticket and access code', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('id');",
+                  "    pm.expect(json).to.have.property('ticketNumber');",
+                  "    pm.expect(json.ticketNumber).to.match(/^T-\\d{6,}$/);",
+                  "    pm.expect(json).to.have.property('accessCode');",
+                  "    pm.expect(json.accessCode).to.match(/^[A-Z2-9]{8}$/);",
+                  "    pm.expect(json).to.have.property('serviceUnitId', pm.collectionVariables.get('serviceUnitId'));",
+                  "    pm.expect(json).to.have.property('locationId', pm.collectionVariables.get('serviceUnitLocationId'));",
+                  "    pm.expect(json).to.have.property('status', 'CREATED');",
+                  "    pm.expect(json).to.have.property('currency');",
+                  "    pm.expect(json.lines).to.be.an('array');",
+                  "    pm.collectionVariables.set('ticketId', json.id);",
+                  "    pm.collectionVariables.set('ticketNumber', json.ticketNumber);",
+                  "    pm.collectionVariables.set('ticketAccessCode', json.accessCode);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"guestName\": \"Client Postman\",\n  \"customerPhone\": \"+1 514 555 0101\",\n  \"notes\": \"Ticket invite cree depuis Postman\",\n  \"lines\": [\n    {\n      \"itemId\": \"{{itemId}}\",\n      \"quantity\": 1,\n      \"notes\": \"Article souhaite\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/service-units/{{serviceUnitId}}/tickets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "service-units",
+                "{{serviceUnitId}}",
+                "tickets"
+              ]
+            },
+            "description": "Cree un ticket visiteur dans une unite OPEN. Executer Create/Open Service Unit, Create Catalog et Create Service Unit Item avant cet appel. Le code accessCode est retourne une seule fois et stocke dans ticketAccessCode pour les tests suivants."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Authenticated Ticket",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response contains authenticated ticket without guest access code', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('id');",
+                  "    pm.expect(json).to.have.property('ticketNumber');",
+                  "    pm.expect(json).to.not.have.property('accessCode');",
+                  "    pm.expect(json).to.have.property('userId');",
+                  "    pm.expect(json).to.have.property('serviceUnitId', pm.collectionVariables.get('serviceUnitId'));",
+                  "    pm.expect(json).to.have.property('status', 'CREATED');",
+                  "    pm.collectionVariables.set('ticketId', json.id);",
+                  "    pm.collectionVariables.set('ticketNumber', json.ticketNumber);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"locationId\": \"{{serviceUnitLocationId}}\",\n  \"customerPhone\": \"+1 514 555 0202\",\n  \"notes\": \"Ticket authentifie cree depuis Postman\",\n  \"lines\": []\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/service-units/{{serviceUnitId}}/tickets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "service-units",
+                "{{serviceUnitId}}",
+                "tickets"
+              ]
+            },
+            "description": "Cree un ticket associe au compte authentifie via JWT. Aucun accessCode invite n'est retourne pour ce type de ticket."
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "variable": [
@@ -1769,6 +1902,18 @@
     {
       "id": "7a435bb8-b5e4-4f80-a875-368af3224a28",
       "key": "publicUrl",
+      "value": ""
+    },
+    {
+      "key": "ticketId",
+      "value": ""
+    },
+    {
+      "key": "ticketNumber",
+      "value": ""
+    },
+    {
+      "key": "ticketAccessCode",
       "value": ""
     }
   ]

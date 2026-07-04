@@ -33,6 +33,7 @@ class SecurityConfiguration {
                         .requestMatchers(HttpMethod.GET, "/api/companies/{companyId}/catalogs").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/companies/{companyId}/service-units").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/companies/{companyId}/service-units/{serviceUnitId}").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/service-units/{serviceUnitId}/tickets").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/public/locations/{publicAccessSlug}").permitAll()
                         .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/info").permitAll()
                         .anyRequest().authenticated())

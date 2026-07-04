@@ -15,6 +15,11 @@ public interface ServiceUnitLocationRepository extends JpaRepository<ServiceUnit
             UUID serviceUnitId,
             ServiceUnitLocationStatus status);
 
+    Optional<ServiceUnitLocation> findByIdAndServiceUnitIdAndStatus(
+            UUID id,
+            UUID serviceUnitId,
+            ServiceUnitLocationStatus status);
+
     Optional<ServiceUnitLocation> findByPublicAccessSlug(String publicAccessSlug);
 
     Optional<ServiceUnitLocation> findByPublicAccessSlugAndStatus(
