@@ -14,19 +14,60 @@ Container images are stored in GitHub Container Registry (`ghcr.io`) instead of 
 
 ```text
 DEV
+Region: Canada Central
 rg-flowmova-dev
+  log-flowmova-dev
   cae-flowmova-dev
     ca-flowmova-api-dev
     ca-flowmova-postgres-dev
-  Azure Files volume for dev PostgreSQL data
+  stflowmovadev001
+    Azure Files share: flowmova-postgres-dev-data
 
 PROD
+Region: South Africa North, or closest available Africa-region alternative
 rg-flowmova-prod
+  log-flowmova-prod
   cae-flowmova-prod
     ca-flowmova-api-prod
-  Azure Database for PostgreSQL Flexible Server
-  Azure Blob Storage
+  psql-flowmova-prod
+  stflowmovaprod001
+    Blob container: flowmova-prod
 ```
+
+Storage account names are globally unique in Azure, lowercase-only, and cannot contain hyphens. If a proposed storage account name is unavailable, append a short numeric suffix while preserving the environment name.
+
+## Resource Naming
+
+### Development
+
+| Resource | Name | Region |
+| --- | --- | --- |
+| Resource group | `rg-flowmova-dev` | `Canada Central` |
+| Log Analytics workspace | `log-flowmova-dev` | `Canada Central` |
+| Container Apps environment | `cae-flowmova-dev` | `Canada Central` |
+| Backend Container App | `ca-flowmova-api-dev` | `Canada Central` |
+| PostgreSQL Container App | `ca-flowmova-postgres-dev` | `Canada Central` |
+| Storage account for dev PostgreSQL volume | `stflowmovadev001` | `Canada Central` |
+| Azure Files share for dev PostgreSQL data | `flowmova-postgres-dev-data` | `Canada Central` |
+
+### Production
+
+| Resource | Name | Region |
+| --- | --- | --- |
+| Resource group | `rg-flowmova-prod` | `South Africa North` preferred |
+| Log Analytics workspace | `log-flowmova-prod` | same as prod region |
+| Container Apps environment | `cae-flowmova-prod` | same as prod region |
+| Backend Container App | `ca-flowmova-api-prod` | same as prod region |
+| Azure Database for PostgreSQL Flexible Server | `psql-flowmova-prod` | same as prod region |
+| Storage account for Blob Storage | `stflowmovaprod001` | same as prod region |
+| Blob container | `flowmova-prod` | same as prod region |
+
+Production region priority:
+
+1. `South Africa North`
+2. Closest Azure region with all required services available, for example `UAE North`, `Qatar Central`, `North Europe`, or `West Europe`.
+
+All production resources should stay in the same region unless a specific service is unavailable and the exception is documented.
 
 ## Development Environment
 
@@ -34,10 +75,14 @@ The development environment is used to validate cloud deployment, pipeline behav
 
 Components:
 
+- Resource group: `rg-flowmova-dev`
+- Region: `Canada Central`
+- Log Analytics workspace: `log-flowmova-dev`
 - Azure Container Apps environment: `cae-flowmova-dev`
 - Backend container app: `ca-flowmova-api-dev`
 - PostgreSQL container app: `ca-flowmova-postgres-dev`
-- Persistent storage for PostgreSQL via Azure Files
+- Storage account for PostgreSQL dev data: `stflowmovadev001`
+- Azure Files share for PostgreSQL dev data: `flowmova-postgres-dev-data`
 - Images pulled from GitHub Container Registry
 
 Rules:
@@ -60,10 +105,14 @@ The production environment is used for real customers and real business data.
 
 Components:
 
+- Resource group: `rg-flowmova-prod`
+- Preferred region: `South Africa North`
+- Log Analytics workspace: `log-flowmova-prod`
 - Azure Container Apps environment: `cae-flowmova-prod`
 - Backend container app: `ca-flowmova-api-prod`
-- Azure Database for PostgreSQL Flexible Server
-- Azure Blob Storage for future file/object storage needs
+- Azure Database for PostgreSQL Flexible Server: `psql-flowmova-prod`
+- Storage account for Blob Storage: `stflowmovaprod001`
+- Blob container: `flowmova-prod`
 - Images pulled from GitHub Container Registry
 
 Rules:
