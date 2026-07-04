@@ -94,6 +94,17 @@ mvn spring-boot:run
 
 L'application demarre par defaut sur le port `8080`.
 
+## Documentation API
+
+La documentation OpenAPI est generee par le backend avec Swagger UI.
+
+Une fois l'application demarree localement:
+
+- Swagger UI: `http://localhost:8080/swagger-ui/index.html`
+- Specification OpenAPI JSON: `http://localhost:8080/v3/api-docs`
+
+Les endpoints proteges peuvent etre testes dans Swagger UI avec le bouton `Authorize`, en fournissant le token JWT retourne par `POST /api/auth/login`.
+
 Variables d'environnement utiles:
 
 - `FLOWMOVA_PUBLIC_BASE_URL`: URL publique de base utilisee pour construire les liens publics des emplacements. Valeur locale par defaut: `http://localhost:3000`.
