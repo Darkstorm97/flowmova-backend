@@ -2324,6 +2324,72 @@
             "description": "Change le statut d'un ticket pour un membre ADMIN ou EMPLOYEE. Transitions equipe supportees: CREATED -> RECEIVED/TREATED/CANCELLED, RECEIVED -> TREATED/CANCELLED, TREATED -> CLOSED, CUSTOMER_CONFIRMED -> CLOSED. Le statut CUSTOMER_CONFIRMED est reserve aux actions client futures."
           },
           "response": []
+        },
+        {
+          "name": "Close Ticket",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains closed ticket', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('id', pm.collectionVariables.get('ticketId'));",
+                  "    pm.expect(json).to.have.property('status', 'CLOSED');",
+                  "    pm.expect(json).to.have.property('closedAt');",
+                  "    pm.expect(json).to.not.have.property('accessCode');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CLOSED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/companies/{{companyId}}/admin/service-units/{{serviceUnitId}}/tickets/{{ticketId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "companies",
+                "{{companyId}}",
+                "admin",
+                "service-units",
+                "{{serviceUnitId}}",
+                "tickets",
+                "{{ticketId}}",
+                "status"
+              ]
+            },
+            "description": "Cloture un ticket en statut TREATED ou CUSTOMER_CONFIRMED pour un membre ADMIN ou EMPLOYEE. Executer Change Ticket Status vers TREATED, ou confirmer le traitement cote client, avant cet appel."
+          },
+          "response": []
         }
       ]
     }

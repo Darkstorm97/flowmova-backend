@@ -768,6 +768,37 @@ class TicketControllerTests {
     }
 
     @Test
+    void employeeClosesTreatedTicket() throws Exception {
+        Fixture fixture = fixture("ticket-status-close-treated");
+        User employee = user("ticket-status-close-treated-employee");
+        companyUserRepository.save(new CompanyUser(fixture.company().getId(), employee, CompanyRole.EMPLOYEE));
+        String token = accessTokenGenerator.generate(employee).value();
+        Ticket ticket = saveGuestTicket("T-STATUS-CLOSE-TREATED-%s".formatted(shortToken()), fixture);
+        ticket.markTreated();
+        ticket = ticketRepository.saveAndFlush(ticket);
+
+        mockMvc.perform(patch(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/tickets/{ticketId}/status",
+                        fixture.company().getId(),
+                        fixture.serviceUnit().getId(),
+                        ticket.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "CLOSED"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CLOSED"))
+                .andExpect(jsonPath("$.closedAt").exists());
+
+        Ticket closedTicket = ticketRepository.findById(ticket.getId()).orElseThrow();
+        assertThat(closedTicket.getStatus()).isEqualTo(TicketStatus.CLOSED);
+        assertThat(closedTicket.getClosedAt()).isNotNull();
+    }
+
+    @Test
     void adminClosesCustomerConfirmedTicket() throws Exception {
         Fixture fixture = fixture("ticket-status-closed");
         User admin = user("ticket-status-closed-admin");
@@ -793,6 +824,34 @@ class TicketControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("CLOSED"))
                 .andExpect(jsonPath("$.closedAt").exists());
+    }
+
+    @Test
+    void rejectsChangingClosedTicket() throws Exception {
+        Fixture fixture = fixture("ticket-status-closed-final");
+        User admin = user("ticket-status-closed-final-admin");
+        companyUserRepository.save(new CompanyUser(fixture.company().getId(), admin, CompanyRole.ADMIN));
+        String token = accessTokenGenerator.generate(admin).value();
+        Ticket ticket = saveGuestTicket("T-STATUS-CLOSED-FINAL-%s".formatted(shortToken()), fixture);
+        ticket.markTreated();
+        ticket.close();
+        ticket = ticketRepository.saveAndFlush(ticket);
+
+        mockMvc.perform(patch(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/tickets/{ticketId}/status",
+                        fixture.company().getId(),
+                        fixture.serviceUnit().getId(),
+                        ticket.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "TREATED"
+                                }
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CONFLICT"))
+                .andExpect(jsonPath("$.message").value("Ticket transition is invalid"));
     }
 
     @Test
