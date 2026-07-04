@@ -532,6 +532,24 @@ Criteres d'acceptation:
 - Les resultats sont pagines.
 - L'endpoint n'est pas public et requiert un JWT valide.
 
+### SERVICE-013 - Modifier une unite de service
+
+**En tant que** administrateur d'entreprise,
+**je veux** modifier les informations d'une unite de service,
+**afin de** corriger ou faire evoluer sa presentation sans recreer l'unite.
+
+Criteres d'acceptation:
+
+- Le role `ADMIN` est requis.
+- L'entreprise doit etre `ACTIVE`.
+- L'unite doit appartenir a l'entreprise.
+- Les champs modifiables sont: `name`, `description`, `location`.
+- Le nom est obligatoire.
+- Le statut de l'unite n'est pas modifie par cet endpoint.
+- L'emplacement par defaut n'est pas modifie par cet endpoint.
+- Une unite `OPEN`, `CLOSED` ou `ARCHIVED` peut etre modifiee.
+- La reponse retourne l'unite mise a jour avec son emplacement par defaut lorsqu'il existe.
+
 ### ITEM-001 - Creer la table `items`
 
 **En tant que** backend,
@@ -1009,14 +1027,15 @@ Pour obtenir rapidement un parcours FS-001 utilisable, traiter dans cet ordre:
 20. LOCATION-010
 21. SERVICE-011
 22. SERVICE-012
-23. SERVICE-030
-24. SERVICE-040
-25. SERVICE-041
-26. LOCATION-030
-27. TICKET-001
-28. TICKET-002
-29. TICKET-010
-30. TICKET-022
+23. SERVICE-013
+24. SERVICE-030
+25. SERVICE-040
+26. SERVICE-041
+27. LOCATION-030
+28. TICKET-001
+29. TICKET-002
+30. TICKET-010
+31. TICKET-022
 
 Cette verticale permet d'obtenir: creation entreprise avec devise -> catalogue avec prix optionnel -> unite ouverte sans article obligatoire -> emplacement par defaut et lien direct -> creation ticket general dans un emplacement -> consultation invitee avec numero et code.
 
