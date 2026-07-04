@@ -1885,6 +1885,80 @@
             "description": "Consulte un ticket visiteur avec ticketNumber + accessCode. Executer Create Guest Ticket avant cet appel pour alimenter ticketNumber et ticketAccessCode."
           },
           "response": []
+        },
+        {
+          "name": "List My Tickets",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains paginated current user tickets', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('items');",
+                  "    pm.expect(json.items).to.be.an('array');",
+                  "    pm.expect(json).to.have.property('page');",
+                  "    pm.expect(json).to.have.property('size');",
+                  "    pm.expect(json).to.have.property('totalItems');",
+                  "    pm.expect(json).to.have.property('totalPages');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me/tickets?page=0&size=20&status=&ticketNumber={{ticketNumber}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me",
+                "tickets"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "ticketNumber",
+                  "value": "{{ticketNumber}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Liste les tickets du compte authentifie avec pagination. Les query params status et ticketNumber sont optionnels; activer ticketNumber apres Create Authenticated Ticket ou Create Guest Ticket selon le scenario souhaite."
+          },
+          "response": []
         }
       ]
     }

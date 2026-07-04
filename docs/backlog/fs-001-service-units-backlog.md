@@ -824,9 +824,14 @@ Criteres d'acceptation:
 
 Criteres d'acceptation:
 
+- L'endpoint `GET /api/users/me/tickets` existe.
 - L'endpoint retourne uniquement les tickets associes au compte authentifie.
 - Les tickets non authentifies ne sont pas retournes.
+- La liste est paginee.
 - Les tickets peuvent etre filtres par statut.
+- Les tickets peuvent etre recherches par numero de ticket.
+- La recherche par numero est limitee aux tickets du compte authentifie.
+- La recherche par numero accepte une valeur partielle et est insensible a la casse.
 - Les informations sensibles internes de l'entreprise ne sont pas exposees.
 
 ### TICKET-022 - Consulter un ticket non authentifie avec numero et code

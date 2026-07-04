@@ -1,6 +1,7 @@
 package com.flowmova.backend.ticket.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -232,6 +233,75 @@ class TicketControllerTests {
     }
 
     @Test
+    void authenticatedUserListsOwnTicketsWithPaginationStatusAndTicketNumberSearch() throws Exception {
+        Fixture fixture = fixture("my-tickets");
+        User customer = user("my-tickets-customer");
+        User otherCustomer = user("my-tickets-other-customer");
+        String token = accessTokenGenerator.generate(customer).value();
+        String uniqueToken = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        String confirmedTicketNumber = "T-ME-%s".formatted(uniqueToken);
+
+        saveAuthenticatedTicket("T-ME-HIDDEN-%s".formatted(uniqueToken), customer, fixture);
+        Ticket confirmedTicket = saveAuthenticatedTicket(confirmedTicketNumber, customer, fixture);
+        confirmedTicket.confirm();
+        ticketRepository.saveAndFlush(confirmedTicket);
+        saveAuthenticatedTicket("T-OTHER-%s".formatted(uniqueToken), otherCustomer, fixture);
+        saveGuestTicket("T-GUEST-%s".formatted(uniqueToken), fixture);
+
+        mockMvc.perform(get("/api/users/me/tickets")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .param("status", "CONFIRMED")
+                        .param("ticketNumber", uniqueToken.toLowerCase())
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("sort", "ticketNumber,asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].id").value(confirmedTicket.getId().toString()))
+                .andExpect(jsonPath("$.items[0].ticketNumber").value(confirmedTicketNumber))
+                .andExpect(jsonPath("$.items[0].accessCode").doesNotExist())
+                .andExpect(jsonPath("$.items[0].guestName").doesNotExist())
+                .andExpect(jsonPath("$.items[0].userId").value(customer.getId().toString()))
+                .andExpect(jsonPath("$.items[0].status").value("CONFIRMED"))
+                .andExpect(jsonPath("$.items[0].serviceUnitId").value(fixture.serviceUnit().getId().toString()))
+                .andExpect(jsonPath("$.items[?(@.ticketNumber == 'T-OTHER-%s')]".formatted(uniqueToken)).doesNotExist())
+                .andExpect(jsonPath("$.items[?(@.ticketNumber == 'T-GUEST-%s')]".formatted(uniqueToken)).doesNotExist())
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(10))
+                .andExpect(jsonPath("$.totalItems").value(1))
+                .andExpect(jsonPath("$.totalPages").value(1));
+    }
+
+    @Test
+    void authenticatedUserListsOwnTicketsWithDefaultPagination() throws Exception {
+        Fixture fixture = fixture("my-tickets-default");
+        User customer = user("my-tickets-default-customer");
+        String token = accessTokenGenerator.generate(customer).value();
+        String uniqueToken = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+
+        Ticket firstTicket = saveAuthenticatedTicket("T-ME-FIRST-%s".formatted(uniqueToken), customer, fixture);
+        Ticket secondTicket = saveAuthenticatedTicket("T-ME-SECOND-%s".formatted(uniqueToken), customer, fixture);
+
+        mockMvc.perform(get("/api/users/me/tickets")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .param("ticketNumber", "T-ME-")
+                        .param("page", "0")
+                        .param("size", "20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.items[?(@.id == '%s')]".formatted(firstTicket.getId())).exists())
+                .andExpect(jsonPath("$.items[?(@.id == '%s')]".formatted(secondTicket.getId())).exists())
+                .andExpect(jsonPath("$.totalItems").value(2));
+    }
+
+    @Test
+    void rejectsCurrentUserTicketsWithoutJwt() throws Exception {
+        mockMvc.perform(get("/api/users/me/tickets"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
     void rejectsGuestTicketWithoutGuestName() throws Exception {
         Fixture fixture = fixture("guest-name-required");
 
@@ -350,6 +420,32 @@ class TicketControllerTests {
                 .getContentAsString();
 
         return objectMapper.readTree(response);
+    }
+
+    private Ticket saveAuthenticatedTicket(String ticketNumber, User user, Fixture fixture) {
+        return ticketRepository.saveAndFlush(new Ticket(
+                ticketNumber,
+                user,
+                null,
+                null,
+                fixture.serviceUnit(),
+                fixture.defaultLocation(),
+                null,
+                null,
+                fixture.company().getCurrency()));
+    }
+
+    private Ticket saveGuestTicket(String ticketNumber, Fixture fixture) {
+        return ticketRepository.saveAndFlush(new Ticket(
+                ticketNumber,
+                null,
+                "Guest Client",
+                passwordEncoder.encode("ACCESS01"),
+                fixture.serviceUnit(),
+                fixture.defaultLocation(),
+                null,
+                null,
+                fixture.company().getCurrency()));
     }
 
     private Fixture fixture(String emailPrefix) {
