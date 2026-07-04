@@ -1415,6 +1415,243 @@ class ServiceUnitControllerTests {
                 .andExpect(jsonPath("$.message").value("Catalog is invalid"));
     }
 
+    @Test
+    void adminUpdatesServiceUnitItemConfiguration() throws Exception {
+        User admin = user("service-unit-item-update-admin");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Configurable Item Queue",
+                null,
+                null,
+                null,
+                admin));
+        Catalog catalog = catalog(company, admin, "Configurable Offer", new BigDecimal("15.00"));
+        Item item = itemRepository.saveAndFlush(new Item(
+                serviceUnit,
+                catalog,
+                new BigDecimal("12.00"),
+                ItemAvailability.AVAILABLE,
+                20,
+                1));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(put(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/items/{itemId}",
+                        company.getId(),
+                        serviceUnit.getId(),
+                        item.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "priceAmount": 10.50,
+                                  "availability": "UNAVAILABLE",
+                                  "configuredQuantity": 5,
+                                  "displayOrder": 9
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(item.getId().toString()))
+                .andExpect(jsonPath("$.serviceUnitId").value(serviceUnit.getId().toString()))
+                .andExpect(jsonPath("$.catalog.id").value(catalog.getId().toString()))
+                .andExpect(jsonPath("$.priceAmount").value(10.50))
+                .andExpect(jsonPath("$.availability").value("UNAVAILABLE"))
+                .andExpect(jsonPath("$.configuredQuantity").value(5))
+                .andExpect(jsonPath("$.reservedQuantity").value(0))
+                .andExpect(jsonPath("$.displayOrder").value(9))
+                .andExpect(jsonPath("$.status").value("ACTIVE"));
+
+        Item updatedItem = itemRepository.findById(item.getId()).orElseThrow();
+        assertThat(updatedItem.getPriceAmount()).isEqualByComparingTo("10.50");
+        assertThat(updatedItem.getAvailability()).isEqualTo(ItemAvailability.UNAVAILABLE);
+        assertThat(updatedItem.getConfiguredQuantity()).isEqualTo(5);
+        assertThat(updatedItem.getReservedQuantity()).isZero();
+        assertThat(updatedItem.getDisplayOrder()).isEqualTo(9);
+    }
+
+    @Test
+    void adminClearsServiceUnitItemOptionalPriceAndQuantityLimit() throws Exception {
+        User admin = user("service-unit-item-update-clear");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Clear Item Queue",
+                null,
+                null,
+                null,
+                admin));
+        Catalog catalog = catalog(company, admin, "Clearable Offer", new BigDecimal("7.00"));
+        Item item = itemRepository.saveAndFlush(new Item(
+                serviceUnit,
+                catalog,
+                new BigDecimal("6.00"),
+                ItemAvailability.UNAVAILABLE,
+                3,
+                2));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(put(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/items/{itemId}",
+                        company.getId(),
+                        serviceUnit.getId(),
+                        item.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "priceAmount": null,
+                                  "availability": "AVAILABLE",
+                                  "configuredQuantity": null,
+                                  "displayOrder": 0
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.priceAmount").doesNotExist())
+                .andExpect(jsonPath("$.availability").value("AVAILABLE"))
+                .andExpect(jsonPath("$.configuredQuantity").doesNotExist())
+                .andExpect(jsonPath("$.reservedQuantity").value(0))
+                .andExpect(jsonPath("$.displayOrder").value(0));
+
+        Item updatedItem = itemRepository.findById(item.getId()).orElseThrow();
+        assertThat(updatedItem.getPriceAmount()).isNull();
+        assertThat(updatedItem.getConfiguredQuantity()).isNull();
+        assertThat(updatedItem.getReservedQuantity()).isZero();
+    }
+
+    @Test
+    void rejectsServiceUnitItemUpdateForEmployee() throws Exception {
+        User employee = user("service-unit-item-update-employee");
+        Company company = activeCompany(employee);
+        companyUserRepository.save(new CompanyUser(company.getId(), employee, CompanyRole.EMPLOYEE));
+        ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Employee Item Update Queue",
+                null,
+                null,
+                null,
+                employee));
+        Catalog catalog = catalog(company, employee, "Employee Update Offer", null);
+        Item item = itemRepository.saveAndFlush(new Item(
+                serviceUnit,
+                catalog,
+                null,
+                ItemAvailability.AVAILABLE,
+                null,
+                0));
+        String token = accessTokenGenerator.generate(employee).value();
+
+        mockMvc.perform(put(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/items/{itemId}",
+                        company.getId(),
+                        serviceUnit.getId(),
+                        item.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "availability": "UNAVAILABLE",
+                                  "displayOrder": 1
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.message").value("Company admin role is required"));
+    }
+
+    @Test
+    void rejectsServiceUnitItemUpdateForAnotherServiceUnit() throws Exception {
+        User admin = user("service-unit-item-update-other-unit");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Expected Item Queue",
+                null,
+                null,
+                null,
+                admin));
+        ServiceUnit otherServiceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Other Item Queue",
+                null,
+                null,
+                null,
+                admin));
+        Catalog catalog = catalog(company, admin, "Other Unit Offer", null);
+        Item otherItem = itemRepository.saveAndFlush(new Item(
+                otherServiceUnit,
+                catalog,
+                null,
+                ItemAvailability.AVAILABLE,
+                null,
+                0));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(put(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/items/{itemId}",
+                        company.getId(),
+                        serviceUnit.getId(),
+                        otherItem.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "availability": "UNAVAILABLE",
+                                  "displayOrder": 1
+                                }
+                                """))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Item not found"));
+    }
+
+    @Test
+    void rejectsServiceUnitItemUpdateWithoutRequiredFields() throws Exception {
+        User admin = user("service-unit-item-update-invalid");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Invalid Item Update Queue",
+                null,
+                null,
+                null,
+                admin));
+        Catalog catalog = catalog(company, admin, "Invalid Update Offer", null);
+        Item item = itemRepository.saveAndFlush(new Item(
+                serviceUnit,
+                catalog,
+                null,
+                ItemAvailability.AVAILABLE,
+                null,
+                0));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(put(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/items/{itemId}",
+                        company.getId(),
+                        serviceUnit.getId(),
+                        item.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "priceAmount": -1,
+                                  "configuredQuantity": -1,
+                                  "displayOrder": null
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.fieldErrors[?(@.field == 'priceAmount')]").exists())
+                .andExpect(jsonPath("$.fieldErrors[?(@.field == 'availability')]").exists())
+                .andExpect(jsonPath("$.fieldErrors[?(@.field == 'configuredQuantity')]").exists())
+                .andExpect(jsonPath("$.fieldErrors[?(@.field == 'displayOrder')]").exists());
+    }
+
     private User user(String emailPrefix) {
         return userRepository.save(new User(
                 "%s.%s@flowmova.test".formatted(emailPrefix, UUID.randomUUID()),

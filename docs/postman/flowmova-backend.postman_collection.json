@@ -1336,6 +1336,78 @@
           "response": []
         },
         {
+          "name": "Update Service Unit Item",
+          "id": "d5188813-ee9c-4966-ae93-2d3664df85b8",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains updated item', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('id', pm.collectionVariables.get('itemId'));",
+                  "    pm.expect(json).to.have.property('serviceUnitId', pm.collectionVariables.get('serviceUnitId'));",
+                  "    pm.expect(json).to.have.property('catalog');",
+                  "    pm.expect(json.catalog).to.have.property('id', pm.collectionVariables.get('catalogId'));",
+                  "    pm.expect(json).to.have.property('priceAmount', 11.75);",
+                  "    pm.expect(json).to.have.property('availability', 'UNAVAILABLE');",
+                  "    pm.expect(json).to.have.property('configuredQuantity', 5);",
+                  "    pm.expect(json).to.have.property('reservedQuantity', 0);",
+                  "    pm.expect(json).to.have.property('displayOrder', 2);",
+                  "    pm.expect(json).to.have.property('status', 'ACTIVE');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"priceAmount\": 11.75,\n  \"availability\": \"UNAVAILABLE\",\n  \"configuredQuantity\": 5,\n  \"displayOrder\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/companies/{{companyId}}/admin/service-units/{{serviceUnitId}}/items/{{itemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "companies",
+                "{{companyId}}",
+                "admin",
+                "service-units",
+                "{{serviceUnitId}}",
+                "items",
+                "{{itemId}}"
+              ]
+            },
+            "description": "Configure un article d'une unite de service: prix optionnel, disponibilite, quantite configuree et ordre d'affichage. La quantite reservee n'est pas modifiee directement. Executer Create Service Unit Item avant cet appel."
+          },
+          "response": []
+        },
+        {
           "name": "List Admin Service Units",
           "event": [
             {

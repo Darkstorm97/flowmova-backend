@@ -3,7 +3,9 @@ package com.flowmova.backend.serviceunit.api;
 import com.flowmova.backend.auth.domain.AuthenticatedUser;
 import com.flowmova.backend.item.api.CreateItemRequest;
 import com.flowmova.backend.item.api.ItemResponse;
+import com.flowmova.backend.item.api.UpdateItemRequest;
 import com.flowmova.backend.item.application.CreateItemService;
+import com.flowmova.backend.item.application.UpdateItemService;
 import com.flowmova.backend.serviceunit.application.ListAdminServiceUnitsService;
 import com.flowmova.backend.serviceunit.application.UpdateServiceUnitService;
 import com.flowmova.backend.serviceunit.domain.ServiceUnitStatus;
@@ -30,14 +32,17 @@ public class AdminServiceUnitController {
     private final ListAdminServiceUnitsService listAdminServiceUnitsService;
     private final UpdateServiceUnitService updateServiceUnitService;
     private final CreateItemService createItemService;
+    private final UpdateItemService updateItemService;
 
     public AdminServiceUnitController(
             ListAdminServiceUnitsService listAdminServiceUnitsService,
             UpdateServiceUnitService updateServiceUnitService,
-            CreateItemService createItemService) {
+            CreateItemService createItemService,
+            UpdateItemService updateItemService) {
         this.listAdminServiceUnitsService = listAdminServiceUnitsService;
         this.updateServiceUnitService = updateServiceUnitService;
         this.createItemService = createItemService;
+        this.updateItemService = updateItemService;
     }
 
     @GetMapping
@@ -66,5 +71,15 @@ public class AdminServiceUnitController {
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
             @Valid @RequestBody CreateItemRequest request) {
         return createItemService.create(companyId, serviceUnitId, authenticatedUser, request.toCommand());
+    }
+
+    @PutMapping("/{serviceUnitId}/items/{itemId}")
+    public ItemResponse updateItem(
+            @PathVariable UUID companyId,
+            @PathVariable UUID serviceUnitId,
+            @PathVariable UUID itemId,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+            @Valid @RequestBody UpdateItemRequest request) {
+        return updateItemService.update(companyId, serviceUnitId, itemId, authenticatedUser, request.toCommand());
     }
 }

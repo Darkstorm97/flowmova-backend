@@ -12,6 +12,8 @@ public interface ItemRepository extends JpaRepository<Item, UUID> {
 
     Optional<Item> findByServiceUnitIdAndCatalogId(UUID serviceUnitId, UUID catalogId);
 
+    Optional<Item> findByIdAndServiceUnitId(UUID id, UUID serviceUnitId);
+
     boolean existsByServiceUnitIdAndCatalogId(UUID serviceUnitId, UUID catalogId);
 
     List<Item> findByServiceUnitIdOrderByDisplayOrderAscCatalogNameAsc(UUID serviceUnitId);
