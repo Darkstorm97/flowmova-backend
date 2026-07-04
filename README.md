@@ -34,6 +34,8 @@ Le backend suit une approche de monolithe modulaire. La premiere version doit re
 
 La structure des modules backend est documentee dans [docs/architecture/backend-modules.md](docs/architecture/backend-modules.md).
 
+La strategie d'environnements Azure est documentee dans [docs/architecture/azure-environments.md](docs/architecture/azure-environments.md).
+
 Modules cibles de demarrage:
 
 - `auth`: inscription, connexion, JWT, reset password
