@@ -3,6 +3,8 @@ package com.flowmova.backend.catalogcategory.api;
 import com.flowmova.backend.auth.domain.AuthenticatedUser;
 import com.flowmova.backend.catalogcategory.application.CreateCatalogCategoryService;
 import com.flowmova.backend.catalogcategory.application.ListCatalogCategoriesService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/companies/{companyId}/catalog-categories")
+@Tag(name = "Catalog Categories", description = "Categories permettant de classer les catalogues d'une entreprise.")
 public class CatalogCategoryController {
 
     private final CreateCatalogCategoryService createCatalogCategoryService;
@@ -31,12 +34,18 @@ public class CatalogCategoryController {
     }
 
     @GetMapping
+    @Operation(
+            summary = "Lister les categories de catalogue",
+            description = "Retourne les categories actives d'une entreprise. Endpoint public utilise dans le parcours de consultation.")
     public List<CatalogCategoryResponse> list(@PathVariable UUID companyId) {
         return listCatalogCategoriesService.list(companyId);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(
+            summary = "Creer une categorie de catalogue",
+            description = "Cree une categorie de catalogue pour une entreprise. JWT requis et role administrateur requis.")
     public CatalogCategoryResponse create(
             @PathVariable UUID companyId,
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser,

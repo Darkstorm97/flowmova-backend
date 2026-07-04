@@ -5,6 +5,8 @@ import com.flowmova.backend.catalog.application.ArchiveCatalogService;
 import com.flowmova.backend.catalog.application.CreateCatalogService;
 import com.flowmova.backend.catalog.application.ListActiveCatalogsService;
 import com.flowmova.backend.catalog.application.UpdateCatalogService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/companies/{companyId}/catalogs")
+@Tag(name = "Catalogs", description = "Offres ou elements de catalogue visibles dans une entreprise et utilisables par les articles.")
 public class CatalogController {
 
     private final CreateCatalogService createCatalogService;
@@ -42,6 +45,9 @@ public class CatalogController {
     }
 
     @GetMapping
+    @Operation(
+            summary = "Lister les catalogues actifs",
+            description = "Retourne les catalogues actifs d'une entreprise. Peut etre filtre par categorie avec catalogCategoryId.")
     public List<CatalogResponse> list(
             @PathVariable UUID companyId,
             @RequestParam(required = false) UUID catalogCategoryId) {
@@ -50,6 +56,9 @@ public class CatalogController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(
+            summary = "Creer un catalogue",
+            description = "Cree un element de catalogue pour une entreprise. Un prix peut etre fourni si l'offre doit contribuer au total indicatif d'un ticket.")
     public CatalogResponse create(
             @PathVariable UUID companyId,
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
@@ -58,6 +67,9 @@ public class CatalogController {
     }
 
     @PutMapping("/{catalogId}")
+    @Operation(
+            summary = "Modifier un catalogue",
+            description = "Met a jour les informations d'un catalogue existant, incluant nom, description, categorie, image et prix optionnel.")
     public CatalogResponse update(
             @PathVariable UUID companyId,
             @PathVariable UUID catalogId,
@@ -67,6 +79,9 @@ public class CatalogController {
     }
 
     @DeleteMapping("/{catalogId}")
+    @Operation(
+            summary = "Archiver un catalogue",
+            description = "Archive un catalogue afin qu'il ne soit plus visible dans les listes publiques actives.")
     public CatalogResponse archive(
             @PathVariable UUID companyId,
             @PathVariable UUID catalogId,

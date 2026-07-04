@@ -5,6 +5,8 @@ import com.flowmova.backend.company.application.CreateCompanyService;
 import com.flowmova.backend.company.application.GetActiveCompanyService;
 import com.flowmova.backend.company.application.SearchActiveCompaniesService;
 import com.flowmova.backend.shared.api.PageResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/companies")
+@Tag(name = "Companies", description = "Recherche publique des entreprises et creation d'une entreprise par un utilisateur authentifie.")
 public class CompanyController {
 
     private final CreateCompanyService createCompanyService;
@@ -37,6 +40,9 @@ public class CompanyController {
     }
 
     @GetMapping
+    @Operation(
+            summary = "Rechercher les entreprises actives",
+            description = "Retourne les entreprises actives visibles publiquement. Le parametre q permet de filtrer par recherche texte.")
     public PageResponse<CompanyResponse> search(
             @RequestParam(name = "q", required = false) String query,
             Pageable pageable) {
@@ -44,12 +50,18 @@ public class CompanyController {
     }
 
     @GetMapping("/{companyId}")
+    @Operation(
+            summary = "Consulter une entreprise active",
+            description = "Retourne la fiche publique d'une entreprise active a partir de son identifiant.")
     public CompanyResponse get(@PathVariable UUID companyId) {
         return getActiveCompanyService.getActiveCompany(companyId);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(
+            summary = "Creer une entreprise",
+            description = "Cree une entreprise et rattache l'utilisateur authentifie comme administrateur.")
     public CompanyResponse create(
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
             @Valid @RequestBody CreateCompanyRequest request) {

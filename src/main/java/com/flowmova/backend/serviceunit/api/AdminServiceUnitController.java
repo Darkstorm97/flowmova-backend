@@ -19,6 +19,8 @@ import com.flowmova.backend.ticket.api.TicketResponse;
 import com.flowmova.backend.ticket.application.ChangeTicketStatusService;
 import com.flowmova.backend.ticket.application.ListServiceUnitTicketsService;
 import com.flowmova.backend.ticket.domain.TicketStatus;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
@@ -37,6 +39,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/companies/{companyId}/admin/service-units")
+@Tag(name = "Admin Service Units", description = "Administration des unites de service, emplacements, articles et tickets d'une entreprise.")
 public class AdminServiceUnitController {
 
     private final ListAdminServiceUnitsService listAdminServiceUnitsService;
@@ -74,6 +77,9 @@ public class AdminServiceUnitController {
     }
 
     @GetMapping
+    @Operation(
+            summary = "Lister les unites de service admin",
+            description = "Retourne les unites de service d'une entreprise pour l'administration, avec pagination et filtre optionnel par statut.")
     public PageResponse<ServiceUnitResponse> list(
             @PathVariable UUID companyId,
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
@@ -83,6 +89,9 @@ public class AdminServiceUnitController {
     }
 
     @PutMapping("/{serviceUnitId}")
+    @Operation(
+            summary = "Modifier une unite de service",
+            description = "Met a jour les informations administrables d'une unite de service, incluant ses parametres anti-spam.")
     public ServiceUnitResponse update(
             @PathVariable UUID companyId,
             @PathVariable UUID serviceUnitId,
@@ -93,6 +102,9 @@ public class AdminServiceUnitController {
 
     @PostMapping("/{serviceUnitId}/locations")
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(
+            summary = "Creer un emplacement",
+            description = "Ajoute un emplacement dans une unite de service. L'emplacement peut ensuite etre utilise pour creer des tickets.")
     public ServiceUnitLocationResponse createLocation(
             @PathVariable UUID companyId,
             @PathVariable UUID serviceUnitId,
@@ -102,6 +114,9 @@ public class AdminServiceUnitController {
     }
 
     @GetMapping("/{serviceUnitId}/locations")
+    @Operation(
+            summary = "Lister les emplacements",
+            description = "Retourne les emplacements d'une unite de service pour l'administration, avec pagination.")
     public PageResponse<ServiceUnitLocationResponse> listLocations(
             @PathVariable UUID companyId,
             @PathVariable UUID serviceUnitId,
@@ -115,6 +130,9 @@ public class AdminServiceUnitController {
     }
 
     @PostMapping("/{serviceUnitId}/close")
+    @Operation(
+            summary = "Fermer une unite de service",
+            description = "Passe une unite de service ouverte en statut ferme afin de la rendre indisponible a la creation de tickets publics.")
     public ServiceUnitResponse close(
             @PathVariable UUID companyId,
             @PathVariable UUID serviceUnitId,
@@ -123,6 +141,9 @@ public class AdminServiceUnitController {
     }
 
     @PostMapping("/{serviceUnitId}/archive")
+    @Operation(
+            summary = "Archiver une unite de service",
+            description = "Archive une unite de service afin de la retirer des parcours actifs.")
     public ServiceUnitResponse archive(
             @PathVariable UUID companyId,
             @PathVariable UUID serviceUnitId,
@@ -132,6 +153,9 @@ public class AdminServiceUnitController {
 
     @PostMapping("/{serviceUnitId}/items")
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(
+            summary = "Creer un article",
+            description = "Associe un catalogue a une unite de service sous forme d'article disponible pour les tickets.")
     public ItemResponse createItem(
             @PathVariable UUID companyId,
             @PathVariable UUID serviceUnitId,
@@ -141,6 +165,9 @@ public class AdminServiceUnitController {
     }
 
     @GetMapping("/{serviceUnitId}/tickets")
+    @Operation(
+            summary = "Lister les tickets d'une unite de service",
+            description = "Retourne les tickets d'une unite de service pour l'administration, avec pagination et filtres optionnels par statut, numero et emplacement.")
     public PageResponse<TicketResponse> listTickets(
             @PathVariable UUID companyId,
             @PathVariable UUID serviceUnitId,
@@ -160,6 +187,9 @@ public class AdminServiceUnitController {
     }
 
     @PatchMapping("/{serviceUnitId}/tickets/{ticketId}/status")
+    @Operation(
+            summary = "Changer le statut d'un ticket",
+            description = "Permet a l'equipe de marquer un ticket comme recu, traite ou annule selon le cycle de vie valide.")
     public TicketResponse changeTicketStatus(
             @PathVariable UUID companyId,
             @PathVariable UUID serviceUnitId,
@@ -175,6 +205,9 @@ public class AdminServiceUnitController {
     }
 
     @PutMapping("/{serviceUnitId}/items/{itemId}")
+    @Operation(
+            summary = "Modifier un article",
+            description = "Met a jour un article rattache a une unite de service, incluant disponibilite, prix et quantites representatives.")
     public ItemResponse updateItem(
             @PathVariable UUID companyId,
             @PathVariable UUID serviceUnitId,
