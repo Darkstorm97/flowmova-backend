@@ -36,6 +36,7 @@ class SecurityConfiguration {
                         .requestMatchers(HttpMethod.POST, "/api/service-units/{serviceUnitId}/tickets").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/tickets/guest-access").permitAll()
                         .requestMatchers(HttpMethod.PATCH, "/api/tickets/guest-access/cancel").permitAll()
+                        .requestMatchers(HttpMethod.PATCH, "/api/tickets/guest-access/confirm-treatment").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/public/locations/{publicAccessSlug}").permitAll()
                         .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/info").permitAll()
                         .anyRequest().authenticated())

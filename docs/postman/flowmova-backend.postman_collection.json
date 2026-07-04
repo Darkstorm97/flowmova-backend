@@ -1949,6 +1949,61 @@
           "response": []
         },
         {
+          "name": "Confirm Guest Ticket Treatment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains customer-confirmed public guest ticket', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('ticketNumber', pm.collectionVariables.get('ticketNumber'));",
+                  "    pm.expect(json).to.have.property('status', 'CUSTOMER_CONFIRMED');",
+                  "    pm.expect(json).to.not.have.property('id');",
+                  "    pm.expect(json).to.not.have.property('accessCode');",
+                  "    pm.expect(json).to.not.have.property('userId');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ticketNumber\": \"{{ticketNumber}}\",\n  \"accessCode\": \"{{ticketAccessCode}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/guest-access/confirm-treatment",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                "guest-access",
+                "confirm-treatment"
+              ]
+            },
+            "description": "Confirme cote visiteur qu'un ticket invite a ete traite. Le ticket doit deja etre en statut TREATED, par exemple apres Change Ticket Status avec TREATED. Cette action passe le ticket a CUSTOMER_CONFIRMED."
+          },
+          "response": []
+        },
+        {
           "name": "List My Tickets",
           "event": [
             {

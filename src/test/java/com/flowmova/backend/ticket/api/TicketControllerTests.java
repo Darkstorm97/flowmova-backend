@@ -324,6 +324,89 @@ class TicketControllerTests {
     }
 
     @Test
+    void guestConfirmsTreatedTicketWithTicketNumberAndAccessCode() throws Exception {
+        Fixture fixture = fixture("guest-confirm-treated");
+        Ticket ticket = saveGuestTicket("T-GUEST-CONFIRM-%s".formatted(shortToken()), fixture);
+        ticket.markTreated();
+        ticket = ticketRepository.saveAndFlush(ticket);
+
+        mockMvc.perform(patch("/api/tickets/guest-access/confirm-treatment")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ticketNumber": "%s",
+                                  "accessCode": "ACCESS01"
+                                }
+                                """.formatted(ticket.getTicketNumber())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").doesNotExist())
+                .andExpect(jsonPath("$.accessCode").doesNotExist())
+                .andExpect(jsonPath("$.userId").doesNotExist())
+                .andExpect(jsonPath("$.ticketNumber").value(ticket.getTicketNumber()))
+                .andExpect(jsonPath("$.status").value("CUSTOMER_CONFIRMED"));
+
+        assertThat(ticketRepository.findById(ticket.getId()).orElseThrow().getStatus())
+                .isEqualTo(TicketStatus.CUSTOMER_CONFIRMED);
+    }
+
+    @Test
+    void rejectsGuestTreatmentConfirmationWithInvalidCode() throws Exception {
+        Fixture fixture = fixture("guest-confirm-invalid-code");
+        Ticket ticket = saveGuestTicket("T-GUEST-CONFIRM-BAD-%s".formatted(shortToken()), fixture);
+        ticket.markTreated();
+        ticket = ticketRepository.saveAndFlush(ticket);
+
+        mockMvc.perform(patch("/api/tickets/guest-access/confirm-treatment")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ticketNumber": "%s",
+                                  "accessCode": "BADCODE1"
+                                }
+                                """.formatted(ticket.getTicketNumber())))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.message").value("Ticket access is invalid"));
+    }
+
+    @Test
+    void rejectsGuestTreatmentConfirmationWhenTicketIsNotTreated() throws Exception {
+        Fixture fixture = fixture("guest-confirm-created");
+        Ticket ticket = saveGuestTicket("T-GUEST-CONFIRM-CREATED-%s".formatted(shortToken()), fixture);
+
+        mockMvc.perform(patch("/api/tickets/guest-access/confirm-treatment")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ticketNumber": "%s",
+                                  "accessCode": "ACCESS01"
+                                }
+                                """.formatted(ticket.getTicketNumber())))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CONFLICT"))
+                .andExpect(jsonPath("$.message").value("Ticket transition is invalid"));
+    }
+
+    @Test
+    void rejectsGuestTreatmentConfirmationWithTicketNumberOnly() throws Exception {
+        Fixture fixture = fixture("guest-confirm-number-only");
+        Ticket ticket = saveGuestTicket("T-GUEST-CONFIRM-NO-CODE-%s".formatted(shortToken()), fixture);
+        ticket.markTreated();
+        ticket = ticketRepository.saveAndFlush(ticket);
+
+        mockMvc.perform(patch("/api/tickets/guest-access/confirm-treatment")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ticketNumber": "%s"
+                                }
+                                """.formatted(ticket.getTicketNumber())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.fieldErrors[?(@.field == 'accessCode')]").exists());
+    }
+
+    @Test
     void authenticatedUserListsOwnTicketsWithPaginationStatusAndTicketNumberSearch() throws Exception {
         Fixture fixture = fixture("my-tickets");
         User customer = user("my-tickets-customer");

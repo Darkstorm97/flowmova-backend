@@ -933,6 +933,7 @@ Criteres d'acceptation:
 
 Criteres d'acceptation:
 
+- L'endpoint public `PATCH /api/tickets/guest-access/confirm-treatment` existe.
 - Le visiteur fournit `ticketNumber` et `accessCode`.
 - Le backend valide le code d'acces avec le hash stocke.
 - L'action ne correspond pas a la confirmation operationnelle interne de l'entreprise.
