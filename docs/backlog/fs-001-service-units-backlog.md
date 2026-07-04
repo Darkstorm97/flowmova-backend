@@ -40,6 +40,8 @@ Il est construit a partir de FS-001, FS-002 et du DAT. En cas d'ambiguite, les F
 - Seules les unites `OPEN` sont visibles publiquement.
 - Seules les unites `OPEN` acceptent la creation de tickets.
 - Les administrateurs voient les unites `OPEN`, `CLOSED` et `ARCHIVED` de leur entreprise.
+- Une unite de service peut activer une option anti-spam qui limite un utilisateur authentifie a un seul ticket actif a la fois.
+- Quand cette option anti-spam est active, la creation de ticket invite non authentifiee est refusee, car le backend ne peut pas identifier fiablement un visiteur sans compte.
 - Une unite de service peut etre ouverte uniquement si elle est correctement configuree.
 - La configuration minimale d'ouverture est: entreprise active, nom renseigne, type `TICKET_QUEUE`, statut actuel `CLOSED`.
 - Les articles d'une unite sont optionnels. S'ils existent et sont disponibles, ils sont affiches; sinon l'utilisateur peut creer un ticket general.
@@ -94,6 +96,8 @@ Il est construit a partir de FS-001, FS-002 et du DAT. En cas d'ambiguite, les F
 - Le telephone de contact d'un ticket est optionnel pour les visiteurs et les utilisateurs authentifies; il reste une donnee de contact, pas une preuve d'identite.
 - Les quantites d'articles sont representatives au MVP: `configured_quantity` et `reserved_quantity` ne bloquent pas la creation de ticket et pourront servir plus tard a l'affichage, aux alertes ou aux controles operationnels.
 - La quantite d'une ligne de ticket est optionnelle dans les requetes de creation. Decision retenue: valeur par defaut `1`, et refus uniquement si une valeur fournie est inferieure a `1`.
+- L'anti-spam par unite est optionnel et configure par l'administrateur. Decision retenue: si l'option est active, seuls les utilisateurs authentifies peuvent creer un ticket, et ils doivent ne pas avoir de ticket actif dans cette unite.
+- Pour cette regle anti-spam, les statuts actifs qui bloquent une nouvelle creation sont `CREATED` et `RECEIVED`. Les statuts qui liberent l'utilisateur sont `TREATED`, `CUSTOMER_CONFIRMED`, `CANCELLED` et `CLOSED`.
 
 ## Milestone 1 - Entreprises
 
@@ -703,6 +707,27 @@ Criteres d'acceptation:
 - Le backend retourne les informations necessaires a l'affichage de l'unite et de l'emplacement par defaut.
 - Le backend ne genere pas d'image QR code.
 
+### SERVICE-050 - Configurer la limitation de tickets actifs par utilisateur
+
+**En tant que** administrateur d'entreprise,
+**je veux** configurer une unite de service pour limiter les tickets actifs par utilisateur,
+**afin de** reduire le spam et eviter les demandes multiples non traitees.
+
+Criteres d'acceptation:
+
+- Le role `ADMIN` est requis pour configurer l'option.
+- L'option est portee par l'unite de service.
+- Le nom fonctionnel retenu est `oneActiveTicketPerUser`.
+- La valeur par defaut est `false` pour conserver le comportement existant.
+- L'option peut etre definie lors de la creation d'une unite de service.
+- L'option peut etre modifiee lors de la mise a jour d'une unite de service.
+- La reponse d'une unite de service retourne la valeur de l'option.
+- Quand l'option est active, la creation de ticket invite non authentifiee doit etre refusee.
+- Quand l'option est active, un utilisateur authentifie ne peut pas creer un nouveau ticket dans cette unite s'il possede deja un ticket actif dans cette meme unite.
+- Les tickets actifs qui bloquent une nouvelle creation sont ceux aux statuts `CREATED` et `RECEIVED`.
+- Les statuts `TREATED`, `CUSTOMER_CONFIRMED`, `CANCELLED` et `CLOSED` liberent l'utilisateur pour creer un nouveau ticket.
+- Cette option ne modifie pas les tickets existants.
+
 ## Milestone 5 - Tickets
 
 ### TICKET-001 - Creer les tables `tickets` et `ticket_lines`
@@ -802,6 +827,25 @@ Criteres d'acceptation:
 - Un numero de ticket unique globalement est genere.
 - La devise du ticket est copiee depuis l'entreprise.
 - Les montants des lignes et le total informatif sont calcules lorsque les articles possedent un prix.
+
+### TICKET-012 - Refuser la creation de ticket si l'utilisateur a deja un ticket actif
+
+**En tant que** plateforme,
+**je veux** appliquer la limitation anti-spam configuree sur l'unite de service,
+**afin de** bloquer les creations multiples avant traitement.
+
+Criteres d'acceptation:
+
+- La regle s'applique uniquement si l'unite de service a `oneActiveTicketPerUser = true`.
+- Si la regle est inactive, la creation de ticket conserve le comportement existant.
+- Si la regle est active, une requete sans JWT est refusee.
+- Si la regle est active, `guestName` et `customerPhone` ne permettent pas de contourner l'authentification requise.
+- Si la regle est active, l'utilisateur authentifie peut creer un ticket seulement s'il n'a pas de ticket actif dans cette unite.
+- Les statuts actifs qui bloquent une nouvelle creation sont `CREATED` et `RECEIVED`.
+- Les statuts `TREATED`, `CUSTOMER_CONFIRMED`, `CANCELLED` et `CLOSED` ne bloquent pas une nouvelle creation.
+- Le controle se fait par utilisateur authentifie et par unite de service.
+- Un ticket actif dans une autre unite de service ne bloque pas la creation.
+- L'erreur retournee est claire pour le frontend, par exemple `ACTIVE_TICKET_ALREADY_EXISTS`.
 
 ### TICKET-020 - Consulter les tickets d'une unite
 
