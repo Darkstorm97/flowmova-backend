@@ -167,6 +167,71 @@ class TicketControllerTests {
     }
 
     @Test
+    void guestGetsTicketWithTicketNumberAndAccessCode() throws Exception {
+        Fixture fixture = fixture("guest-get-ticket");
+        JsonNode createdTicket = createGuestTicket(fixture);
+
+        mockMvc.perform(post("/api/tickets/guest-access")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ticketNumber": "%s",
+                                  "accessCode": "%s"
+                                }
+                                """.formatted(
+                                        createdTicket.get("ticketNumber").asText(),
+                                        createdTicket.get("accessCode").asText())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").doesNotExist())
+                .andExpect(jsonPath("$.accessCode").doesNotExist())
+                .andExpect(jsonPath("$.userId").doesNotExist())
+                .andExpect(jsonPath("$.ticketNumber").value(createdTicket.get("ticketNumber").asText()))
+                .andExpect(jsonPath("$.guestName").value("Alice Client"))
+                .andExpect(jsonPath("$.customerPhone").value("+1 514 555 0000"))
+                .andExpect(jsonPath("$.serviceUnitId").value(fixture.serviceUnit().getId().toString()))
+                .andExpect(jsonPath("$.locationId").value(fixture.defaultLocation().getId().toString()))
+                .andExpect(jsonPath("$.status").value("CREATED"))
+                .andExpect(jsonPath("$.currency").value("USD"))
+                .andExpect(jsonPath("$.totalAmount").value(4.5))
+                .andExpect(jsonPath("$.lines[0].itemId").value(fixture.item().getId().toString()));
+    }
+
+    @Test
+    void rejectsGuestTicketAccessWithInvalidCode() throws Exception {
+        Fixture fixture = fixture("guest-invalid-code");
+        JsonNode createdTicket = createGuestTicket(fixture);
+
+        mockMvc.perform(post("/api/tickets/guest-access")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ticketNumber": "%s",
+                                  "accessCode": "BADCODE1"
+                                }
+                                """.formatted(createdTicket.get("ticketNumber").asText())))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.message").value("Ticket access is invalid"));
+    }
+
+    @Test
+    void rejectsGuestTicketAccessWithTicketNumberOnly() throws Exception {
+        Fixture fixture = fixture("guest-number-only");
+        JsonNode createdTicket = createGuestTicket(fixture);
+
+        mockMvc.perform(post("/api/tickets/guest-access")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ticketNumber": "%s"
+                                }
+                                """.formatted(createdTicket.get("ticketNumber").asText())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.fieldErrors[?(@.field == 'accessCode')]").exists());
+    }
+
+    @Test
     void rejectsGuestTicketWithoutGuestName() throws Exception {
         Fixture fixture = fixture("guest-name-required");
 
@@ -261,6 +326,30 @@ class TicketControllerTests {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
                 .andExpect(jsonPath("$.message").value("Ticket line item is invalid"));
+    }
+
+    private JsonNode createGuestTicket(Fixture fixture) throws Exception {
+        String response = mockMvc.perform(post("/api/service-units/{serviceUnitId}/tickets", fixture.serviceUnit().getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "guestName": " Alice Client ",
+                                  "customerPhone": " +1 514 555 0000 ",
+                                  "notes": " Besoin d'aide ",
+                                  "lines": [
+                                    {
+                                      "itemId": "%s",
+                                      "quantity": 1
+                                    }
+                                  ]
+                                }
+                                """.formatted(fixture.item().getId())))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        return objectMapper.readTree(response);
     }
 
     private Fixture fixture(String emailPrefix) {

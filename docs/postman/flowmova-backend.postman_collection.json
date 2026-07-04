@@ -1828,6 +1828,63 @@
             "description": "Cree un ticket associe au compte authentifie via JWT. Aucun accessCode invite n'est retourne pour ce type de ticket."
           },
           "response": []
+        },
+        {
+          "name": "Get Guest Ticket",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains public guest ticket details', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('ticketNumber', pm.collectionVariables.get('ticketNumber'));",
+                  "    pm.expect(json).to.not.have.property('id');",
+                  "    pm.expect(json).to.not.have.property('accessCode');",
+                  "    pm.expect(json).to.not.have.property('userId');",
+                  "    pm.expect(json).to.have.property('serviceUnitId', pm.collectionVariables.get('serviceUnitId'));",
+                  "    pm.expect(json).to.have.property('locationId', pm.collectionVariables.get('serviceUnitLocationId'));",
+                  "    pm.expect(json).to.have.property('status');",
+                  "    pm.expect(json.lines).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ticketNumber\": \"{{ticketNumber}}\",\n  \"accessCode\": \"{{ticketAccessCode}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/guest-access",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                "guest-access"
+              ]
+            },
+            "description": "Consulte un ticket visiteur avec ticketNumber + accessCode. Executer Create Guest Ticket avant cet appel pour alimenter ticketNumber et ticketAccessCode."
+          },
+          "response": []
         }
       ]
     }
