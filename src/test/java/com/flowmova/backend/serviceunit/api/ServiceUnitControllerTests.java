@@ -10,11 +10,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flowmova.backend.auth.domain.AccessTokenGenerator;
+import com.flowmova.backend.catalog.domain.Catalog;
+import com.flowmova.backend.catalog.infrastructure.CatalogRepository;
+import com.flowmova.backend.catalogcategory.domain.CatalogCategory;
+import com.flowmova.backend.catalogcategory.infrastructure.CatalogCategoryRepository;
 import com.flowmova.backend.company.domain.Company;
 import com.flowmova.backend.company.infrastructure.CompanyRepository;
 import com.flowmova.backend.companyaccess.domain.CompanyRole;
 import com.flowmova.backend.companyaccess.domain.CompanyUser;
 import com.flowmova.backend.companyaccess.infrastructure.CompanyUserRepository;
+import com.flowmova.backend.item.domain.Item;
+import com.flowmova.backend.item.domain.ItemAvailability;
+import com.flowmova.backend.item.domain.ItemStatus;
+import com.flowmova.backend.item.infrastructure.ItemRepository;
 import com.flowmova.backend.serviceunit.domain.ServiceUnit;
 import com.flowmova.backend.serviceunit.domain.ServiceUnitStatus;
 import com.flowmova.backend.serviceunit.domain.ServiceUnitType;
@@ -25,6 +33,7 @@ import com.flowmova.backend.serviceunitlocation.domain.ServiceUnitLocationType;
 import com.flowmova.backend.serviceunitlocation.infrastructure.ServiceUnitLocationRepository;
 import com.flowmova.backend.user.domain.User;
 import com.flowmova.backend.user.infrastructure.UserRepository;
+import java.math.BigDecimal;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,6 +59,15 @@ class ServiceUnitControllerTests {
 
     @Autowired
     private CompanyUserRepository companyUserRepository;
+
+    @Autowired
+    private CatalogCategoryRepository catalogCategoryRepository;
+
+    @Autowired
+    private CatalogRepository catalogRepository;
+
+    @Autowired
+    private ItemRepository itemRepository;
 
     @Autowired
     private ServiceUnitRepository serviceUnitRepository;
@@ -1202,6 +1220,201 @@ class ServiceUnitControllerTests {
                 .andExpect(jsonPath("$.message").value("Service unit not found"));
     }
 
+    @Test
+    void adminAssociatesCatalogToServiceUnitAsItem() throws Exception {
+        User admin = user("service-unit-item-admin");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        Catalog catalog = catalog(company, admin, "Coffee", new BigDecimal("3.50"));
+        ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Cafe Counter",
+                null,
+                null,
+                null,
+                admin));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        String response = mockMvc.perform(post(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/items",
+                        company.getId(),
+                        serviceUnit.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "catalogId": "%s",
+                                  "availability": "AVAILABLE",
+                                  "configuredQuantity": 25,
+                                  "displayOrder": 3
+                                }
+                                """.formatted(catalog.getId())))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").exists())
+                .andExpect(jsonPath("$.serviceUnitId").value(serviceUnit.getId().toString()))
+                .andExpect(jsonPath("$.catalog.id").value(catalog.getId().toString()))
+                .andExpect(jsonPath("$.catalog.companyId").value(company.getId().toString()))
+                .andExpect(jsonPath("$.catalog.name").value("Coffee"))
+                .andExpect(jsonPath("$.priceAmount").value(3.50))
+                .andExpect(jsonPath("$.availability").value("AVAILABLE"))
+                .andExpect(jsonPath("$.configuredQuantity").value(25))
+                .andExpect(jsonPath("$.reservedQuantity").value(0))
+                .andExpect(jsonPath("$.displayOrder").value(3))
+                .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        UUID itemId = UUID.fromString(objectMapper.readTree(response).get("id").asText());
+        Item item = itemRepository.findById(itemId).orElseThrow();
+
+        assertThat(item.getServiceUnit().getId()).isEqualTo(serviceUnit.getId());
+        assertThat(item.getCatalog().getId()).isEqualTo(catalog.getId());
+        assertThat(item.getPriceAmount()).isEqualByComparingTo("3.50");
+        assertThat(item.getAvailability()).isEqualTo(ItemAvailability.AVAILABLE);
+        assertThat(item.getConfiguredQuantity()).isEqualTo(25);
+        assertThat(item.getDisplayOrder()).isEqualTo(3);
+        assertThat(item.getStatus()).isEqualTo(ItemStatus.ACTIVE);
+    }
+
+    @Test
+    void adminAssociatesCatalogToServiceUnitWithItemPriceOverride() throws Exception {
+        User admin = user("service-unit-item-price");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        Catalog catalog = catalog(company, admin, "Tea", new BigDecimal("2.75"));
+        ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Tea Counter",
+                null,
+                null,
+                null,
+                admin));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(post(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/items",
+                        company.getId(),
+                        serviceUnit.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "catalogId": "%s",
+                                  "priceAmount": 2.25,
+                                  "availability": "UNAVAILABLE",
+                                  "configuredQuantity": 0,
+                                  "displayOrder": 8
+                                }
+                                """.formatted(catalog.getId())))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.priceAmount").value(2.25))
+                .andExpect(jsonPath("$.availability").value("UNAVAILABLE"))
+                .andExpect(jsonPath("$.configuredQuantity").value(0))
+                .andExpect(jsonPath("$.displayOrder").value(8));
+    }
+
+    @Test
+    void rejectsDuplicateCatalogAssociationToServiceUnit() throws Exception {
+        User admin = user("service-unit-item-duplicate");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        Catalog catalog = catalog(company, admin, "Duplicate Offer", null);
+        ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Duplicate Item Queue",
+                null,
+                null,
+                null,
+                admin));
+        itemRepository.saveAndFlush(new Item(
+                serviceUnit,
+                catalog,
+                null,
+                ItemAvailability.AVAILABLE,
+                null,
+                0));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(post(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/items",
+                        company.getId(),
+                        serviceUnit.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "catalogId": "%s"
+                                }
+                                """.formatted(catalog.getId())))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CONFLICT"))
+                .andExpect(jsonPath("$.message").value("Catalog is already associated with service unit"));
+    }
+
+    @Test
+    void rejectsCatalogAssociationForEmployee() throws Exception {
+        User employee = user("service-unit-item-employee");
+        Company company = activeCompany(employee);
+        companyUserRepository.save(new CompanyUser(company.getId(), employee, CompanyRole.EMPLOYEE));
+        Catalog catalog = catalog(company, employee, "Employee Offer", null);
+        ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Employee Item Queue",
+                null,
+                null,
+                null,
+                employee));
+        String token = accessTokenGenerator.generate(employee).value();
+
+        mockMvc.perform(post(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/items",
+                        company.getId(),
+                        serviceUnit.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "catalogId": "%s"
+                                }
+                                """.formatted(catalog.getId())))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.message").value("Company admin role is required"));
+    }
+
+    @Test
+    void rejectsCatalogAssociationFromAnotherCompany() throws Exception {
+        User admin = user("service-unit-item-other-company");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        Company otherCompany = activeCompany(admin);
+        Catalog otherCatalog = catalog(otherCompany, admin, "Other Company Offer", null);
+        ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Wrong Catalog Queue",
+                null,
+                null,
+                null,
+                admin));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(post(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/items",
+                        company.getId(),
+                        serviceUnit.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "catalogId": "%s"
+                                }
+                                """.formatted(otherCatalog.getId())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("Catalog is invalid"));
+    }
+
     private User user(String emailPrefix) {
         return userRepository.save(new User(
                 "%s.%s@flowmova.test".formatted(emailPrefix, UUID.randomUUID()),
@@ -1217,5 +1430,22 @@ class ServiceUnitControllerTests {
                 owner);
         company.activate();
         return companyRepository.save(company);
+    }
+
+    private Catalog catalog(Company company, User creator, String name, BigDecimal priceAmount) {
+        CatalogCategory category = catalogCategoryRepository.save(new CatalogCategory(
+                company,
+                "Item Category %s".formatted(UUID.randomUUID()),
+                null,
+                0,
+                creator));
+        return catalogRepository.save(new Catalog(
+                company,
+                category,
+                name,
+                null,
+                null,
+                priceAmount,
+                creator));
     }
 }

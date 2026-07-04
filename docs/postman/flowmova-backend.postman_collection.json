@@ -1263,6 +1263,79 @@
           "response": []
         },
         {
+          "name": "Create Service Unit Item",
+          "id": "b6189230-6100-4b31-9078-b6ac045f50e8",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response contains created item', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('id');",
+                  "    pm.expect(json).to.have.property('serviceUnitId', pm.collectionVariables.get('serviceUnitId'));",
+                  "    pm.expect(json).to.have.property('catalog');",
+                  "    pm.expect(json.catalog).to.have.property('id', pm.collectionVariables.get('catalogId'));",
+                  "    pm.expect(json.catalog).to.have.property('companyId', pm.collectionVariables.get('companyId'));",
+                  "    pm.expect(json).to.have.property('priceAmount', 12.5);",
+                  "    pm.expect(json).to.have.property('availability', 'AVAILABLE');",
+                  "    pm.expect(json).to.have.property('configuredQuantity', 10);",
+                  "    pm.expect(json).to.have.property('reservedQuantity', 0);",
+                  "    pm.expect(json).to.have.property('displayOrder', 1);",
+                  "    pm.expect(json).to.have.property('status', 'ACTIVE');",
+                  "    pm.collectionVariables.set('itemId', json.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"catalogId\": \"{{catalogId}}\",\n  \"priceAmount\": 12.50,\n  \"availability\": \"AVAILABLE\",\n  \"configuredQuantity\": 10,\n  \"displayOrder\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/companies/{{companyId}}/admin/service-units/{{serviceUnitId}}/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "companies",
+                "{{companyId}}",
+                "admin",
+                "service-units",
+                "{{serviceUnitId}}",
+                "items"
+              ]
+            },
+            "description": "Associe un catalogue a une unite de service en creant un article disponible dans l'unite. Executer Login, Create Company, Create Catalog Category, Create Catalog puis Create Service Unit avant cet appel."
+          },
+          "response": []
+        },
+        {
           "name": "List Admin Service Units",
           "event": [
             {
@@ -1604,6 +1677,11 @@
     {
       "id": "82a15258-d7df-45b1-8f34-c8af8e875460",
       "key": "serviceUnitId",
+      "value": ""
+    },
+    {
+      "id": "f7b95f0a-d742-4f94-8f6c-541db6505522",
+      "key": "itemId",
       "value": ""
     },
     {
