@@ -432,6 +432,100 @@ class ServiceUnitControllerTests {
                 .andExpect(jsonPath("$.message").value("Default location not found"));
     }
 
+    @Test
+    void guestListsOpenServiceUnitsForActiveCompany() throws Exception {
+        User admin = user("service-unit-list-admin");
+        Company company = activeCompany(admin);
+        ServiceUnit openServiceUnit = new ServiceUnit(
+                company,
+                "Open Queue",
+                "Visible queue",
+                "Front desk",
+                null,
+                admin);
+        openServiceUnit.open(admin);
+        openServiceUnit = serviceUnitRepository.save(openServiceUnit);
+        ServiceUnitLocation defaultLocation = serviceUnitLocationRepository.save(new ServiceUnitLocation(
+                openServiceUnit,
+                "Principal",
+                null,
+                ServiceUnitLocationType.DEFAULT,
+                true,
+                "loc-%s".formatted(UUID.randomUUID()),
+                admin));
+
+        ServiceUnit closedServiceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Closed Queue",
+                "Hidden closed queue",
+                null,
+                null,
+                admin));
+        serviceUnitLocationRepository.save(new ServiceUnitLocation(
+                closedServiceUnit,
+                "Principal",
+                null,
+                ServiceUnitLocationType.DEFAULT,
+                true,
+                "loc-%s".formatted(UUID.randomUUID()),
+                admin));
+
+        ServiceUnit archivedServiceUnit = new ServiceUnit(
+                company,
+                "Archived Queue",
+                "Hidden archived queue",
+                null,
+                null,
+                admin);
+        archivedServiceUnit.archive(admin);
+        archivedServiceUnit = serviceUnitRepository.save(archivedServiceUnit);
+        serviceUnitLocationRepository.save(new ServiceUnitLocation(
+                archivedServiceUnit,
+                "Principal",
+                null,
+                ServiceUnitLocationType.DEFAULT,
+                true,
+                "loc-%s".formatted(UUID.randomUUID()),
+                admin));
+
+        mockMvc.perform(get("/api/companies/{companyId}/service-units", company.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(openServiceUnit.getId().toString()))
+                .andExpect(jsonPath("$[0].companyId").value(company.getId().toString()))
+                .andExpect(jsonPath("$[0].name").value("Open Queue"))
+                .andExpect(jsonPath("$[0].description").value("Visible queue"))
+                .andExpect(jsonPath("$[0].location").value("Front desk"))
+                .andExpect(jsonPath("$[0].type").value("TICKET_QUEUE"))
+                .andExpect(jsonPath("$[0].status").value("OPEN"))
+                .andExpect(jsonPath("$[0].defaultLocation.id").value(defaultLocation.getId().toString()))
+                .andExpect(jsonPath("$[0].defaultLocation.status").value("ACTIVE"));
+    }
+
+    @Test
+    void guestListsNoServiceUnitForDisabledCompany() throws Exception {
+        User admin = user("service-unit-list-disabled-company");
+        Company disabledCompany = companyRepository.save(new Company(
+                "Disabled Service Unit List Company",
+                "Hidden service unit list company",
+                admin));
+        ServiceUnit serviceUnit = new ServiceUnit(
+                disabledCompany,
+                "Hidden Queue",
+                null,
+                null,
+                null,
+                admin);
+        serviceUnit.open(admin);
+        serviceUnitRepository.save(serviceUnit);
+
+        mockMvc.perform(get("/api/companies/{companyId}/service-units", disabledCompany.getId()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Company not found"));
+    }
+
     private User user(String emailPrefix) {
         return userRepository.save(new User(
                 "%s.%s@flowmova.test".formatted(emailPrefix, UUID.randomUUID()),

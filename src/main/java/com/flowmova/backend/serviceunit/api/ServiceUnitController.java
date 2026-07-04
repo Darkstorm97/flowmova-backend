@@ -3,8 +3,10 @@ package com.flowmova.backend.serviceunit.api;
 import com.flowmova.backend.auth.domain.AuthenticatedUser;
 import com.flowmova.backend.serviceunit.application.CreateServiceUnitService;
 import com.flowmova.backend.serviceunit.application.GetDefaultServiceUnitPublicLinkService;
+import com.flowmova.backend.serviceunit.application.ListOpenServiceUnitsService;
 import com.flowmova.backend.serviceunit.application.OpenServiceUnitService;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -23,14 +25,22 @@ public class ServiceUnitController {
     private final CreateServiceUnitService createServiceUnitService;
     private final GetDefaultServiceUnitPublicLinkService getDefaultServiceUnitPublicLinkService;
     private final OpenServiceUnitService openServiceUnitService;
+    private final ListOpenServiceUnitsService listOpenServiceUnitsService;
 
     public ServiceUnitController(
             CreateServiceUnitService createServiceUnitService,
             GetDefaultServiceUnitPublicLinkService getDefaultServiceUnitPublicLinkService,
-            OpenServiceUnitService openServiceUnitService) {
+            OpenServiceUnitService openServiceUnitService,
+            ListOpenServiceUnitsService listOpenServiceUnitsService) {
         this.createServiceUnitService = createServiceUnitService;
         this.getDefaultServiceUnitPublicLinkService = getDefaultServiceUnitPublicLinkService;
         this.openServiceUnitService = openServiceUnitService;
+        this.listOpenServiceUnitsService = listOpenServiceUnitsService;
+    }
+
+    @GetMapping
+    public List<ServiceUnitResponse> listOpen(@PathVariable UUID companyId) {
+        return listOpenServiceUnitsService.list(companyId);
     }
 
     @PostMapping
