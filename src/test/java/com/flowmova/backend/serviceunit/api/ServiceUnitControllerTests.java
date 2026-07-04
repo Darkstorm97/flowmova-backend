@@ -1,6 +1,7 @@
 package com.flowmova.backend.serviceunit.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -197,6 +198,99 @@ class ServiceUnitControllerTests {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("NOT_FOUND"))
                 .andExpect(jsonPath("$.message").value("Company not found"));
+    }
+
+    @Test
+    void adminGetsDefaultPublicLink() throws Exception {
+        User admin = user("service-unit-link-admin");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Public Link Queue",
+                "Queue with public link",
+                null,
+                null,
+                admin));
+        ServiceUnitLocation defaultLocation = serviceUnitLocationRepository.save(new ServiceUnitLocation(
+                serviceUnit,
+                "Principal",
+                null,
+                ServiceUnitLocationType.DEFAULT,
+                true,
+                "loc-%s".formatted(UUID.randomUUID()),
+                admin));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(get(
+                        "/api/companies/{companyId}/service-units/{serviceUnitId}/default-public-link",
+                        company.getId(),
+                        serviceUnit.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.serviceUnitId").value(serviceUnit.getId().toString()))
+                .andExpect(jsonPath("$.locationId").value(defaultLocation.getId().toString()))
+                .andExpect(jsonPath("$.publicAccessSlug").value(defaultLocation.getPublicAccessSlug()))
+                .andExpect(jsonPath("$.publicUrl")
+                        .value("http://localhost:3000/public/locations/%s".formatted(defaultLocation.getPublicAccessSlug())));
+    }
+
+    @Test
+    void rejectsDefaultPublicLinkWithoutJwt() throws Exception {
+        mockMvc.perform(get(
+                        "/api/companies/{companyId}/service-units/{serviceUnitId}/default-public-link",
+                        UUID.randomUUID(),
+                        UUID.randomUUID()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void rejectsDefaultPublicLinkForEmployee() throws Exception {
+        User employee = user("service-unit-link-employee");
+        Company company = activeCompany(employee);
+        companyUserRepository.save(new CompanyUser(company.getId(), employee, CompanyRole.EMPLOYEE));
+        ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Employee Link Queue",
+                null,
+                null,
+                null,
+                employee));
+        String token = accessTokenGenerator.generate(employee).value();
+
+        mockMvc.perform(get(
+                        "/api/companies/{companyId}/service-units/{serviceUnitId}/default-public-link",
+                        company.getId(),
+                        serviceUnit.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.message").value("Company admin role is required"));
+    }
+
+    @Test
+    void rejectsDefaultPublicLinkWhenDefaultLocationIsMissing() throws Exception {
+        User admin = user("service-unit-link-missing-default");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Missing Default Queue",
+                null,
+                null,
+                null,
+                admin));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(get(
+                        "/api/companies/{companyId}/service-units/{serviceUnitId}/default-public-link",
+                        company.getId(),
+                        serviceUnit.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Default location not found"));
     }
 
     private User user(String emailPrefix) {
