@@ -738,6 +738,67 @@ class TicketControllerTests {
     }
 
     @Test
+    void employeeListsServiceUnitTicketsFilteredByLocation() throws Exception {
+        Fixture fixture = fixture("unit-tickets-location");
+        User employee = user("unit-tickets-location-employee");
+        companyUserRepository.save(new CompanyUser(fixture.company().getId(), employee, CompanyRole.EMPLOYEE));
+        String token = accessTokenGenerator.generate(employee).value();
+        ServiceUnitLocation customLocation = customLocation(fixture, "Table 12");
+        String uniqueToken = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+
+        Ticket customLocationTicket = saveGuestTicket(
+                "T-LOCATION-CREATED-%s".formatted(uniqueToken),
+                fixture,
+                customLocation);
+        saveGuestTicket("T-LOCATION-DEFAULT-%s".formatted(uniqueToken), fixture);
+        Ticket treatedCustomLocationTicket = saveGuestTicket(
+                "T-LOCATION-TREATED-%s".formatted(uniqueToken),
+                fixture,
+                customLocation);
+        treatedCustomLocationTicket.markTreated();
+        ticketRepository.saveAndFlush(treatedCustomLocationTicket);
+
+        mockMvc.perform(get(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/tickets",
+                        fixture.company().getId(),
+                        fixture.serviceUnit().getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .param("locationId", customLocation.getId().toString())
+                        .param("status", "CREATED")
+                        .param("ticketNumber", uniqueToken.toLowerCase())
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].id").value(customLocationTicket.getId().toString()))
+                .andExpect(jsonPath("$.items[0].locationId").value(customLocation.getId().toString()))
+                .andExpect(jsonPath("$.items[?(@.ticketNumber == 'T-LOCATION-DEFAULT-%s')]"
+                        .formatted(uniqueToken)).doesNotExist())
+                .andExpect(jsonPath("$.items[?(@.ticketNumber == 'T-LOCATION-TREATED-%s')]"
+                        .formatted(uniqueToken)).doesNotExist())
+                .andExpect(jsonPath("$.totalItems").value(1));
+    }
+
+    @Test
+    void rejectsServiceUnitTicketListForLocationFromAnotherServiceUnit() throws Exception {
+        Fixture fixture = fixture("unit-tickets-invalid-location");
+        Fixture otherFixture = fixture("unit-tickets-invalid-location-other");
+        User admin = user("unit-tickets-invalid-location-admin");
+        companyUserRepository.save(new CompanyUser(fixture.company().getId(), admin, CompanyRole.ADMIN));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(get(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/tickets",
+                        fixture.company().getId(),
+                        fixture.serviceUnit().getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .param("locationId", otherFixture.defaultLocation().getId().toString()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("Location is invalid"));
+    }
+
+    @Test
     void rejectsServiceUnitTicketListForNonMember() throws Exception {
         Fixture fixture = fixture("unit-tickets-non-member");
         User outsider = user("unit-tickets-outsider");
@@ -1182,16 +1243,31 @@ class TicketControllerTests {
     }
 
     private Ticket saveGuestTicket(String ticketNumber, Fixture fixture) {
+        return saveGuestTicket(ticketNumber, fixture, fixture.defaultLocation());
+    }
+
+    private Ticket saveGuestTicket(String ticketNumber, Fixture fixture, ServiceUnitLocation location) {
         return ticketRepository.saveAndFlush(new Ticket(
                 ticketNumber,
                 null,
                 "Guest Client",
                 passwordEncoder.encode("ACCESS01"),
                 fixture.serviceUnit(),
-                fixture.defaultLocation(),
+                location,
                 null,
                 null,
                 fixture.company().getCurrency()));
+    }
+
+    private ServiceUnitLocation customLocation(Fixture fixture, String name) {
+        return serviceUnitLocationRepository.saveAndFlush(new ServiceUnitLocation(
+                fixture.serviceUnit(),
+                name,
+                null,
+                ServiceUnitLocationType.CUSTOM,
+                false,
+                "loc-%s".formatted(UUID.randomUUID()),
+                fixture.owner()));
     }
 
     private Fixture fixture(String emailPrefix) {

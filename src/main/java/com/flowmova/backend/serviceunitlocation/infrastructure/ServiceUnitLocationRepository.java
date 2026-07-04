@@ -11,6 +11,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ServiceUnitLocationRepository extends JpaRepository<ServiceUnitLocation, UUID> {
 
+    boolean existsByIdAndServiceUnitId(UUID id, UUID serviceUnitId);
+
     List<ServiceUnitLocation> findByServiceUnitIdOrderByDefaultLocationDescNameAsc(UUID serviceUnitId);
 
     Page<ServiceUnitLocation> findByServiceUnitIdOrderByDefaultLocationDescNameAsc(

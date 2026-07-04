@@ -147,6 +147,7 @@ public class AdminServiceUnitController {
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
             @RequestParam(required = false) TicketStatus status,
             @RequestParam(required = false) String ticketNumber,
+            @RequestParam(required = false) UUID locationId,
             Pageable pageable) {
         return PageResponse.from(listServiceUnitTicketsService.list(
                 companyId,
@@ -154,6 +155,7 @@ public class AdminServiceUnitController {
                 authenticatedUser,
                 status,
                 ticketNumber,
+                locationId,
                 pageable));
     }
 

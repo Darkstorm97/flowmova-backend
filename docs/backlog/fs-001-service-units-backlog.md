@@ -864,9 +864,31 @@ Criteres d'acceptation:
 - La liste est paginee.
 - Les tickets peuvent etre filtres par statut.
 - Les tickets peuvent etre recherches par numero de ticket.
+- Les tickets peuvent etre filtres par emplacement avec le query param optionnel `locationId`.
 - La recherche par numero est limitee aux tickets de l'unite.
 - La recherche par numero accepte une valeur partielle et est insensible a la casse.
+- Le filtre `locationId` peut etre combine avec `status` et `ticketNumber`.
+- Si `locationId` est fourni, l'emplacement doit appartenir a l'unite de service.
+- Si `locationId` est invalide ou n'appartient pas a l'unite, l'API retourne `400 BAD_REQUEST` avec `Location is invalid`.
 - Les donnees d'une autre entreprise ne sont pas exposees.
+
+### TICKET-023 - Filtrer les tickets admin par emplacement
+
+**En tant que** utilisateur autorise de l'entreprise,
+**je veux** filtrer les tickets d'une unite de service par emplacement,
+**afin de** suivre les demandes d'une table, zone, comptoir ou tout autre emplacement precis.
+
+Criteres d'acceptation:
+
+- L'endpoint existant est conserve: `GET /api/companies/{companyId}/admin/service-units/{serviceUnitId}/tickets`.
+- Un query param optionnel `locationId` est ajoute.
+- Les filtres existants restent disponibles: `status`, `ticketNumber`, `page`, `size` et `sort`.
+- Si `locationId` est absent, le comportement reste identique et retourne les tickets de toute l'unite.
+- Si `locationId` est present, seuls les tickets rattaches a cet emplacement sont retournes.
+- `locationId` doit appartenir a `serviceUnitId`.
+- Si `locationId` n'appartient pas a l'unite ou n'existe pas, l'API retourne `400 BAD_REQUEST` avec `Location is invalid`.
+- Le filtre par emplacement peut etre combine avec `status` et `ticketNumber`.
+- La collection Postman est mise a jour.
 
 ### TICKET-021 - Consulter mes tickets
 

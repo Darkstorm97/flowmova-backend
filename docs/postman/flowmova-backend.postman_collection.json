@@ -2508,10 +2508,15 @@
                   "key": "ticketNumber",
                   "value": "{{ticketNumber}}",
                   "disabled": true
+                },
+                {
+                  "key": "locationId",
+                  "value": "{{serviceUnitLocationId}}",
+                  "disabled": true
                 }
               ]
             },
-            "description": "Liste les tickets d'une unite de service avec pagination pour un membre ADMIN ou EMPLOYEE de l'entreprise. Les query params status et ticketNumber sont optionnels; activer ticketNumber apres creation d'un ticket."
+            "description": "Liste les tickets d'une unite de service avec pagination pour un membre ADMIN ou EMPLOYEE de l'entreprise. Les query params status, ticketNumber et locationId sont optionnels; activer locationId pour filtrer les tickets d'un emplacement precis."
           },
           "response": []
         },

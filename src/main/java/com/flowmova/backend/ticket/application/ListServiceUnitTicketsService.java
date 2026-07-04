@@ -8,7 +8,9 @@ import com.flowmova.backend.companyaccess.domain.CompanyUser;
 import com.flowmova.backend.companyaccess.domain.CompanyUserStatus;
 import com.flowmova.backend.companyaccess.infrastructure.CompanyUserRepository;
 import com.flowmova.backend.serviceunit.infrastructure.ServiceUnitRepository;
+import com.flowmova.backend.serviceunitlocation.infrastructure.ServiceUnitLocationRepository;
 import com.flowmova.backend.ticket.api.TicketResponse;
+import com.flowmova.backend.ticket.domain.Ticket;
 import com.flowmova.backend.ticket.domain.TicketStatus;
 import com.flowmova.backend.ticket.infrastructure.TicketRepository;
 import java.util.UUID;
@@ -16,6 +18,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,16 +31,19 @@ public class ListServiceUnitTicketsService {
     private final CompanyRepository companyRepository;
     private final CompanyUserRepository companyUserRepository;
     private final ServiceUnitRepository serviceUnitRepository;
+    private final ServiceUnitLocationRepository serviceUnitLocationRepository;
 
     public ListServiceUnitTicketsService(
             TicketRepository ticketRepository,
             CompanyRepository companyRepository,
             CompanyUserRepository companyUserRepository,
-            ServiceUnitRepository serviceUnitRepository) {
+            ServiceUnitRepository serviceUnitRepository,
+            ServiceUnitLocationRepository serviceUnitLocationRepository) {
         this.ticketRepository = ticketRepository;
         this.companyRepository = companyRepository;
         this.companyUserRepository = companyUserRepository;
         this.serviceUnitRepository = serviceUnitRepository;
+        this.serviceUnitLocationRepository = serviceUnitLocationRepository;
     }
 
     @Transactional(readOnly = true)
@@ -47,6 +53,7 @@ public class ListServiceUnitTicketsService {
             AuthenticatedUser authenticatedUser,
             TicketStatus status,
             String ticketNumber,
+            UUID locationId,
             Pageable pageable) {
         companyRepository.findByIdAndStatus(companyId, CompanyStatus.ACTIVE)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Company not found"));
@@ -56,36 +63,28 @@ public class ListServiceUnitTicketsService {
         serviceUnitRepository.findByIdAndCompanyId(serviceUnitId, companyId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service unit not found"));
 
+        validateLocation(serviceUnitId, locationId);
+
         Pageable normalizedPageable = PageRequest.of(
                 pageable.getPageNumber(),
                 pageable.getPageSize(),
                 normalizeSort(pageable.getSort()));
         String normalizedTicketNumber = normalizeTicketNumber(ticketNumber);
 
-        if (status != null && normalizedTicketNumber != null) {
-            return ticketRepository.findByServiceUnitIdAndStatusAndTicketNumberContainingIgnoreCase(
-                            serviceUnitId,
-                            status,
-                            normalizedTicketNumber,
-                            normalizedPageable)
-                    .map(ticket -> TicketResponse.from(ticket, null));
-        }
-
-        if (status != null) {
-            return ticketRepository.findByServiceUnitIdAndStatus(serviceUnitId, status, normalizedPageable)
-                    .map(ticket -> TicketResponse.from(ticket, null));
-        }
-
-        if (normalizedTicketNumber != null) {
-            return ticketRepository.findByServiceUnitIdAndTicketNumberContainingIgnoreCase(
-                            serviceUnitId,
-                            normalizedTicketNumber,
-                            normalizedPageable)
-                    .map(ticket -> TicketResponse.from(ticket, null));
-        }
-
-        return ticketRepository.findByServiceUnitId(serviceUnitId, normalizedPageable)
+        return ticketRepository.findAll(
+                        serviceUnitTicketsSpec(serviceUnitId, status, normalizedTicketNumber, locationId),
+                        normalizedPageable)
                 .map(ticket -> TicketResponse.from(ticket, null));
+    }
+
+    private void validateLocation(UUID serviceUnitId, UUID locationId) {
+        if (locationId == null) {
+            return;
+        }
+
+        if (!serviceUnitLocationRepository.existsByIdAndServiceUnitId(locationId, serviceUnitId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Location is invalid");
+        }
     }
 
     private void requireActiveCompanyMember(UUID companyId, UUID userId) {
@@ -124,5 +123,33 @@ public class ListServiceUnitTicketsService {
         }
         String normalized = ticketNumber.trim().replace(" ", "").toUpperCase();
         return normalized.isBlank() ? null : normalized;
+    }
+
+    private Specification<Ticket> serviceUnitTicketsSpec(
+            UUID serviceUnitId,
+            TicketStatus status,
+            String ticketNumber,
+            UUID locationId) {
+        return (root, query, criteriaBuilder) -> {
+            var predicate = criteriaBuilder.equal(root.get("serviceUnit").get("id"), serviceUnitId);
+
+            if (status != null) {
+                predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(root.get("status"), status));
+            }
+
+            if (ticketNumber != null) {
+                predicate = criteriaBuilder.and(
+                        predicate,
+                        criteriaBuilder.like(criteriaBuilder.upper(root.get("ticketNumber")), "%" + ticketNumber + "%"));
+            }
+
+            if (locationId != null) {
+                predicate = criteriaBuilder.and(
+                        predicate,
+                        criteriaBuilder.equal(root.get("serviceUnitLocation").get("id"), locationId));
+            }
+
+            return predicate;
+        };
     }
 }
