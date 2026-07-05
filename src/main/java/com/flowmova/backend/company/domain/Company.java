@@ -155,6 +155,35 @@ public class Company {
         this.status = CompanyStatus.ACTIVE;
     }
 
+    public void update(
+            String name,
+            String description,
+            String addressLine1,
+            String addressLine2,
+            String city,
+            String region,
+            String postalCode,
+            String country,
+            BigDecimal latitude,
+            BigDecimal longitude,
+            String currency,
+            CompanyBusinessType businessType,
+            User updatedBy) {
+        this.name = name;
+        this.description = description;
+        this.addressLine1 = addressLine1;
+        this.addressLine2 = addressLine2;
+        this.city = city;
+        this.region = region;
+        this.postalCode = postalCode;
+        this.country = country;
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.currency = currency;
+        this.businessType = businessType;
+        this.updatedBy = updatedBy;
+    }
+
     public UUID getId() {
         return id;
     }

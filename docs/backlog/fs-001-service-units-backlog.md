@@ -218,6 +218,28 @@ Criteres d'acceptation:
 - La recherche par distance geographique est hors MVP et pourra etre ajoutee plus tard.
 - Les collections Postman sont mises a jour si l'API de creation ou de consultation change.
 
+### COMPANY-006 - Modifier une compagnie
+
+Issue GitHub: #96.
+
+**En tant que** administrateur d'entreprise,
+**je veux** modifier les informations publiques et administratives de ma compagnie,
+**afin de** corriger ou faire evoluer sa fiche sans recreer l'entreprise.
+
+Criteres d'acceptation:
+
+- L'endpoint `PUT /api/companies/{companyId}` existe.
+- L'utilisateur doit etre authentifie.
+- Seul un membre `ADMIN` actif de la compagnie peut modifier la compagnie.
+- Une compagnie inexistante ou non active retourne `404 NOT_FOUND`.
+- Un utilisateur non admin, non membre ou membre inactif retourne `403 FORBIDDEN`.
+- Les champs modifiables sont `name`, `description`, `currency`, `businessType`, `addressLine1`, `addressLine2`, `city`, `region`, `postalCode`, `country`, `latitude` et `longitude`.
+- Le statut de la compagnie n'est pas modifie par cet endpoint.
+- La devise, le type d'activite, le pays, la latitude et la longitude suivent les memes validations que la creation.
+- `updated_by`, `updated_at` et `version` sont mis a jour.
+- La reponse retourne la fiche compagnie mise a jour.
+- Les collections Postman sont mises a jour.
+
 ### COMPANY-020 - Consulter mes entreprises
 
 **En tant que** utilisateur authentifie,

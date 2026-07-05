@@ -3,6 +3,7 @@ package com.flowmova.backend.company.api;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -252,6 +253,161 @@ class CompanyControllerTests {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
                 .andExpect(jsonPath("$.message").value("Currency must be a valid ISO 4217 code"));
+    }
+
+    @Test
+    void updatesActiveCompanyWhenUserIsAdmin() throws Exception {
+        User admin = userRepository.save(new User(
+                "company-update-admin.%s@flowmova.test".formatted(UUID.randomUUID()),
+                passwordEncoder.encode("Password123!"),
+                "Company",
+                "Admin"));
+        Company company = activeCompany("Before Company", "Before description", admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(put("/api/companies/{companyId}", company.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": " Updated Company ",
+                                  "description": " Updated description ",
+                                  "currency": "eur",
+                                  "businessType": "SERVICE",
+                                  "addressLine1": " 456 Update Street ",
+                                  "addressLine2": "",
+                                  "city": " Paris ",
+                                  "region": " Ile-de-France ",
+                                  "postalCode": " 75001 ",
+                                  "country": " fr ",
+                                  "latitude": 48.856613,
+                                  "longitude": 2.352222
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(company.getId().toString()))
+                .andExpect(jsonPath("$.name").value("Updated Company"))
+                .andExpect(jsonPath("$.description").value("Updated description"))
+                .andExpect(jsonPath("$.currency").value("EUR"))
+                .andExpect(jsonPath("$.businessType").value("SERVICE"))
+                .andExpect(jsonPath("$.addressLine1").value("456 Update Street"))
+                .andExpect(jsonPath("$.addressLine2").doesNotExist())
+                .andExpect(jsonPath("$.city").value("Paris"))
+                .andExpect(jsonPath("$.region").value("Ile-de-France"))
+                .andExpect(jsonPath("$.postalCode").value("75001"))
+                .andExpect(jsonPath("$.country").value("FR"))
+                .andExpect(jsonPath("$.latitude").value(48.856613))
+                .andExpect(jsonPath("$.longitude").value(2.352222))
+                .andExpect(jsonPath("$.status").value("ACTIVE"));
+
+        Company updatedCompany = companyRepository.findById(company.getId()).orElseThrow();
+        assertThat(updatedCompany.getName()).isEqualTo("Updated Company");
+        assertThat(updatedCompany.getDescription()).isEqualTo("Updated description");
+        assertThat(updatedCompany.getCurrency()).isEqualTo("EUR");
+        assertThat(updatedCompany.getBusinessType()).isEqualTo(CompanyBusinessType.SERVICE);
+        assertThat(updatedCompany.getAddressLine1()).isEqualTo("456 Update Street");
+        assertThat(updatedCompany.getAddressLine2()).isNull();
+        assertThat(updatedCompany.getCity()).isEqualTo("Paris");
+        assertThat(updatedCompany.getRegion()).isEqualTo("Ile-de-France");
+        assertThat(updatedCompany.getPostalCode()).isEqualTo("75001");
+        assertThat(updatedCompany.getCountry()).isEqualTo("FR");
+        assertThat(updatedCompany.getLatitude()).isEqualByComparingTo(new BigDecimal("48.856613"));
+        assertThat(updatedCompany.getLongitude()).isEqualByComparingTo(new BigDecimal("2.352222"));
+        assertThat(updatedCompany.getStatus()).isEqualTo(CompanyStatus.ACTIVE);
+        assertThat(updatedCompany.getUpdatedBy().getId()).isEqualTo(admin.getId());
+    }
+
+    @Test
+    void rejectsCompanyUpdateWithoutJwt() throws Exception {
+        mockMvc.perform(put("/api/companies/{companyId}", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Updated Company"
+                                }
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void rejectsCompanyUpdateWhenUserIsNotAdmin() throws Exception {
+        User owner = userRepository.save(new User(
+                "company-update-owner.%s@flowmova.test".formatted(UUID.randomUUID()),
+                passwordEncoder.encode("Password123!"),
+                "Company",
+                "Owner"));
+        User employee = userRepository.save(new User(
+                "company-update-employee.%s@flowmova.test".formatted(UUID.randomUUID()),
+                passwordEncoder.encode("Password123!"),
+                "Company",
+                "Employee"));
+        Company company = activeCompany("Employee Forbidden Company", "Visible", owner);
+        companyUserRepository.save(new CompanyUser(company.getId(), employee, CompanyRole.EMPLOYEE));
+        String token = accessTokenGenerator.generate(employee).value();
+
+        mockMvc.perform(put("/api/companies/{companyId}", company.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Forbidden Update"
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.message").value("Company admin role is required"));
+    }
+
+    @Test
+    void rejectsCompanyUpdateForDisabledCompany() throws Exception {
+        User admin = userRepository.save(new User(
+                "company-update-disabled.%s@flowmova.test".formatted(UUID.randomUUID()),
+                passwordEncoder.encode("Password123!"),
+                "Company",
+                "Disabled"));
+        Company disabledCompany = companyRepository.save(new Company("Disabled Update Company", "Hidden", admin));
+        companyUserRepository.save(new CompanyUser(disabledCompany.getId(), admin, CompanyRole.ADMIN));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(put("/api/companies/{companyId}", disabledCompany.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Still Hidden"
+                                }
+                                """))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Company not found"));
+    }
+
+    @Test
+    void rejectsCompanyUpdateWithUnsupportedBusinessType() throws Exception {
+        User admin = userRepository.save(new User(
+                "company-update-invalid-business.%s@flowmova.test".formatted(UUID.randomUUID()),
+                passwordEncoder.encode("Password123!"),
+                "Company",
+                "InvalidBusiness"));
+        Company company = activeCompany("Invalid Business Update Company", "Visible", admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(put("/api/companies/{companyId}", company.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Invalid Business Update Company",
+                                  "businessType": "MUSEUM"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("Business type must be a supported company business type"));
     }
 
     @Test

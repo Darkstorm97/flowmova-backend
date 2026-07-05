@@ -690,6 +690,74 @@
           "response": []
         },
         {
+          "name": "Update Company",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains updated company fields', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('id', pm.collectionVariables.get('companyId'));",
+                  "    pm.expect(json).to.have.property('name', pm.collectionVariables.get('companyUpdatedName'));",
+                  "    pm.expect(json).to.have.property('currency', pm.collectionVariables.get('companyUpdatedCurrency'));",
+                  "    pm.expect(json).to.have.property('businessType', pm.collectionVariables.get('companyUpdatedBusinessType'));",
+                  "    pm.expect(json).to.have.property('addressLine1', pm.collectionVariables.get('companyUpdatedAddressLine1'));",
+                  "    pm.expect(json).to.have.property('city', pm.collectionVariables.get('companyUpdatedCity'));",
+                  "    pm.expect(json).to.have.property('region', pm.collectionVariables.get('companyUpdatedRegion'));",
+                  "    pm.expect(json).to.have.property('postalCode', pm.collectionVariables.get('companyUpdatedPostalCode'));",
+                  "    pm.expect(json).to.have.property('country', pm.collectionVariables.get('companyUpdatedCountry'));",
+                  "    pm.expect(json).to.have.property('status', 'ACTIVE');",
+                  "    pm.expect(json).to.have.property('updatedAt');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "id": "5684ee0b-409c-49cb-8825-e97ae6f2a0a5",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{companyUpdatedName}}\",\n  \"description\": \"Company updated from Postman\",\n  \"currency\": \"{{companyUpdatedCurrency}}\",\n  \"businessType\": \"{{companyUpdatedBusinessType}}\",\n  \"addressLine1\": \"{{companyUpdatedAddressLine1}}\",\n  \"addressLine2\": \"{{companyUpdatedAddressLine2}}\",\n  \"city\": \"{{companyUpdatedCity}}\",\n  \"region\": \"{{companyUpdatedRegion}}\",\n  \"postalCode\": \"{{companyUpdatedPostalCode}}\",\n  \"country\": \"{{companyUpdatedCountry}}\",\n  \"latitude\": {{companyUpdatedLatitude}},\n  \"longitude\": {{companyUpdatedLongitude}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/companies/{{companyId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "companies",
+                "{{companyId}}"
+              ]
+            },
+            "description": "Modifie une entreprise ACTIVE. Executer Login puis Create Company avant cet appel. Seul un ADMIN actif de l'entreprise peut modifier."
+          },
+          "response": []
+        },
+        {
           "name": "Create Company - Missing Token",
           "id": "3ea75440-774d-4d79-a4f0-fe6e790a313c",
           "request": {
@@ -2810,6 +2878,61 @@
     {
       "key": "companyLongitude",
       "value": "-73.567256",
+      "type": "string"
+    },
+    {
+      "key": "companyUpdatedName",
+      "value": "FlowMova Updated Company",
+      "type": "string"
+    },
+    {
+      "key": "companyUpdatedCurrency",
+      "value": "EUR",
+      "type": "string"
+    },
+    {
+      "key": "companyUpdatedBusinessType",
+      "value": "SERVICE",
+      "type": "string"
+    },
+    {
+      "key": "companyUpdatedAddressLine1",
+      "value": "456 Update Street",
+      "type": "string"
+    },
+    {
+      "key": "companyUpdatedAddressLine2",
+      "value": "Floor 2",
+      "type": "string"
+    },
+    {
+      "key": "companyUpdatedCity",
+      "value": "Paris",
+      "type": "string"
+    },
+    {
+      "key": "companyUpdatedRegion",
+      "value": "Ile-de-France",
+      "type": "string"
+    },
+    {
+      "key": "companyUpdatedPostalCode",
+      "value": "75001",
+      "type": "string"
+    },
+    {
+      "key": "companyUpdatedCountry",
+      "value": "FR",
+      "type": "string"
+    },
+    {
+      "key": "companyUpdatedLatitude",
+      "value": "48.856613",
+      "type": "string"
+    },
+    {
+      "key": "companyUpdatedLongitude",
+      "value": "2.352222",
       "type": "string"
     },
     {

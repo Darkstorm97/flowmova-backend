@@ -5,6 +5,7 @@ import com.flowmova.backend.company.application.CreateCompanyService;
 import com.flowmova.backend.company.application.GetActiveCompanyService;
 import com.flowmova.backend.company.application.SearchActiveCompaniesService;
 import com.flowmova.backend.company.application.SearchCompaniesQuery;
+import com.flowmova.backend.company.application.UpdateCompanyService;
 import com.flowmova.backend.shared.api.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -16,6 +17,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -30,14 +32,17 @@ public class CompanyController {
     private final CreateCompanyService createCompanyService;
     private final SearchActiveCompaniesService searchActiveCompaniesService;
     private final GetActiveCompanyService getActiveCompanyService;
+    private final UpdateCompanyService updateCompanyService;
 
     public CompanyController(
             CreateCompanyService createCompanyService,
             SearchActiveCompaniesService searchActiveCompaniesService,
-            GetActiveCompanyService getActiveCompanyService) {
+            GetActiveCompanyService getActiveCompanyService,
+            UpdateCompanyService updateCompanyService) {
         this.createCompanyService = createCompanyService;
         this.searchActiveCompaniesService = searchActiveCompaniesService;
         this.getActiveCompanyService = getActiveCompanyService;
+        this.updateCompanyService = updateCompanyService;
     }
 
     @GetMapping
@@ -73,5 +78,16 @@ public class CompanyController {
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
             @Valid @RequestBody CreateCompanyRequest request) {
         return CompanyResponse.from(createCompanyService.createCompany(authenticatedUser, request.toCommand()));
+    }
+
+    @PutMapping("/{companyId}")
+    @Operation(
+            summary = "Modifier une entreprise",
+            description = "Modifie les informations d'une entreprise active. Seul un administrateur actif de l'entreprise peut effectuer cette operation.")
+    public CompanyResponse update(
+            @PathVariable UUID companyId,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+            @Valid @RequestBody UpdateCompanyRequest request) {
+        return updateCompanyService.update(companyId, authenticatedUser, request.toCommand());
     }
 }
