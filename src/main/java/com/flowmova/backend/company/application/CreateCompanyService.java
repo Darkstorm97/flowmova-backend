@@ -9,6 +9,7 @@ import com.flowmova.backend.companyaccess.domain.CompanyUser;
 import com.flowmova.backend.companyaccess.infrastructure.CompanyUserRepository;
 import com.flowmova.backend.user.domain.User;
 import com.flowmova.backend.user.infrastructure.UserRepository;
+import java.util.Arrays;
 import java.util.Currency;
 import java.util.Locale;
 import org.springframework.http.HttpStatus;
@@ -40,6 +41,14 @@ public class CreateCompanyService {
         Company company = new Company(
                 command.name().trim(),
                 normalizeDescription(command.description()),
+                normalizeOptionalText(command.addressLine1()),
+                normalizeOptionalText(command.addressLine2()),
+                normalizeOptionalText(command.city()),
+                normalizeOptionalText(command.region()),
+                normalizeOptionalText(command.postalCode()),
+                normalizeCountry(command.country()),
+                command.latitude(),
+                command.longitude(),
                 normalizeCurrency(command.currency()),
                 normalizeBusinessType(command.businessType()),
                 creator);
@@ -52,11 +61,29 @@ public class CreateCompanyService {
     }
 
     private String normalizeDescription(String description) {
-        if (description == null || description.isBlank()) {
+        return normalizeOptionalText(description);
+    }
+
+    private String normalizeOptionalText(String value) {
+        if (value == null || value.isBlank()) {
             return null;
         }
 
-        return description.trim();
+        return value.trim();
+    }
+
+    private String normalizeCountry(String country) {
+        String normalizedCountry = normalizeOptionalText(country);
+        if (normalizedCountry == null) {
+            return null;
+        }
+
+        String upperCaseCountry = normalizedCountry.toUpperCase(Locale.ROOT);
+        if (Arrays.stream(Locale.getISOCountries()).noneMatch(upperCaseCountry::equals)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Country must be a valid ISO 3166-1 alpha-2 code");
+        }
+
+        return upperCaseCountry;
     }
 
     private String normalizeCurrency(String currency) {

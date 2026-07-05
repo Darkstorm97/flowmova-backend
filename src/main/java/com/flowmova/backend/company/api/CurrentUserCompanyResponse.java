@@ -5,6 +5,7 @@ import com.flowmova.backend.company.domain.CompanyBusinessType;
 import com.flowmova.backend.company.domain.CompanyStatus;
 import com.flowmova.backend.companyaccess.domain.CompanyRole;
 import com.flowmova.backend.companyaccess.domain.CompanyUser;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -14,6 +15,14 @@ public record CurrentUserCompanyResponse(
         String description,
         String currency,
         CompanyBusinessType businessType,
+        String addressLine1,
+        String addressLine2,
+        String city,
+        String region,
+        String postalCode,
+        String country,
+        BigDecimal latitude,
+        BigDecimal longitude,
         CompanyStatus status,
         CompanyRole role,
         Instant createdAt,
@@ -27,6 +36,14 @@ public record CurrentUserCompanyResponse(
                 company.getDescription(),
                 company.getCurrency(),
                 company.getBusinessType(),
+                company.getAddressLine1(),
+                company.getAddressLine2(),
+                company.getCity(),
+                company.getRegion(),
+                company.getPostalCode(),
+                company.getCountry(),
+                company.getLatitude(),
+                company.getLongitude(),
                 company.getStatus(),
                 companyUser.getRole(),
                 company.getCreatedAt(),

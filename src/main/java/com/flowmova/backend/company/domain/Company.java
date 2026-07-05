@@ -11,6 +11,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 import org.hibernate.annotations.CreationTimestamp;
@@ -34,6 +35,30 @@ public class Company {
 
     @Column(name = "description")
     private String description;
+
+    @Column(name = "address_line_1", length = 255)
+    private String addressLine1;
+
+    @Column(name = "address_line_2", length = 255)
+    private String addressLine2;
+
+    @Column(name = "city", length = 120)
+    private String city;
+
+    @Column(name = "region", length = 120)
+    private String region;
+
+    @Column(name = "postal_code", length = 40)
+    private String postalCode;
+
+    @Column(name = "country", length = 2)
+    private String country;
+
+    @Column(name = "latitude", precision = 9, scale = 6)
+    private BigDecimal latitude;
+
+    @Column(name = "longitude", precision = 9, scale = 6)
+    private BigDecimal longitude;
 
     @Column(name = "currency", nullable = false, length = 3)
     private String currency = DEFAULT_CURRENCY;
@@ -80,9 +105,47 @@ public class Company {
     }
 
     public Company(String name, String description, String currency, CompanyBusinessType businessType, User createdBy) {
+        this(
+                name,
+                description,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                currency,
+                businessType,
+                createdBy);
+    }
+
+    public Company(
+            String name,
+            String description,
+            String addressLine1,
+            String addressLine2,
+            String city,
+            String region,
+            String postalCode,
+            String country,
+            BigDecimal latitude,
+            BigDecimal longitude,
+            String currency,
+            CompanyBusinessType businessType,
+            User createdBy) {
         this.id = UUID.randomUUID();
         this.name = name;
         this.description = description;
+        this.addressLine1 = addressLine1;
+        this.addressLine2 = addressLine2;
+        this.city = city;
+        this.region = region;
+        this.postalCode = postalCode;
+        this.country = country;
+        this.latitude = latitude;
+        this.longitude = longitude;
         this.currency = currency;
         this.businessType = businessType;
         this.createdBy = createdBy;
@@ -102,6 +165,38 @@ public class Company {
 
     public String getDescription() {
         return description;
+    }
+
+    public String getAddressLine1() {
+        return addressLine1;
+    }
+
+    public String getAddressLine2() {
+        return addressLine2;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public String getRegion() {
+        return region;
+    }
+
+    public String getPostalCode() {
+        return postalCode;
+    }
+
+    public String getCountry() {
+        return country;
+    }
+
+    public BigDecimal getLatitude() {
+        return latitude;
+    }
+
+    public BigDecimal getLongitude() {
+        return longitude;
     }
 
     public String getCurrency() {

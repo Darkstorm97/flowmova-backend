@@ -501,6 +501,9 @@
                   "    pm.expect(json).to.have.property('totalPages');",
                   "    json.items.forEach(function (company) {",
                   "        pm.expect(company).to.have.property('status', 'ACTIVE');",
+                  "        pm.expect(company).to.have.property('businessType');",
+                  "        pm.expect(company).to.have.property('city');",
+                  "        pm.expect(company).to.have.property('country');",
                   "        pm.expect(company).to.not.have.property('role');",
                   "    });",
                   "});"
@@ -514,7 +517,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/companies?q={{companySearchQuery}}&page=0&size=20&sort=name,asc",
+              "raw": "{{baseUrl}}/api/companies?q={{companySearchQuery}}&businessType={{companyBusinessType}}&city={{companyCity}}&region={{companyRegion}}&country={{companyCountry}}&page=0&size=20&sort=name,asc",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -526,6 +529,22 @@
                 {
                   "key": "q",
                   "value": "{{companySearchQuery}}"
+                },
+                {
+                  "key": "businessType",
+                  "value": "{{companyBusinessType}}"
+                },
+                {
+                  "key": "city",
+                  "value": "{{companyCity}}"
+                },
+                {
+                  "key": "region",
+                  "value": "{{companyRegion}}"
+                },
+                {
+                  "key": "country",
+                  "value": "{{companyCountry}}"
                 },
                 {
                   "key": "page",
@@ -563,6 +582,14 @@
                   "    pm.expect(json).to.have.property('description');",
                   "    pm.expect(json).to.have.property('currency');",
                   "    pm.expect(json).to.have.property('businessType');",
+                  "    pm.expect(json).to.have.property('addressLine1');",
+                  "    pm.expect(json).to.have.property('addressLine2');",
+                  "    pm.expect(json).to.have.property('city');",
+                  "    pm.expect(json).to.have.property('region');",
+                  "    pm.expect(json).to.have.property('postalCode');",
+                  "    pm.expect(json).to.have.property('country');",
+                  "    pm.expect(json).to.have.property('latitude');",
+                  "    pm.expect(json).to.have.property('longitude');",
                   "    pm.expect(json).to.have.property('status', 'ACTIVE');",
                   "    pm.expect(json).to.have.property('createdAt');",
                   "    pm.expect(json).to.have.property('updatedAt');",
@@ -610,6 +637,11 @@
                   "    pm.expect(json).to.have.property('description');",
                   "    pm.expect(json).to.have.property('currency');",
                   "    pm.expect(json).to.have.property('businessType', pm.collectionVariables.get('companyBusinessType'));",
+                  "    pm.expect(json).to.have.property('addressLine1', pm.collectionVariables.get('companyAddressLine1'));",
+                  "    pm.expect(json).to.have.property('city', pm.collectionVariables.get('companyCity'));",
+                  "    pm.expect(json).to.have.property('region', pm.collectionVariables.get('companyRegion'));",
+                  "    pm.expect(json).to.have.property('postalCode', pm.collectionVariables.get('companyPostalCode'));",
+                  "    pm.expect(json).to.have.property('country', pm.collectionVariables.get('companyCountry'));",
                   "    pm.expect(json).to.have.property('status', 'ACTIVE');",
                   "    pm.expect(json).to.have.property('createdAt');",
                   "    pm.expect(json).to.have.property('updatedAt');",
@@ -641,7 +673,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"{{companyName}}\",\n  \"description\": \"Company created from Postman\",\n  \"currency\": \"{{companyCurrency}}\",\n  \"businessType\": \"{{companyBusinessType}}\"\n}"
+              "raw": "{\n  \"name\": \"{{companyName}}\",\n  \"description\": \"Company created from Postman\",\n  \"currency\": \"{{companyCurrency}}\",\n  \"businessType\": \"{{companyBusinessType}}\",\n  \"addressLine1\": \"{{companyAddressLine1}}\",\n  \"addressLine2\": \"{{companyAddressLine2}}\",\n  \"city\": \"{{companyCity}}\",\n  \"region\": \"{{companyRegion}}\",\n  \"postalCode\": \"{{companyPostalCode}}\",\n  \"country\": \"{{companyCountry}}\",\n  \"latitude\": {{companyLatitude}},\n  \"longitude\": {{companyLongitude}}\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/companies",
@@ -2738,6 +2770,46 @@
     {
       "key": "companyBusinessType",
       "value": "RESTAURANT",
+      "type": "string"
+    },
+    {
+      "key": "companyAddressLine1",
+      "value": "123 Flow Street",
+      "type": "string"
+    },
+    {
+      "key": "companyAddressLine2",
+      "value": "Suite 5",
+      "type": "string"
+    },
+    {
+      "key": "companyCity",
+      "value": "Montreal",
+      "type": "string"
+    },
+    {
+      "key": "companyRegion",
+      "value": "Quebec",
+      "type": "string"
+    },
+    {
+      "key": "companyPostalCode",
+      "value": "H2X 1Y4",
+      "type": "string"
+    },
+    {
+      "key": "companyCountry",
+      "value": "CA",
+      "type": "string"
+    },
+    {
+      "key": "companyLatitude",
+      "value": "45.501689",
+      "type": "string"
+    },
+    {
+      "key": "companyLongitude",
+      "value": "-73.567256",
       "type": "string"
     },
     {

@@ -14,6 +14,8 @@ Il est construit a partir de FS-001, FS-002 et du DAT. En cas d'ambiguite, les F
 - La devise de l'entreprise est la devise de reference pour les prix de ses catalogues, articles et tickets.
 - Une entreprise possede un type d'activite (`businessType`) permettant d'indiquer son domaine: restauration, salon de coiffure, commerce, sante, administration, service ou autre.
 - Le type d'activite qualifie l'entreprise elle-meme. Il ne remplace pas les categories de catalogue, qui servent a classer les offres/articles d'une entreprise.
+- Une entreprise peut posseder une adresse publique structuree: adresse, ville, region, code postal, pays, latitude et longitude optionnelles.
+- Dans le MVP, la latitude et la longitude sont stockees et retournees, mais ne servent pas encore a calculer une recherche par distance.
 - Les utilisateurs peuvent rechercher et consulter les entreprises actives.
 - La fiche entreprise affiche les informations de l'entreprise, ses catalogues actifs classes par categories et ses unites de service disponibles.
 - Une entreprise peut posseder plusieurs categories de catalogues.
@@ -195,6 +197,27 @@ Criteres d'acceptation:
 - Les reponses de creation, recherche publique, fiche entreprise et liste `mes entreprises` exposent `businessType`.
 - Les collections Postman sont mises a jour si l'API de creation ou de consultation change.
 
+### COMPANY-005 - Ajouter l'adresse publique de compagnie
+
+Issue GitHub: #95.
+
+**En tant que** administrateur d'entreprise,
+**je veux** renseigner l'adresse et la localisation optionnelle de mon entreprise,
+**afin de** aider les utilisateurs a situer l'entreprise avant de consulter ses services.
+
+Criteres d'acceptation:
+
+- Une migration Flyway ajoute les champs `address_line_1`, `address_line_2`, `city`, `region`, `postal_code`, `country`, `latitude` et `longitude` a la table `companies`.
+- Les champs d'adresse sont optionnels dans le MVP.
+- `country` est stocke sous forme de code pays sur 2 lettres lorsqu'il est fourni.
+- `latitude` est optionnelle et doit etre comprise entre `-90` et `90` lorsqu'elle est fournie.
+- `longitude` est optionnelle et doit etre comprise entre `-180` et `180` lorsqu'elle est fournie.
+- La creation d'entreprise accepte ces champs optionnels.
+- Les reponses de creation, recherche publique, fiche entreprise et liste `mes entreprises` exposent ces champs.
+- La recherche publique des entreprises actives peut filtrer par `businessType`, `city`, `region` et `country`.
+- La recherche par distance geographique est hors MVP et pourra etre ajoutee plus tard.
+- Les collections Postman sont mises a jour si l'API de creation ou de consultation change.
+
 ### COMPANY-020 - Consulter mes entreprises
 
 **En tant que** utilisateur authentifie,
@@ -220,6 +243,8 @@ Criteres d'acceptation:
 - Seules les entreprises `ACTIVE` sont retournees.
 - Les entreprises non actives sont exclues.
 - La recherche supporte au minimum un filtre texte sur le nom.
+- Les filtres optionnels supportes sont `businessType`, `city`, `region` et `country`.
+- Les filtres peuvent etre combines avec la recherche textuelle et la pagination.
 - Les resultats sont pagines.
 
 ### COMPANY-031 - Consulter une fiche entreprise active

@@ -4,6 +4,7 @@ import com.flowmova.backend.auth.domain.AuthenticatedUser;
 import com.flowmova.backend.company.application.CreateCompanyService;
 import com.flowmova.backend.company.application.GetActiveCompanyService;
 import com.flowmova.backend.company.application.SearchActiveCompaniesService;
+import com.flowmova.backend.company.application.SearchCompaniesQuery;
 import com.flowmova.backend.shared.api.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -42,11 +43,17 @@ public class CompanyController {
     @GetMapping
     @Operation(
             summary = "Rechercher les entreprises actives",
-            description = "Retourne les entreprises actives visibles publiquement. Le parametre q permet de filtrer par recherche texte.")
+            description = "Retourne les entreprises actives visibles publiquement. Le parametre q filtre par recherche texte. Les filtres optionnels businessType, city, region et country peuvent etre combines.")
     public PageResponse<CompanyResponse> search(
             @RequestParam(name = "q", required = false) String query,
+            @RequestParam(required = false) String businessType,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) String region,
+            @RequestParam(required = false) String country,
             Pageable pageable) {
-        return PageResponse.from(searchActiveCompaniesService.search(query, pageable));
+        return PageResponse.from(searchActiveCompaniesService.search(
+                new SearchCompaniesQuery(query, businessType, city, region, country),
+                pageable));
     }
 
     @GetMapping("/{companyId}")

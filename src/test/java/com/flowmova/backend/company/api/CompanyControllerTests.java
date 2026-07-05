@@ -19,6 +19,7 @@ import com.flowmova.backend.companyaccess.domain.CompanyUserStatus;
 import com.flowmova.backend.companyaccess.infrastructure.CompanyUserRepository;
 import com.flowmova.backend.user.domain.User;
 import com.flowmova.backend.user.infrastructure.UserRepository;
+import java.math.BigDecimal;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,7 +72,15 @@ class CompanyControllerTests {
                                   "name": " FlowMova Demo ",
                                   "description": " Demo company ",
                                   "currency": "usd",
-                                  "businessType": "RESTAURANT"
+                                  "businessType": "RESTAURANT",
+                                  "addressLine1": " 123 Flow Street ",
+                                  "addressLine2": " Suite 5 ",
+                                  "city": " Montreal ",
+                                  "region": " Quebec ",
+                                  "postalCode": " H2X 1Y4 ",
+                                  "country": " ca ",
+                                  "latitude": 45.501689,
+                                  "longitude": -73.567256
                                 }
                                 """))
                 .andExpect(status().isCreated())
@@ -80,6 +89,14 @@ class CompanyControllerTests {
                 .andExpect(jsonPath("$.description").value("Demo company"))
                 .andExpect(jsonPath("$.currency").value("USD"))
                 .andExpect(jsonPath("$.businessType").value("RESTAURANT"))
+                .andExpect(jsonPath("$.addressLine1").value("123 Flow Street"))
+                .andExpect(jsonPath("$.addressLine2").value("Suite 5"))
+                .andExpect(jsonPath("$.city").value("Montreal"))
+                .andExpect(jsonPath("$.region").value("Quebec"))
+                .andExpect(jsonPath("$.postalCode").value("H2X 1Y4"))
+                .andExpect(jsonPath("$.country").value("CA"))
+                .andExpect(jsonPath("$.latitude").value(45.501689))
+                .andExpect(jsonPath("$.longitude").value(-73.567256))
                 .andExpect(jsonPath("$.status").value("ACTIVE"))
                 .andExpect(jsonPath("$.createdAt").exists())
                 .andExpect(jsonPath("$.updatedAt").exists())
@@ -95,6 +112,14 @@ class CompanyControllerTests {
         assertThat(company.getStatus()).isEqualTo(CompanyStatus.ACTIVE);
         assertThat(company.getCurrency()).isEqualTo("USD");
         assertThat(company.getBusinessType()).isEqualTo(CompanyBusinessType.RESTAURANT);
+        assertThat(company.getAddressLine1()).isEqualTo("123 Flow Street");
+        assertThat(company.getAddressLine2()).isEqualTo("Suite 5");
+        assertThat(company.getCity()).isEqualTo("Montreal");
+        assertThat(company.getRegion()).isEqualTo("Quebec");
+        assertThat(company.getPostalCode()).isEqualTo("H2X 1Y4");
+        assertThat(company.getCountry()).isEqualTo("CA");
+        assertThat(company.getLatitude()).isEqualByComparingTo(new BigDecimal("45.501689"));
+        assertThat(company.getLongitude()).isEqualByComparingTo(new BigDecimal("-73.567256"));
         assertThat(company.getCreatedBy().getId()).isEqualTo(user.getId());
         assertThat(companyUser.getRole()).isEqualTo(CompanyRole.ADMIN);
         assertThat(companyUser.getStatus()).isEqualTo(CompanyUserStatus.ACTIVE);
@@ -143,6 +168,29 @@ class CompanyControllerTests {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
                 .andExpect(jsonPath("$.message").value("Business type must be a supported company business type"));
+    }
+
+    @Test
+    void rejectsCompanyCreationWithLatitudeOutOfRange() throws Exception {
+        User user = userRepository.save(new User(
+                "company-invalid-latitude.%s@flowmova.test".formatted(UUID.randomUUID()),
+                passwordEncoder.encode("Password123!"),
+                "Company",
+                "Latitude"));
+        String token = accessTokenGenerator.generate(user).value();
+
+        mockMvc.perform(post("/api/companies")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Invalid Latitude Company",
+                                  "latitude": 91
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.fieldErrors[?(@.field == 'latitude')]").exists());
     }
 
     @Test
@@ -235,6 +283,88 @@ class CompanyControllerTests {
                 .andExpect(jsonPath("$.size").value(10))
                 .andExpect(jsonPath("$.totalItems").value(1))
                 .andExpect(jsonPath("$.totalPages").value(1));
+    }
+
+    @Test
+    void searchesActiveCompaniesWithBusinessTypeAndLocationFilters() throws Exception {
+        String uniquePrefix = "Public Location %s".formatted(UUID.randomUUID());
+        User owner = userRepository.save(new User(
+                "public-location-owner.%s@flowmova.test".formatted(UUID.randomUUID()),
+                passwordEncoder.encode("Password123!"),
+                "Public",
+                "Location"));
+
+        Company matchingCompany = activeCompany(
+                uniquePrefix + " Bistro",
+                "Visible bistro",
+                "12 Rue Flow",
+                null,
+                "Montreal",
+                "Quebec",
+                "H2X 1Y4",
+                "CA",
+                new BigDecimal("45.501689"),
+                new BigDecimal("-73.567256"),
+                "CAD",
+                CompanyBusinessType.RESTAURANT,
+                owner);
+        activeCompany(
+                uniquePrefix + " Salon",
+                "Visible salon",
+                "20 Avenue Move",
+                null,
+                "Montreal",
+                "Quebec",
+                "H2X 1Y4",
+                "CA",
+                null,
+                null,
+                "CAD",
+                CompanyBusinessType.HAIR_SALON,
+                owner);
+        activeCompany(
+                uniquePrefix + " Toronto Bistro",
+                "Wrong city",
+                "44 King Street",
+                null,
+                "Toronto",
+                "Ontario",
+                "M5H 1A1",
+                "CA",
+                null,
+                null,
+                "CAD",
+                CompanyBusinessType.RESTAURANT,
+                owner);
+
+        mockMvc.perform(get("/api/companies")
+                        .param("q", uniquePrefix)
+                        .param("businessType", "RESTAURANT")
+                        .param("city", "montreal")
+                        .param("region", "quebec")
+                        .param("country", "ca")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("sort", "city,asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].id").value(matchingCompany.getId().toString()))
+                .andExpect(jsonPath("$.items[0].businessType").value("RESTAURANT"))
+                .andExpect(jsonPath("$.items[0].city").value("Montreal"))
+                .andExpect(jsonPath("$.items[0].region").value("Quebec"))
+                .andExpect(jsonPath("$.items[0].country").value("CA"))
+                .andExpect(jsonPath("$.items[0].latitude").value(45.501689))
+                .andExpect(jsonPath("$.items[0].longitude").value(-73.567256))
+                .andExpect(jsonPath("$.totalItems").value(1));
+    }
+
+    @Test
+    void rejectsCompanySearchWithUnsupportedBusinessType() throws Exception {
+        mockMvc.perform(get("/api/companies")
+                        .param("businessType", "MUSEUM"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("Business type must be a supported company business type"));
     }
 
     @Test
@@ -362,6 +492,38 @@ class CompanyControllerTests {
 
     private Company activeCompany(String name, String description, User createdBy) {
         Company company = new Company(name, description, createdBy);
+        company.activate();
+        return companyRepository.save(company);
+    }
+
+    private Company activeCompany(
+            String name,
+            String description,
+            String addressLine1,
+            String addressLine2,
+            String city,
+            String region,
+            String postalCode,
+            String country,
+            BigDecimal latitude,
+            BigDecimal longitude,
+            String currency,
+            CompanyBusinessType businessType,
+            User createdBy) {
+        Company company = new Company(
+                name,
+                description,
+                addressLine1,
+                addressLine2,
+                city,
+                region,
+                postalCode,
+                country,
+                latitude,
+                longitude,
+                currency,
+                businessType,
+                createdBy);
         company.activate();
         return companyRepository.save(company);
     }

@@ -3,6 +3,7 @@ package com.flowmova.backend.company.api;
 import com.flowmova.backend.company.domain.Company;
 import com.flowmova.backend.company.domain.CompanyBusinessType;
 import com.flowmova.backend.company.domain.CompanyStatus;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -12,6 +13,14 @@ public record CompanyResponse(
         String description,
         String currency,
         CompanyBusinessType businessType,
+        String addressLine1,
+        String addressLine2,
+        String city,
+        String region,
+        String postalCode,
+        String country,
+        BigDecimal latitude,
+        BigDecimal longitude,
         CompanyStatus status,
         Instant createdAt,
         Instant updatedAt) {
@@ -23,6 +32,14 @@ public record CompanyResponse(
                 company.getDescription(),
                 company.getCurrency(),
                 company.getBusinessType(),
+                company.getAddressLine1(),
+                company.getAddressLine2(),
+                company.getCity(),
+                company.getRegion(),
+                company.getPostalCode(),
+                company.getCountry(),
+                company.getLatitude(),
+                company.getLongitude(),
                 company.getStatus(),
                 company.getCreatedAt(),
                 company.getUpdatedAt());
