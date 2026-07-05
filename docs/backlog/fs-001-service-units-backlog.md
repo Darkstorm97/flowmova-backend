@@ -44,8 +44,12 @@ Il est construit a partir de FS-001, FS-002 et du DAT. En cas d'ambiguite, les F
 - Seules les unites `OPEN` sont visibles publiquement.
 - Seules les unites `OPEN` acceptent la creation de tickets.
 - Les administrateurs voient les unites `OPEN`, `CLOSED` et `ARCHIVED` de leur entreprise.
-- Une unite de service peut activer une option anti-spam qui limite un utilisateur authentifie a un seul ticket actif a la fois.
-- Quand cette option anti-spam est active, la creation de ticket invite non authentifiee est refusee, car le backend ne peut pas identifier fiablement un visiteur sans compte.
+- Une unite de service possede un mode configurable de controle de creation de tickets (`ticketCreationGuardMode`).
+- Les valeurs MVP de `ticketCreationGuardMode` sont `NONE`, `AUTHENTICATED_ONLY_ONE_OPEN_TICKET` et `AUTHENTICATED_OR_GUEST_RECENT_ONE_OPEN_TICKET`.
+- `NONE`: les clients authentifies et les visiteurs non authentifies peuvent creer plusieurs tickets.
+- `AUTHENTICATED_ONLY_ONE_OPEN_TICKET`: seuls les clients authentifies peuvent creer un ticket, et le backend refuse la creation si le client authentifie possede deja un ticket ouvert dans cette unite.
+- `AUTHENTICATED_OR_GUEST_RECENT_ONE_OPEN_TICKET`: le backend applique la meme regle forte aux clients authentifies; les visiteurs non authentifies restent autorises cote backend, mais le frontend limite les repetitions avec les tickets recents stockes localement dans le navigateur ou l'application mobile du client.
+- Les visiteurs non authentifies ne sont jamais bloques globalement par le backend dans le mode `AUTHENTICATED_OR_GUEST_RECENT_ONE_OPEN_TICKET`, car le backend ne peut pas identifier fiablement un visiteur sans compte.
 - Une unite de service peut etre ouverte uniquement si elle est correctement configuree.
 - La configuration minimale d'ouverture est: entreprise active, nom renseigne, type `TICKET_QUEUE`, statut actuel `CLOSED`.
 - Les articles d'une unite sont optionnels. S'ils existent et sont disponibles, ils sont affiches; sinon l'utilisateur peut creer un ticket general.
@@ -100,8 +104,10 @@ Il est construit a partir de FS-001, FS-002 et du DAT. En cas d'ambiguite, les F
 - Le telephone de contact d'un ticket est optionnel pour les visiteurs et les utilisateurs authentifies; il reste une donnee de contact, pas une preuve d'identite.
 - Les quantites d'articles sont representatives au MVP: `configured_quantity` et `reserved_quantity` ne bloquent pas la creation de ticket et pourront servir plus tard a l'affichage, aux alertes ou aux controles operationnels.
 - La quantite d'une ligne de ticket est optionnelle dans les requetes de creation. Decision retenue: valeur par defaut `1`, et refus uniquement si une valeur fournie est inferieure a `1`.
-- L'anti-spam par unite est optionnel et configure par l'administrateur. Decision retenue: si l'option est active, seuls les utilisateurs authentifies peuvent creer un ticket, et ils doivent ne pas avoir de ticket actif dans cette unite.
-- Pour cette regle anti-spam, les statuts actifs qui bloquent une nouvelle creation sont `CREATED` et `RECEIVED`. Les statuts qui liberent l'utilisateur sont `TREATED`, `CUSTOMER_CONFIRMED`, `CANCELLED` et `CLOSED`.
+- L'anti-spam par unite n'est plus une option booleenne. Decision retenue: utiliser `ticketCreationGuardMode`.
+- En mode `AUTHENTICATED_ONLY_ONE_OPEN_TICKET`, les visiteurs non authentifies sont refuses et les utilisateurs authentifies doivent ne pas avoir de ticket ouvert dans cette unite.
+- En mode `AUTHENTICATED_OR_GUEST_RECENT_ONE_OPEN_TICKET`, les utilisateurs authentifies sont controles cote backend; les visiteurs non authentifies sont autorises cote backend et limites cote frontend via les tickets recents locaux.
+- Pour cette regle anti-spam, les statuts ouverts qui bloquent une nouvelle creation authentifiee sont `CREATED` et `RECEIVED`. Les statuts qui liberent l'utilisateur sont `TREATED`, `CUSTOMER_CONFIRMED`, `CANCELLED` et `CLOSED`.
 
 ## Milestone 1 - Entreprises
 
@@ -629,6 +635,24 @@ Criteres d'acceptation:
 - Une unite `OPEN`, `CLOSED` ou `ARCHIVED` peut etre modifiee.
 - La reponse retourne l'unite mise a jour avec son emplacement par defaut lorsqu'il existe.
 
+### SERVICE-014 - Configurer le mode de controle de creation de tickets
+
+**En tant que** administrateur d'entreprise,
+**je veux** configurer la politique de creation de tickets d'une unite,
+**afin de** limiter les creations repetitives selon le niveau de controle souhaite.
+
+Criteres d'acceptation:
+
+- Une migration Flyway ajoute le champ `ticket_creation_guard_mode` a `service_units`.
+- Le champ est obligatoire avec la valeur par defaut `NONE`.
+- Les valeurs supportees sont `NONE`, `AUTHENTICATED_ONLY_ONE_OPEN_TICKET` et `AUTHENTICATED_OR_GUEST_RECENT_ONE_OPEN_TICKET`.
+- L'entite `ServiceUnit` expose `ticketCreationGuardMode`.
+- Les endpoints de creation, modification, detail admin et detail public d'une unite exposent le mode.
+- La creation d'unite accepte `ticketCreationGuardMode`; si absent, `NONE` est utilise.
+- La modification d'unite accepte `ticketCreationGuardMode`.
+- Les anciennes references a une option booleenne anti-spam sont remplacees par ce mode.
+- Les collections Postman et la documentation OpenAPI sont mises a jour.
+
 ### ITEM-001 - Creer la table `items`
 
 **En tant que** backend,
@@ -896,24 +920,28 @@ Criteres d'acceptation:
 - La devise du ticket est copiee depuis l'entreprise.
 - Les montants des lignes et le total informatif sont calcules lorsque les articles possedent un prix.
 
-### TICKET-012 - Refuser la creation de ticket si l'utilisateur a deja un ticket actif
+### TICKET-012 - Appliquer le mode de controle de creation de tickets
 
 **En tant que** plateforme,
-**je veux** appliquer la limitation anti-spam configuree sur l'unite de service,
-**afin de** bloquer les creations multiples avant traitement.
+**je veux** appliquer le mode de controle configure sur l'unite de service,
+**afin de** limiter les creations multiples selon la politique choisie par l'administrateur.
 
 Criteres d'acceptation:
 
-- La regle s'applique uniquement si l'unite de service a `oneActiveTicketPerUser = true`.
-- Si la regle est inactive, la creation de ticket conserve le comportement existant.
-- Si la regle est active, une requete sans JWT est refusee.
-- Si la regle est active, `guestName` et `customerPhone` ne permettent pas de contourner l'authentification requise.
-- Si la regle est active, l'utilisateur authentifie peut creer un ticket seulement s'il n'a pas de ticket actif dans cette unite.
-- Les statuts actifs qui bloquent une nouvelle creation sont `CREATED` et `RECEIVED`.
+- La regle s'applique selon `ticketCreationGuardMode` sur l'unite de service.
+- Si `ticketCreationGuardMode = NONE`, la creation conserve le comportement existant pour les utilisateurs authentifies et les visiteurs non authentifies.
+- Si `ticketCreationGuardMode = AUTHENTICATED_ONLY_ONE_OPEN_TICKET`, une requete sans JWT est refusee.
+- Si `ticketCreationGuardMode = AUTHENTICATED_ONLY_ONE_OPEN_TICKET`, `guestName` et `customerPhone` ne permettent pas de contourner l'authentification requise.
+- Si `ticketCreationGuardMode = AUTHENTICATED_ONLY_ONE_OPEN_TICKET`, l'utilisateur authentifie peut creer un ticket seulement s'il n'a pas de ticket ouvert dans cette unite.
+- Si `ticketCreationGuardMode = AUTHENTICATED_OR_GUEST_RECENT_ONE_OPEN_TICKET`, les visiteurs non authentifies restent autorises cote backend.
+- Si `ticketCreationGuardMode = AUTHENTICATED_OR_GUEST_RECENT_ONE_OPEN_TICKET`, l'utilisateur authentifie peut creer un ticket seulement s'il n'a pas de ticket ouvert dans cette unite.
+- Le backend ne tente pas de bloquer globalement les visiteurs non authentifies dans le mode `AUTHENTICATED_OR_GUEST_RECENT_ONE_OPEN_TICKET`; le controle invite est realise cote frontend avec les tickets recents locaux.
+- Les statuts ouverts qui bloquent une nouvelle creation authentifiee sont `CREATED` et `RECEIVED`.
 - Les statuts `TREATED`, `CUSTOMER_CONFIRMED`, `CANCELLED` et `CLOSED` ne bloquent pas une nouvelle creation.
 - Le controle se fait par utilisateur authentifie et par unite de service.
 - Un ticket actif dans une autre unite de service ne bloque pas la creation.
 - L'erreur retournee est claire pour le frontend, par exemple `ACTIVE_TICKET_ALREADY_EXISTS`.
+- Une creation invite refusee en mode `AUTHENTICATED_ONLY_ONE_OPEN_TICKET` retourne une erreur claire, par exemple `AUTHENTICATION_REQUIRED_FOR_TICKET_CREATION`.
 
 ### TICKET-020 - Consulter les tickets d'une unite
 
