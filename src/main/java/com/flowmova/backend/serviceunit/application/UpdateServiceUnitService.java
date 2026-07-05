@@ -63,7 +63,7 @@ public class UpdateServiceUnitService {
                 command.name().trim(),
                 normalize(command.description()),
                 normalize(command.location()),
-                command.oneActiveTicketPerUser(),
+                command.ticketCreationGuardMode(),
                 updater);
         ServiceUnit savedServiceUnit = serviceUnitRepository.saveAndFlush(serviceUnit);
 

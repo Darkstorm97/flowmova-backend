@@ -25,8 +25,6 @@ import org.hibernate.type.SqlTypes;
 @Table(name = "service_units")
 public class ServiceUnit {
 
-    private static final String ONE_ACTIVE_TICKET_PER_USER_SETTING = "oneActiveTicketPerUser";
-
     @Id
     @Column(name = "id", nullable = false)
     private UUID id;
@@ -53,6 +51,11 @@ public class ServiceUnit {
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "status", nullable = false, columnDefinition = "service_unit_status")
     private ServiceUnitStatus status = ServiceUnitStatus.CLOSED;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "ticket_creation_guard_mode", nullable = false, columnDefinition = "ticket_creation_guard_mode")
+    private TicketCreationGuardMode ticketCreationGuardMode = TicketCreationGuardMode.NONE;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "settings", nullable = false, columnDefinition = "jsonb")
@@ -112,18 +115,25 @@ public class ServiceUnit {
         this.updatedBy = updatedBy;
     }
 
-    public void update(String name, String description, String location, Boolean oneActiveTicketPerUser, User updatedBy) {
+    public void update(
+            String name,
+            String description,
+            String location,
+            TicketCreationGuardMode ticketCreationGuardMode,
+            User updatedBy) {
         this.name = name;
         this.description = description;
         this.location = location;
-        if (oneActiveTicketPerUser != null) {
-            setOneActiveTicketPerUser(oneActiveTicketPerUser);
+        if (ticketCreationGuardMode != null) {
+            this.ticketCreationGuardMode = ticketCreationGuardMode;
         }
         this.updatedBy = updatedBy;
     }
 
-    public void setOneActiveTicketPerUser(boolean oneActiveTicketPerUser) {
-        this.settings.put(ONE_ACTIVE_TICKET_PER_USER_SETTING, oneActiveTicketPerUser);
+    public void setTicketCreationGuardMode(TicketCreationGuardMode ticketCreationGuardMode) {
+        this.ticketCreationGuardMode = ticketCreationGuardMode == null
+                ? TicketCreationGuardMode.NONE
+                : ticketCreationGuardMode;
     }
 
     public UUID getId() {
@@ -154,13 +164,12 @@ public class ServiceUnit {
         return status;
     }
 
-    public Map<String, Object> getSettings() {
-        return Map.copyOf(settings);
+    public TicketCreationGuardMode getTicketCreationGuardMode() {
+        return ticketCreationGuardMode;
     }
 
-    public boolean isOneActiveTicketPerUser() {
-        Object value = settings.get(ONE_ACTIVE_TICKET_PER_USER_SETTING);
-        return value instanceof Boolean booleanValue && booleanValue;
+    public Map<String, Object> getSettings() {
+        return Map.copyOf(settings);
     }
 
     public Instant getCreatedAt() {

@@ -5,6 +5,7 @@ import com.flowmova.backend.item.domain.Item;
 import com.flowmova.backend.serviceunit.domain.ServiceUnit;
 import com.flowmova.backend.serviceunit.domain.ServiceUnitStatus;
 import com.flowmova.backend.serviceunit.domain.ServiceUnitType;
+import com.flowmova.backend.serviceunit.domain.TicketCreationGuardMode;
 import com.flowmova.backend.serviceunitlocation.domain.ServiceUnitLocation;
 import java.time.Instant;
 import java.util.List;
@@ -18,6 +19,7 @@ public record PublicServiceUnitDetailResponse(
         String location,
         ServiceUnitType type,
         ServiceUnitStatus status,
+        TicketCreationGuardMode ticketCreationGuardMode,
         ServiceUnitLocationResponse defaultLocation,
         List<ServiceUnitLocationResponse> locations,
         List<ItemResponse> items,
@@ -37,6 +39,7 @@ public record PublicServiceUnitDetailResponse(
                 serviceUnit.getLocation(),
                 serviceUnit.getType(),
                 serviceUnit.getStatus(),
+                serviceUnit.getTicketCreationGuardMode(),
                 ServiceUnitLocationResponse.from(defaultLocation),
                 locations.stream()
                         .map(ServiceUnitLocationResponse::from)

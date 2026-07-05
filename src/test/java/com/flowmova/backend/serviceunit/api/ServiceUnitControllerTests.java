@@ -26,6 +26,7 @@ import com.flowmova.backend.item.infrastructure.ItemRepository;
 import com.flowmova.backend.serviceunit.domain.ServiceUnit;
 import com.flowmova.backend.serviceunit.domain.ServiceUnitStatus;
 import com.flowmova.backend.serviceunit.domain.ServiceUnitType;
+import com.flowmova.backend.serviceunit.domain.TicketCreationGuardMode;
 import com.flowmova.backend.serviceunit.infrastructure.ServiceUnitRepository;
 import com.flowmova.backend.serviceunitlocation.domain.ServiceUnitLocation;
 import com.flowmova.backend.serviceunitlocation.domain.ServiceUnitLocationStatus;
@@ -110,7 +111,7 @@ class ServiceUnitControllerTests {
                 .andExpect(jsonPath("$.location").value("Hall"))
                 .andExpect(jsonPath("$.type").value("TICKET_QUEUE"))
                 .andExpect(jsonPath("$.status").value("CLOSED"))
-                .andExpect(jsonPath("$.oneActiveTicketPerUser").value(false))
+                .andExpect(jsonPath("$.ticketCreationGuardMode").value("NONE"))
                 .andExpect(jsonPath("$.defaultLocation.id").exists())
                 .andExpect(jsonPath("$.defaultLocation.name").value("Principal"))
                 .andExpect(jsonPath("$.defaultLocation.type").value("DEFAULT"))
@@ -141,7 +142,7 @@ class ServiceUnitControllerTests {
     }
 
     @Test
-    void adminCreatesServiceUnitWithActiveTicketLimit() throws Exception {
+    void adminCreatesServiceUnitWithTicketCreationGuardMode() throws Exception {
         User admin = user("service-unit-active-ticket-limit");
         Company company = activeCompany(admin);
         companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
@@ -154,11 +155,11 @@ class ServiceUnitControllerTests {
                                 {
                                   "name": "Anti spam queue",
                                   "type": "TICKET_QUEUE",
-                                  "oneActiveTicketPerUser": true
+                                  "ticketCreationGuardMode": "AUTHENTICATED_ONLY_ONE_OPEN_TICKET"
                                 }
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.oneActiveTicketPerUser").value(true))
+                .andExpect(jsonPath("$.ticketCreationGuardMode").value("AUTHENTICATED_ONLY_ONE_OPEN_TICKET"))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
@@ -166,7 +167,8 @@ class ServiceUnitControllerTests {
         ServiceUnit serviceUnit = serviceUnitRepository.findById(
                         UUID.fromString(objectMapper.readTree(response).get("id").asText()))
                 .orElseThrow();
-        assertThat(serviceUnit.isOneActiveTicketPerUser()).isTrue();
+        assertThat(serviceUnit.getTicketCreationGuardMode())
+                .isEqualTo(TicketCreationGuardMode.AUTHENTICATED_ONLY_ONE_OPEN_TICKET);
     }
 
     @Test
@@ -1527,7 +1529,7 @@ class ServiceUnitControllerTests {
                                   "name": " Updated Queue ",
                                   "description": " Updated description ",
                                   "location": " Updated location ",
-                                  "oneActiveTicketPerUser": true
+                                  "ticketCreationGuardMode": "AUTHENTICATED_OR_GUEST_RECENT_ONE_OPEN_TICKET"
                                 }
                                 """))
                 .andExpect(status().isOk())
@@ -1537,7 +1539,7 @@ class ServiceUnitControllerTests {
                 .andExpect(jsonPath("$.description").value("Updated description"))
                 .andExpect(jsonPath("$.location").value("Updated location"))
                 .andExpect(jsonPath("$.status").value("OPEN"))
-                .andExpect(jsonPath("$.oneActiveTicketPerUser").value(true))
+                .andExpect(jsonPath("$.ticketCreationGuardMode").value("AUTHENTICATED_OR_GUEST_RECENT_ONE_OPEN_TICKET"))
                 .andExpect(jsonPath("$.defaultLocation.id").value(defaultLocation.getId().toString()));
 
         ServiceUnit updatedServiceUnit = serviceUnitRepository.findById(serviceUnit.getId()).orElseThrow();
@@ -1545,7 +1547,8 @@ class ServiceUnitControllerTests {
         assertThat(updatedServiceUnit.getDescription()).isEqualTo("Updated description");
         assertThat(updatedServiceUnit.getLocation()).isEqualTo("Updated location");
         assertThat(updatedServiceUnit.getStatus()).isEqualTo(ServiceUnitStatus.OPEN);
-        assertThat(updatedServiceUnit.isOneActiveTicketPerUser()).isTrue();
+        assertThat(updatedServiceUnit.getTicketCreationGuardMode())
+                .isEqualTo(TicketCreationGuardMode.AUTHENTICATED_OR_GUEST_RECENT_ONE_OPEN_TICKET);
         assertThat(updatedServiceUnit.getUpdatedBy().getId()).isEqualTo(admin.getId());
     }
 

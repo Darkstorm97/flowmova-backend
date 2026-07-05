@@ -1260,7 +1260,7 @@
                   "    pm.expect(json).to.have.property('name');",
                   "    pm.expect(json).to.have.property('type', 'TICKET_QUEUE');",
                   "    pm.expect(json).to.have.property('status', 'CLOSED');",
-                  "    pm.expect(json).to.have.property('oneActiveTicketPerUser', false);",
+                  "    pm.expect(json).to.have.property('ticketCreationGuardMode', 'NONE');",
                   "    pm.expect(json).to.have.property('defaultLocation');",
                   "    pm.expect(json.defaultLocation).to.have.property('id');",
                   "    pm.expect(json.defaultLocation).to.have.property('type', 'DEFAULT');",
@@ -1296,7 +1296,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"File principale\",\n  \"description\": \"File de prise en charge creee depuis Postman\",\n  \"location\": \"Accueil\",\n  \"type\": \"TICKET_QUEUE\",\n  \"oneActiveTicketPerUser\": false\n}"
+              "raw": "{\n  \"name\": \"File principale\",\n  \"description\": \"File de prise en charge creee depuis Postman\",\n  \"location\": \"Accueil\",\n  \"type\": \"TICKET_QUEUE\",\n  \"ticketCreationGuardMode\": \"NONE\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/companies/{{companyId}}/service-units",
@@ -1310,7 +1310,7 @@
                 "service-units"
               ]
             },
-            "description": "Cree une unite de service CLOSED avec son emplacement par defaut ACTIVE. oneActiveTicketPerUser permet, si true, de refuser les tickets invites et de limiter chaque utilisateur authentifie a un ticket actif CREATED/RECEIVED dans cette unite. Executer Login puis Create Company avant cet appel pour alimenter accessToken et companyId."
+            "description": "Cree une unite de service CLOSED avec son emplacement par defaut ACTIVE. ticketCreationGuardMode controle l'anti-spam: NONE ne bloque pas, AUTHENTICATED_ONLY_ONE_OPEN_TICKET refuse les invites et limite chaque utilisateur connecte a un ticket ouvert, AUTHENTICATED_OR_GUEST_RECENT_ONE_OPEN_TICKET laisse les invites autorises cote backend et limite les utilisateurs connectes. Executer Login puis Create Company avant cet appel pour alimenter accessToken et companyId."
           },
           "response": []
         },
@@ -1333,7 +1333,7 @@
                   "    pm.expect(json).to.have.property('description', 'Description mise a jour depuis Postman');",
                   "    pm.expect(json).to.have.property('location', 'Accueil principal');",
                   "    pm.expect(json).to.have.property('status', 'CLOSED');",
-                  "    pm.expect(json).to.have.property('oneActiveTicketPerUser', false);",
+                  "    pm.expect(json).to.have.property('ticketCreationGuardMode', 'NONE');",
                   "    pm.expect(json).to.have.property('defaultLocation');",
                   "    pm.expect(json.defaultLocation).to.have.property('id', pm.collectionVariables.get('serviceUnitLocationId'));",
                   "});"
@@ -1363,7 +1363,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"File principale mise a jour\",\n  \"description\": \"Description mise a jour depuis Postman\",\n  \"location\": \"Accueil principal\",\n  \"oneActiveTicketPerUser\": false\n}"
+              "raw": "{\n  \"name\": \"File principale mise a jour\",\n  \"description\": \"Description mise a jour depuis Postman\",\n  \"location\": \"Accueil principal\",\n  \"ticketCreationGuardMode\": \"NONE\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/companies/{{companyId}}/admin/service-units/{{serviceUnitId}}",
@@ -1379,7 +1379,7 @@
                 "{{serviceUnitId}}"
               ]
             },
-            "description": "Modifie les informations administratives d'une unite de service sans changer son statut ni son emplacement par defaut. Mettre oneActiveTicketPerUser a true active la regle anti-spam: pas de ticket invite et un seul ticket actif CREATED/RECEIVED par utilisateur authentifie dans l'unite. Executer Login, Create Company puis Create Service Unit avant cet appel."
+            "description": "Modifie les informations administratives d'une unite de service sans changer son statut ni son emplacement par defaut. ticketCreationGuardMode controle l'anti-spam de creation de tickets selon les modes valides. Executer Login, Create Company puis Create Service Unit avant cet appel."
           },
           "response": []
         },

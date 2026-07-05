@@ -23,6 +23,7 @@ import com.flowmova.backend.item.domain.Item;
 import com.flowmova.backend.item.domain.ItemAvailability;
 import com.flowmova.backend.item.infrastructure.ItemRepository;
 import com.flowmova.backend.serviceunit.domain.ServiceUnit;
+import com.flowmova.backend.serviceunit.domain.TicketCreationGuardMode;
 import com.flowmova.backend.serviceunit.infrastructure.ServiceUnitRepository;
 import com.flowmova.backend.serviceunitlocation.domain.ServiceUnitLocation;
 import com.flowmova.backend.serviceunitlocation.domain.ServiceUnitLocationType;
@@ -177,7 +178,7 @@ class TicketControllerTests {
     @Test
     void rejectsGuestTicketWhenServiceUnitRequiresAuthenticatedUserWithoutActiveTicket() throws Exception {
         Fixture fixture = fixture("guest-active-ticket-limit");
-        fixture.serviceUnit().setOneActiveTicketPerUser(true);
+        fixture.serviceUnit().setTicketCreationGuardMode(TicketCreationGuardMode.AUTHENTICATED_ONLY_ONE_OPEN_TICKET);
         serviceUnitRepository.saveAndFlush(fixture.serviceUnit());
 
         mockMvc.perform(post("/api/service-units/{serviceUnitId}/tickets", fixture.serviceUnit().getId())
@@ -195,7 +196,7 @@ class TicketControllerTests {
     @Test
     void rejectsAuthenticatedTicketWhenUserAlreadyHasActiveTicketInSameServiceUnit() throws Exception {
         Fixture fixture = fixture("auth-active-ticket-limit");
-        fixture.serviceUnit().setOneActiveTicketPerUser(true);
+        fixture.serviceUnit().setTicketCreationGuardMode(TicketCreationGuardMode.AUTHENTICATED_ONLY_ONE_OPEN_TICKET);
         serviceUnitRepository.saveAndFlush(fixture.serviceUnit());
         User customer = user("active-ticket-customer");
         Ticket activeTicket = saveAuthenticatedTicket("T-ACTIVE-%s".formatted(shortToken()), customer, fixture);
@@ -217,12 +218,57 @@ class TicketControllerTests {
     }
 
     @Test
+    void guestCreatesTicketWhenGuardModeUsesGuestRecentTickets() throws Exception {
+        Fixture fixture = fixture("guest-recent-ticket-mode");
+        fixture.serviceUnit().setTicketCreationGuardMode(
+                TicketCreationGuardMode.AUTHENTICATED_OR_GUEST_RECENT_ONE_OPEN_TICKET);
+        serviceUnitRepository.saveAndFlush(fixture.serviceUnit());
+
+        mockMvc.perform(post("/api/service-units/{serviceUnitId}/tickets", fixture.serviceUnit().getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "guestName": "Alice Client",
+                                  "lines": []
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.guestName").value("Alice Client"))
+                .andExpect(jsonPath("$.accessCode").exists());
+    }
+
+    @Test
+    void rejectsAuthenticatedTicketWithActiveTicketWhenGuardModeUsesGuestRecentTickets() throws Exception {
+        Fixture fixture = fixture("auth-recent-ticket-mode");
+        fixture.serviceUnit().setTicketCreationGuardMode(
+                TicketCreationGuardMode.AUTHENTICATED_OR_GUEST_RECENT_ONE_OPEN_TICKET);
+        serviceUnitRepository.saveAndFlush(fixture.serviceUnit());
+        User customer = user("recent-ticket-customer");
+        Ticket activeTicket = saveAuthenticatedTicket("T-RECENT-%s".formatted(shortToken()), customer, fixture);
+        activeTicket.markReceived();
+        ticketRepository.saveAndFlush(activeTicket);
+        String token = accessTokenGenerator.generate(customer).value();
+
+        mockMvc.perform(post("/api/service-units/{serviceUnitId}/tickets", fixture.serviceUnit().getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "lines": []
+                                }
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CONFLICT"))
+                .andExpect(jsonPath("$.message").value("Active ticket already exists"));
+    }
+
+    @Test
     void authenticatedUserCreatesTicketWhenPreviousTicketIsTreatedOrInAnotherServiceUnit() throws Exception {
         Fixture fixture = fixture("auth-treated-ticket-limit");
-        fixture.serviceUnit().setOneActiveTicketPerUser(true);
+        fixture.serviceUnit().setTicketCreationGuardMode(TicketCreationGuardMode.AUTHENTICATED_ONLY_ONE_OPEN_TICKET);
         serviceUnitRepository.saveAndFlush(fixture.serviceUnit());
         Fixture otherFixture = otherFixture("auth-treated-ticket-limit-other", fixture.owner());
-        otherFixture.serviceUnit().setOneActiveTicketPerUser(true);
+        otherFixture.serviceUnit().setTicketCreationGuardMode(TicketCreationGuardMode.AUTHENTICATED_ONLY_ONE_OPEN_TICKET);
         serviceUnitRepository.saveAndFlush(otherFixture.serviceUnit());
         User customer = user("treated-ticket-customer");
         Ticket treatedTicket = saveAuthenticatedTicket("T-TREATED-%s".formatted(shortToken()), customer, fixture);

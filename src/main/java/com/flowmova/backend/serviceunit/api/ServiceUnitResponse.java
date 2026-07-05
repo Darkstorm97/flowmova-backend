@@ -3,6 +3,7 @@ package com.flowmova.backend.serviceunit.api;
 import com.flowmova.backend.serviceunit.domain.ServiceUnit;
 import com.flowmova.backend.serviceunit.domain.ServiceUnitStatus;
 import com.flowmova.backend.serviceunit.domain.ServiceUnitType;
+import com.flowmova.backend.serviceunit.domain.TicketCreationGuardMode;
 import com.flowmova.backend.serviceunitlocation.domain.ServiceUnitLocation;
 import java.time.Instant;
 import java.util.UUID;
@@ -15,7 +16,7 @@ public record ServiceUnitResponse(
         String location,
         ServiceUnitType type,
         ServiceUnitStatus status,
-        boolean oneActiveTicketPerUser,
+        TicketCreationGuardMode ticketCreationGuardMode,
         ServiceUnitLocationResponse defaultLocation,
         Instant createdAt,
         Instant updatedAt) {
@@ -29,7 +30,7 @@ public record ServiceUnitResponse(
                 serviceUnit.getLocation(),
                 serviceUnit.getType(),
                 serviceUnit.getStatus(),
-                serviceUnit.isOneActiveTicketPerUser(),
+                serviceUnit.getTicketCreationGuardMode(),
                 defaultLocation == null ? null : ServiceUnitLocationResponse.from(defaultLocation),
                 serviceUnit.getCreatedAt(),
                 serviceUnit.getUpdatedAt());

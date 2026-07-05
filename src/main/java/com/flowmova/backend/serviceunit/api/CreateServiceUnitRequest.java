@@ -2,6 +2,8 @@ package com.flowmova.backend.serviceunit.api;
 
 import com.flowmova.backend.serviceunit.application.CreateServiceUnitCommand;
 import com.flowmova.backend.serviceunit.domain.ServiceUnitType;
+import com.flowmova.backend.serviceunit.domain.TicketCreationGuardMode;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -19,7 +21,8 @@ public record CreateServiceUnitRequest(
         @NotNull
         ServiceUnitType type,
 
-        Boolean oneActiveTicketPerUser) {
+        @Schema(description = "Mode de controle anti-spam de creation de tickets. Si absent, NONE est utilise.")
+        TicketCreationGuardMode ticketCreationGuardMode) {
 
     public CreateServiceUnitCommand toCommand() {
         return new CreateServiceUnitCommand(
@@ -27,6 +30,6 @@ public record CreateServiceUnitRequest(
                 description,
                 location,
                 type,
-                Boolean.TRUE.equals(oneActiveTicketPerUser));
+                ticketCreationGuardMode == null ? TicketCreationGuardMode.NONE : ticketCreationGuardMode);
     }
 }

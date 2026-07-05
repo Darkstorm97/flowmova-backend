@@ -805,17 +805,19 @@ Criteres d'acceptation:
 **je veux** configurer une unite de service pour limiter les tickets actifs par utilisateur,
 **afin de** reduire le spam et eviter les demandes multiples non traitees.
 
+Decision: cette issue historique est remplacee par `SERVICE-014`, qui utilise le champ `ticketCreationGuardMode`.
+
 Criteres d'acceptation:
 
 - Le role `ADMIN` est requis pour configurer l'option.
 - L'option est portee par l'unite de service.
-- Le nom fonctionnel retenu est `oneActiveTicketPerUser`.
-- La valeur par defaut est `false` pour conserver le comportement existant.
+- Le nom fonctionnel retenu est `ticketCreationGuardMode`.
+- La valeur par defaut est `NONE` pour conserver le comportement existant.
 - L'option peut etre definie lors de la creation d'une unite de service.
 - L'option peut etre modifiee lors de la mise a jour d'une unite de service.
 - La reponse d'une unite de service retourne la valeur de l'option.
-- Quand l'option est active, la creation de ticket invite non authentifiee doit etre refusee.
-- Quand l'option est active, un utilisateur authentifie ne peut pas creer un nouveau ticket dans cette unite s'il possede deja un ticket actif dans cette meme unite.
+- Le mode `AUTHENTICATED_ONLY_ONE_OPEN_TICKET` refuse la creation invite non authentifiee.
+- Les modes `AUTHENTICATED_ONLY_ONE_OPEN_TICKET` et `AUTHENTICATED_OR_GUEST_RECENT_ONE_OPEN_TICKET` empechent un utilisateur authentifie de creer un nouveau ticket dans cette unite s'il possede deja un ticket actif dans cette meme unite.
 - Les tickets actifs qui bloquent une nouvelle creation sont ceux aux statuts `CREATED` et `RECEIVED`.
 - Les statuts `TREATED`, `CUSTOMER_CONFIRMED`, `CANCELLED` et `CLOSED` liberent l'utilisateur pour creer un nouveau ticket.
 - Cette option ne modifie pas les tickets existants.

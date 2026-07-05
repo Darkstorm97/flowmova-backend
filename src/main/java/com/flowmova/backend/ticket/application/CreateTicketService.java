@@ -8,6 +8,7 @@ import com.flowmova.backend.item.domain.ItemStatus;
 import com.flowmova.backend.item.infrastructure.ItemRepository;
 import com.flowmova.backend.serviceunit.domain.ServiceUnit;
 import com.flowmova.backend.serviceunit.domain.ServiceUnitStatus;
+import com.flowmova.backend.serviceunit.domain.TicketCreationGuardMode;
 import com.flowmova.backend.serviceunit.infrastructure.ServiceUnitRepository;
 import com.flowmova.backend.serviceunitlocation.domain.ServiceUnitLocation;
 import com.flowmova.backend.serviceunitlocation.domain.ServiceUnitLocationStatus;
@@ -128,7 +129,12 @@ public class CreateTicketService {
     }
 
     private void validateActiveTicketLimit(ServiceUnit serviceUnit, User user) {
-        if (!serviceUnit.isOneActiveTicketPerUser()) {
+        TicketCreationGuardMode guardMode = serviceUnit.getTicketCreationGuardMode();
+        if (guardMode == TicketCreationGuardMode.NONE) {
+            return;
+        }
+
+        if (guardMode == TicketCreationGuardMode.AUTHENTICATED_OR_GUEST_RECENT_ONE_OPEN_TICKET && user == null) {
             return;
         }
 

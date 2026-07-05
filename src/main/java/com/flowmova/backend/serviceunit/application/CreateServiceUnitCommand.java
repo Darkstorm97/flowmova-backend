@@ -1,5 +1,6 @@
 package com.flowmova.backend.serviceunit.application;
 
+import com.flowmova.backend.serviceunit.domain.TicketCreationGuardMode;
 import com.flowmova.backend.serviceunit.domain.ServiceUnitType;
 
 public record CreateServiceUnitCommand(
@@ -7,5 +8,5 @@ public record CreateServiceUnitCommand(
         String description,
         String location,
         ServiceUnitType type,
-        boolean oneActiveTicketPerUser) {
+        TicketCreationGuardMode ticketCreationGuardMode) {
 }
