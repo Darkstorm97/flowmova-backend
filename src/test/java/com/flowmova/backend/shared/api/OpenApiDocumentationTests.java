@@ -25,7 +25,15 @@ class OpenApiDocumentationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.info.title").value("FlowMova Backend API"))
                 .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.type").value("http"))
-                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.scheme").value("bearer"));
+                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.scheme").value("bearer"))
+                .andExpect(jsonPath("$.components.schemas.ApiErrorResponse").exists())
+                .andExpect(jsonPath("$.components.responses.BadRequest.content.application/json.schema.$ref").value("#/components/schemas/ApiErrorResponse"))
+                .andExpect(jsonPath("$.paths./api/auth/register.post.responses.400.$ref").value("#/components/responses/BadRequest"))
+                .andExpect(jsonPath("$.paths./api/auth/register.post.responses.401.$ref").value("#/components/responses/Unauthorized"))
+                .andExpect(jsonPath("$.paths./api/auth/register.post.responses.403.$ref").value("#/components/responses/Forbidden"))
+                .andExpect(jsonPath("$.paths./api/auth/register.post.responses.404.$ref").value("#/components/responses/NotFound"))
+                .andExpect(jsonPath("$.paths./api/auth/register.post.responses.409.$ref").value("#/components/responses/Conflict"))
+                .andExpect(jsonPath("$.paths./api/auth/register.post.responses.500.$ref").value("#/components/responses/InternalServerError"));
     }
 
     @Test
