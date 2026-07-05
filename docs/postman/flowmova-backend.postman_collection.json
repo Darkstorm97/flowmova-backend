@@ -51,7 +51,6 @@
         },
         {
           "name": "Get Public Location Access",
-          "id": "2f5e917e-c52f-47b5-810d-b74d6fd925aa",
           "event": [
             {
               "listen": "test",
@@ -83,6 +82,7 @@
               }
             }
           ],
+          "id": "2f5e917e-c52f-47b5-810d-b74d6fd925aa",
           "request": {
             "auth": {
               "type": "noauth"
@@ -169,6 +169,7 @@
             {
               "listen": "test",
               "script": {
+                "id": "a8a3dc16-a5e3-445f-8d94-975b3deeff5e",
                 "exec": [
                   "pm.test('Status is 200 OK', function () {",
                   "    pm.response.to.have.status(200);",
@@ -181,7 +182,21 @@
                   "    pm.collectionVariables.set('accessToken', json.accessToken);",
                   "});"
                 ],
-                "type": "text/javascript"
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "id": "447f64a3-ba17-48af-a640-da398227c90a",
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
               }
             }
           ],
@@ -196,7 +211,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+              "raw": "{\n  \"email\": \"serge@flowmova.com\",\n  \"password\": \"12345678\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/auth/login",
@@ -547,6 +562,7 @@
                   "    pm.expect(json).to.have.property('name');",
                   "    pm.expect(json).to.have.property('description');",
                   "    pm.expect(json).to.have.property('currency');",
+                  "    pm.expect(json).to.have.property('businessType');",
                   "    pm.expect(json).to.have.property('status', 'ACTIVE');",
                   "    pm.expect(json).to.have.property('createdAt');",
                   "    pm.expect(json).to.have.property('updatedAt');",
@@ -592,6 +608,8 @@
                   "    pm.expect(json).to.have.property('id');",
                   "    pm.expect(json).to.have.property('name');",
                   "    pm.expect(json).to.have.property('description');",
+                  "    pm.expect(json).to.have.property('currency');",
+                  "    pm.expect(json).to.have.property('businessType', pm.collectionVariables.get('companyBusinessType'));",
                   "    pm.expect(json).to.have.property('status', 'ACTIVE');",
                   "    pm.expect(json).to.have.property('createdAt');",
                   "    pm.expect(json).to.have.property('updatedAt');",
@@ -623,7 +641,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"{{companyName}}\",\n  \"description\": \"Company created from Postman\",\n  \"currency\": \"{{companyCurrency}}\"\n}"
+              "raw": "{\n  \"name\": \"{{companyName}}\",\n  \"description\": \"Company created from Postman\",\n  \"currency\": \"{{companyCurrency}}\",\n  \"businessType\": \"{{companyBusinessType}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/companies",
@@ -862,6 +880,7 @@
               }
             }
           ],
+          "id": "8f1cb956-53ee-4e93-b5e8-6ebb61d021b2",
           "request": {
             "method": "GET",
             "header": [],
@@ -905,6 +924,7 @@
               }
             }
           ],
+          "id": "e7dda6a4-0536-48ee-9725-63e61afeaf0f",
           "request": {
             "method": "GET",
             "header": [],
@@ -1021,6 +1041,7 @@
               }
             }
           ],
+          "id": "ab36e457-de88-4239-9c1a-07afd492afb7",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1084,6 +1105,7 @@
               }
             }
           ],
+          "id": "c09c80e4-5c77-4502-b3a8-6dfc2c5a25ba",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1153,6 +1175,7 @@
               }
             }
           ],
+          "id": "29489346-c5af-4c07-a1b9-54c0e026852e",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1173,7 +1196,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"File principale\",\n  \"description\": \"File de prise en charge creee depuis Postman\",\n  \"location\": \"Accueil\",\n  \"type\": \"TICKET_QUEUE\"\n}"
+              "raw": "{\n  \"name\": \"File principale\",\n  \"description\": \"File de prise en charge creee depuis Postman\",\n  \"location\": \"Accueil\",\n  \"type\": \"TICKET_QUEUE\",\n  \"oneActiveTicketPerUser\": false\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/companies/{{companyId}}/service-units",
@@ -1219,6 +1242,7 @@
               }
             }
           ],
+          "id": "6e738130-7a80-4535-b9ee-6e9b130640b1",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1239,7 +1263,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"File principale mise a jour\",\n  \"description\": \"Description mise a jour depuis Postman\",\n  \"location\": \"Accueil principal\"\n}"
+              "raw": "{\n  \"name\": \"File principale mise a jour\",\n  \"description\": \"Description mise a jour depuis Postman\",\n  \"location\": \"Accueil principal\",\n  \"oneActiveTicketPerUser\": false\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/companies/{{companyId}}/admin/service-units/{{serviceUnitId}}",
@@ -1261,7 +1285,6 @@
         },
         {
           "name": "Create Service Unit Item",
-          "id": "b6189230-6100-4b31-9078-b6ac045f50e8",
           "event": [
             {
               "listen": "test",
@@ -1291,6 +1314,7 @@
               }
             }
           ],
+          "id": "b6189230-6100-4b31-9078-b6ac045f50e8",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1334,7 +1358,6 @@
         },
         {
           "name": "Update Service Unit Item",
-          "id": "d5188813-ee9c-4966-ae93-2d3664df85b8",
           "event": [
             {
               "listen": "test",
@@ -1362,6 +1385,7 @@
               }
             }
           ],
+          "id": "d5188813-ee9c-4966-ae93-2d3664df85b8",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1435,6 +1459,7 @@
               }
             }
           ],
+          "id": "d48073fe-e11e-4bc1-94e6-9b132f06be0f",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1510,6 +1535,7 @@
               }
             }
           ],
+          "id": "956f6087-5df9-4aa4-8889-186d8b583325",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1583,6 +1609,7 @@
               }
             }
           ],
+          "id": "fe41773d-150f-4052-b119-3cf3f18b08ab",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1658,6 +1685,7 @@
               }
             }
           ],
+          "id": "c4cf55b9-be49-49b4-b706-d5d2875b63cb",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1718,6 +1746,7 @@
               }
             }
           ],
+          "id": "10af74fb-ad94-46c5-a17a-559f02733b0b",
           "request": {
             "auth": {
               "type": "noauth"
@@ -1764,6 +1793,7 @@
               }
             }
           ],
+          "id": "fa157792-06a4-4936-a373-532d27ceb085",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1820,6 +1850,7 @@
               }
             }
           ],
+          "id": "8a7d38d0-a6a1-4c20-ba20-f2edd886b515",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1878,6 +1909,7 @@
               }
             }
           ],
+          "id": "b61984bd-ca76-4ea3-908d-ced2dddbc0d5",
           "request": {
             "auth": {
               "type": "noauth"
@@ -1926,6 +1958,7 @@
               }
             }
           ],
+          "id": "662c64ed-c95f-4481-ad49-a6d50b09ee7c",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1995,6 +2028,7 @@
               }
             }
           ],
+          "id": "b5276e26-0853-4c5a-b5a8-4f0e23531f45",
           "request": {
             "auth": {
               "type": "noauth"
@@ -2053,6 +2087,7 @@
               }
             }
           ],
+          "id": "46485e50-ccd3-40ad-9144-c66e9b6fd729",
           "request": {
             "auth": {
               "type": "bearer",
@@ -2118,6 +2153,7 @@
               }
             }
           ],
+          "id": "3cc3236a-cfe2-4e91-88da-0796b6313b42",
           "request": {
             "auth": {
               "type": "noauth"
@@ -2172,6 +2208,7 @@
               }
             }
           ],
+          "id": "00abfbb6-e644-4270-8135-7b6ee8267cef",
           "request": {
             "auth": {
               "type": "noauth"
@@ -2227,6 +2264,7 @@
               }
             }
           ],
+          "id": "33128d86-9797-45dd-800b-06589768075e",
           "request": {
             "auth": {
               "type": "noauth"
@@ -2283,6 +2321,7 @@
               }
             }
           ],
+          "id": "4d3c232d-1e42-4905-b5d4-141eb6a189b6",
           "request": {
             "auth": {
               "type": "bearer",
@@ -2297,7 +2336,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/users/me/tickets?page=0&size=20&status=&ticketNumber={{ticketNumber}}",
+              "raw": "{{baseUrl}}/api/users/me/tickets?page=0&size=20",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -2354,6 +2393,7 @@
               }
             }
           ],
+          "id": "13cc7231-869d-4a3c-b4fc-cc3645ecf30c",
           "request": {
             "auth": {
               "type": "bearer",
@@ -2407,6 +2447,7 @@
               }
             }
           ],
+          "id": "3fe07f74-81bc-4dee-8934-75322751b8b4",
           "request": {
             "auth": {
               "type": "bearer",
@@ -2463,6 +2504,7 @@
               }
             }
           ],
+          "id": "40fe26b4-8e0c-461d-abad-7a55afe224c5",
           "request": {
             "auth": {
               "type": "bearer",
@@ -2477,7 +2519,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/companies/{{companyId}}/admin/service-units/{{serviceUnitId}}/tickets?page=0&size=20&status=&ticketNumber={{ticketNumber}}",
+              "raw": "{{baseUrl}}/api/companies/{{companyId}}/admin/service-units/{{serviceUnitId}}/tickets?page=0&size=20",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -2542,6 +2584,7 @@
               }
             }
           ],
+          "id": "1416bf9a-0a0d-4103-ab5f-b0a50e81d317",
           "request": {
             "auth": {
               "type": "bearer",
@@ -2608,6 +2651,7 @@
               }
             }
           ],
+          "id": "61601f63-80fd-4517-9c16-9342b4ce4b57",
           "request": {
             "auth": {
               "type": "bearer",
@@ -2651,90 +2695,104 @@
           },
           "response": []
         }
-      ]
+      ],
+      "id": "e23fb60a-971f-4c33-84ae-4ee6cfa19236"
     }
   ],
   "variable": [
     {
-      "id": "32f85fd4-fa10-4154-bf10-4a1f7c60fe24",
+      "id": "53c16018-a2da-41b2-9e66-a991c080bc62",
       "key": "baseUrl",
       "value": "http://localhost:8080",
       "type": "string"
     },
     {
-      "id": "c1d23974-83f7-4385-b939-80954359ddbd",
+      "id": "c1804790-dd3c-4a3a-a89d-71357afbbebe",
       "key": "accessToken",
       "value": "",
       "type": "string"
     },
     {
-      "id": "bb553c1d-0e2a-4cd6-b0f3-8da49e903e9f",
+      "id": "e52c39c9-657b-4b8c-9962-7ae0e4e944e0",
       "key": "testEmail",
       "value": "postman.user@example.com",
       "type": "string"
     },
     {
-      "id": "97ee33ea-0b8a-43e1-80f7-26339f83fe38",
+      "id": "1f8aaf26-4778-40cb-a298-ca4aabed5ade",
       "key": "testPassword",
       "value": "Password123!",
       "type": "string"
     },
     {
-      "id": "079f6640-fe3d-429b-805e-07c19acbe266",
+      "id": "1bdeaa6a-ed94-456c-95ca-b5c06a2def64",
       "key": "companyName",
       "value": "FlowMova Demo Company",
       "type": "string"
     },
     {
-      "id": "fc8e127e-baf2-46a4-aa06-837bb5c8c3ea",
+      "key": "companyCurrency",
+      "value": "CAD",
+      "type": "string"
+    },
+    {
+      "key": "companyBusinessType",
+      "value": "RESTAURANT",
+      "type": "string"
+    },
+    {
+      "id": "fc949a89-3120-4246-ae4d-b9eddae9c991",
       "key": "companyId",
       "value": "",
       "type": "string"
     },
     {
-      "id": "38f21d4e-8452-4972-993f-91cb30941305",
+      "id": "cf5fbc69-16f0-45c8-9d70-3ed97b22bd4e",
       "key": "catalogCategoryId",
       "value": ""
     },
     {
-      "id": "072cb7d6-9d5d-419f-ba9d-a955bc96fe55",
+      "id": "3cecefe9-d0b2-4303-b6d4-226198cecdb3",
       "key": "catalogId",
       "value": ""
     },
     {
-      "id": "82a15258-d7df-45b1-8f34-c8af8e875460",
+      "id": "c0f0ad93-4039-48c4-9abf-222ffa59077c",
       "key": "serviceUnitId",
       "value": ""
     },
     {
-      "id": "f7b95f0a-d742-4f94-8f6c-541db6505522",
+      "id": "92ebc540-11be-415b-be84-c414fc630f7e",
       "key": "itemId",
       "value": ""
     },
     {
-      "id": "5222d4ec-8bf3-476c-b774-fc98644d698d",
+      "id": "c6fab266-c9ce-42c1-8a91-5596c124c404",
       "key": "serviceUnitLocationId",
       "value": ""
     },
     {
-      "id": "824f1df6-f27c-40b3-a958-90bc0b7a4d7a",
+      "id": "a4c76460-cb68-49f7-9cf1-5f6fbd494413",
       "key": "publicAccessSlug",
       "value": ""
     },
     {
-      "id": "7a435bb8-b5e4-4f80-a875-368af3224a28",
+      "id": "046e0611-37e3-47c5-a8e6-1c454eeb013a",
       "key": "publicUrl",
       "value": ""
     },
     {
+      "id": "9968d379-7543-42f2-add8-388393be23c6",
       "key": "ticketId",
       "value": ""
     },
     {
+      "id": "d182e02c-19e6-4a09-a3a1-ad2ead863fbe",
       "key": "ticketNumber",
       "value": ""
     },
     {
+      "id": "6439190a-18ba-48f1-a5b5-7121fc138699",
       "key": "ticketAccessCode",
       "value": ""
     }

@@ -23,6 +23,7 @@ import org.hibernate.type.SqlTypes;
 public class Company {
 
     public static final String DEFAULT_CURRENCY = "CAD";
+    public static final CompanyBusinessType DEFAULT_BUSINESS_TYPE = CompanyBusinessType.OTHER;
 
     @Id
     @Column(name = "id", nullable = false)
@@ -36,6 +37,11 @@ public class Company {
 
     @Column(name = "currency", nullable = false, length = 3)
     private String currency = DEFAULT_CURRENCY;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "business_type", nullable = false, columnDefinition = "company_business_type")
+    private CompanyBusinessType businessType = DEFAULT_BUSINESS_TYPE;
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
@@ -66,14 +72,19 @@ public class Company {
     }
 
     public Company(String name, String description, User createdBy) {
-        this(name, description, DEFAULT_CURRENCY, createdBy);
+        this(name, description, DEFAULT_CURRENCY, DEFAULT_BUSINESS_TYPE, createdBy);
     }
 
     public Company(String name, String description, String currency, User createdBy) {
+        this(name, description, currency, DEFAULT_BUSINESS_TYPE, createdBy);
+    }
+
+    public Company(String name, String description, String currency, CompanyBusinessType businessType, User createdBy) {
         this.id = UUID.randomUUID();
         this.name = name;
         this.description = description;
         this.currency = currency;
+        this.businessType = businessType;
         this.createdBy = createdBy;
     }
 
@@ -95,6 +106,10 @@ public class Company {
 
     public String getCurrency() {
         return currency;
+    }
+
+    public CompanyBusinessType getBusinessType() {
+        return businessType;
     }
 
     public CompanyStatus getStatus() {

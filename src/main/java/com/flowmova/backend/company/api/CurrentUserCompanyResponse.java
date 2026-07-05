@@ -1,6 +1,7 @@
 package com.flowmova.backend.company.api;
 
 import com.flowmova.backend.company.domain.Company;
+import com.flowmova.backend.company.domain.CompanyBusinessType;
 import com.flowmova.backend.company.domain.CompanyStatus;
 import com.flowmova.backend.companyaccess.domain.CompanyRole;
 import com.flowmova.backend.companyaccess.domain.CompanyUser;
@@ -12,6 +13,7 @@ public record CurrentUserCompanyResponse(
         String name,
         String description,
         String currency,
+        CompanyBusinessType businessType,
         CompanyStatus status,
         CompanyRole role,
         Instant createdAt,
@@ -24,6 +26,7 @@ public record CurrentUserCompanyResponse(
                 company.getName(),
                 company.getDescription(),
                 company.getCurrency(),
+                company.getBusinessType(),
                 company.getStatus(),
                 companyUser.getRole(),
                 company.getCreatedAt(),

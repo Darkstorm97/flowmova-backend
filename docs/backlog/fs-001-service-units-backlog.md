@@ -12,6 +12,8 @@ Il est construit a partir de FS-001, FS-002 et du DAT. En cas d'ambiguite, les F
 - Une entreprise non active n'est pas visible publiquement.
 - Une entreprise possede une devise (`currency`) au format ISO 4217 sur 3 lettres, par defaut `CAD` dans le MVP.
 - La devise de l'entreprise est la devise de reference pour les prix de ses catalogues, articles et tickets.
+- Une entreprise possede un type d'activite (`businessType`) permettant d'indiquer son domaine: restauration, salon de coiffure, commerce, sante, administration, service ou autre.
+- Le type d'activite qualifie l'entreprise elle-meme. Il ne remplace pas les categories de catalogue, qui servent a classer les offres/articles d'une entreprise.
 - Les utilisateurs peuvent rechercher et consulter les entreprises actives.
 - La fiche entreprise affiche les informations de l'entreprise, ses catalogues actifs classes par categories et ses unites de service disponibles.
 - Une entreprise peut posseder plusieurs categories de catalogues.
@@ -172,6 +174,25 @@ Criteres d'acceptation:
 - La devise est obligatoire, normalisee en majuscules et validee.
 - La creation d'entreprise accepte une devise optionnelle; si elle est absente, `CAD` est utilise.
 - Les reponses entreprise exposent la devise.
+- Les collections Postman sont mises a jour si l'API de creation ou de consultation change.
+
+### COMPANY-004 - Ajouter le type d'activite de compagnie
+
+Issue GitHub: #94.
+
+**En tant que** administrateur d'entreprise,
+**je veux** preciser le type d'activite de mon entreprise,
+**afin de** contextualiser l'entreprise pour les utilisateurs et preparer une navigation plus pertinente.
+
+Criteres d'acceptation:
+
+- Une migration Flyway ajoute le champ `business_type` a la table `companies`.
+- Les valeurs MVP supportees sont `RESTAURANT`, `HAIR_SALON`, `RETAIL`, `HEALTHCARE`, `ADMINISTRATION`, `SERVICE` et `OTHER`.
+- La valeur par defaut MVP est `OTHER`.
+- La creation d'entreprise accepte un champ optionnel `businessType`.
+- Si `businessType` est absent, `OTHER` est utilise.
+- Si `businessType` est invalide, l'API retourne une erreur `400 BAD_REQUEST`.
+- Les reponses de creation, recherche publique, fiche entreprise et liste `mes entreprises` exposent `businessType`.
 - Les collections Postman sont mises a jour si l'API de creation ou de consultation change.
 
 ### COMPANY-020 - Consulter mes entreprises

@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flowmova.backend.auth.domain.AccessTokenGenerator;
 import com.flowmova.backend.company.domain.Company;
+import com.flowmova.backend.company.domain.CompanyBusinessType;
 import com.flowmova.backend.company.domain.CompanyStatus;
 import com.flowmova.backend.company.infrastructure.CompanyRepository;
 import com.flowmova.backend.companyaccess.domain.CompanyRole;
@@ -69,7 +70,8 @@ class CompanyControllerTests {
                                 {
                                   "name": " FlowMova Demo ",
                                   "description": " Demo company ",
-                                  "currency": "usd"
+                                  "currency": "usd",
+                                  "businessType": "RESTAURANT"
                                 }
                                 """))
                 .andExpect(status().isCreated())
@@ -77,6 +79,7 @@ class CompanyControllerTests {
                 .andExpect(jsonPath("$.name").value("FlowMova Demo"))
                 .andExpect(jsonPath("$.description").value("Demo company"))
                 .andExpect(jsonPath("$.currency").value("USD"))
+                .andExpect(jsonPath("$.businessType").value("RESTAURANT"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"))
                 .andExpect(jsonPath("$.createdAt").exists())
                 .andExpect(jsonPath("$.updatedAt").exists())
@@ -91,6 +94,7 @@ class CompanyControllerTests {
 
         assertThat(company.getStatus()).isEqualTo(CompanyStatus.ACTIVE);
         assertThat(company.getCurrency()).isEqualTo("USD");
+        assertThat(company.getBusinessType()).isEqualTo(CompanyBusinessType.RESTAURANT);
         assertThat(company.getCreatedBy().getId()).isEqualTo(user.getId());
         assertThat(companyUser.getRole()).isEqualTo(CompanyRole.ADMIN);
         assertThat(companyUser.getStatus()).isEqualTo(CompanyUserStatus.ACTIVE);
@@ -114,7 +118,31 @@ class CompanyControllerTests {
                                 }
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.currency").value("CAD"));
+                .andExpect(jsonPath("$.currency").value("CAD"))
+                .andExpect(jsonPath("$.businessType").value("OTHER"));
+    }
+
+    @Test
+    void rejectsCompanyCreationWithUnsupportedBusinessType() throws Exception {
+        User user = userRepository.save(new User(
+                "company-invalid-business-type.%s@flowmova.test".formatted(UUID.randomUUID()),
+                passwordEncoder.encode("Password123!"),
+                "Company",
+                "BusinessType"));
+        String token = accessTokenGenerator.generate(user).value();
+
+        mockMvc.perform(post("/api/companies")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Invalid Business Type Company",
+                                  "businessType": "MUSEUM"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("Business type must be a supported company business type"));
     }
 
     @Test
@@ -201,6 +229,7 @@ class CompanyControllerTests {
                 .andExpect(jsonPath("$.items[0].id").value(alphaCompany.getId().toString()))
                 .andExpect(jsonPath("$.items[0].name").value(uniquePrefix + " Alpha Moving"))
                 .andExpect(jsonPath("$.items[0].currency").value("CAD"))
+                .andExpect(jsonPath("$.items[0].businessType").value("OTHER"))
                 .andExpect(jsonPath("$.items[0].status").value("ACTIVE"))
                 .andExpect(jsonPath("$.page").value(0))
                 .andExpect(jsonPath("$.size").value(10))
@@ -245,6 +274,7 @@ class CompanyControllerTests {
                 .andExpect(jsonPath("$.name").value("Public Detail Company"))
                 .andExpect(jsonPath("$.description").value("Visible detail"))
                 .andExpect(jsonPath("$.currency").value("CAD"))
+                .andExpect(jsonPath("$.businessType").value("OTHER"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"))
                 .andExpect(jsonPath("$.createdAt").exists())
                 .andExpect(jsonPath("$.updatedAt").exists())
@@ -313,6 +343,7 @@ class CompanyControllerTests {
                 .andExpect(jsonPath("$.items[0].id").value(alphaCompany.getId().toString()))
                 .andExpect(jsonPath("$.items[0].name").value("Alpha Company"))
                 .andExpect(jsonPath("$.items[0].currency").value("CAD"))
+                .andExpect(jsonPath("$.items[0].businessType").value("OTHER"))
                 .andExpect(jsonPath("$.items[0].role").value("ADMIN"))
                 .andExpect(jsonPath("$.items[0].status").value("ACTIVE"))
                 .andExpect(jsonPath("$.page").value(0))

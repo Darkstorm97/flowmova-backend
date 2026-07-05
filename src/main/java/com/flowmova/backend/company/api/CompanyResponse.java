@@ -1,6 +1,7 @@
 package com.flowmova.backend.company.api;
 
 import com.flowmova.backend.company.domain.Company;
+import com.flowmova.backend.company.domain.CompanyBusinessType;
 import com.flowmova.backend.company.domain.CompanyStatus;
 import java.time.Instant;
 import java.util.UUID;
@@ -10,6 +11,7 @@ public record CompanyResponse(
         String name,
         String description,
         String currency,
+        CompanyBusinessType businessType,
         CompanyStatus status,
         Instant createdAt,
         Instant updatedAt) {
@@ -20,6 +22,7 @@ public record CompanyResponse(
                 company.getName(),
                 company.getDescription(),
                 company.getCurrency(),
+                company.getBusinessType(),
                 company.getStatus(),
                 company.getCreatedAt(),
                 company.getUpdatedAt());

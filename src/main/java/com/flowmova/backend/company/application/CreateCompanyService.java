@@ -2,6 +2,7 @@ package com.flowmova.backend.company.application;
 
 import com.flowmova.backend.auth.domain.AuthenticatedUser;
 import com.flowmova.backend.company.domain.Company;
+import com.flowmova.backend.company.domain.CompanyBusinessType;
 import com.flowmova.backend.company.infrastructure.CompanyRepository;
 import com.flowmova.backend.companyaccess.domain.CompanyRole;
 import com.flowmova.backend.companyaccess.domain.CompanyUser;
@@ -40,6 +41,7 @@ public class CreateCompanyService {
                 command.name().trim(),
                 normalizeDescription(command.description()),
                 normalizeCurrency(command.currency()),
+                normalizeBusinessType(command.businessType()),
                 creator);
         company.activate();
 
@@ -74,5 +76,18 @@ public class CreateCompanyService {
         }
 
         return normalizedCurrency;
+    }
+
+    private CompanyBusinessType normalizeBusinessType(String businessType) {
+        if (businessType == null || businessType.isBlank()) {
+            return Company.DEFAULT_BUSINESS_TYPE;
+        }
+
+        String normalizedBusinessType = businessType.trim().toUpperCase(Locale.ROOT);
+        try {
+            return CompanyBusinessType.valueOf(normalizedBusinessType);
+        } catch (IllegalArgumentException exception) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Business type must be a supported company business type");
+        }
     }
 }
