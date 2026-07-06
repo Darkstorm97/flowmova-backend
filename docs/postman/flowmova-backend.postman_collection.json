@@ -673,7 +673,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"{{companyName}}\",\n  \"description\": \"Company created from Postman\",\n  \"currency\": \"{{companyCurrency}}\",\n  \"businessType\": \"{{companyBusinessType}}\",\n  \"addressLine1\": \"{{companyAddressLine1}}\",\n  \"addressLine2\": \"{{companyAddressLine2}}\",\n  \"city\": \"{{companyCity}}\",\n  \"region\": \"{{companyRegion}}\",\n  \"postalCode\": \"{{companyPostalCode}}\",\n  \"country\": \"{{companyCountry}}\",\n  \"latitude\": {{companyLatitude}},\n  \"longitude\": {{companyLongitude}}\n}"
+              "raw": "{\n  \"name\": \"{{companyName}}\",\n  \"description\": \"Company created from Postman\",\n  \"imageUrl\": \"https://cdn.flowmova.test/companies/postman-company.jpg\",\n  \"currency\": \"{{companyCurrency}}\",\n  \"businessType\": \"{{companyBusinessType}}\",\n  \"addressLine1\": \"{{companyAddressLine1}}\",\n  \"addressLine2\": \"{{companyAddressLine2}}\",\n  \"city\": \"{{companyCity}}\",\n  \"region\": \"{{companyRegion}}\",\n  \"postalCode\": \"{{companyPostalCode}}\",\n  \"country\": \"{{companyCountry}}\",\n  \"latitude\": {{companyLatitude}},\n  \"longitude\": {{companyLongitude}}\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/companies",
@@ -740,7 +740,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"{{companyUpdatedName}}\",\n  \"description\": \"Company updated from Postman\",\n  \"currency\": \"{{companyUpdatedCurrency}}\",\n  \"businessType\": \"{{companyUpdatedBusinessType}}\",\n  \"addressLine1\": \"{{companyUpdatedAddressLine1}}\",\n  \"addressLine2\": \"{{companyUpdatedAddressLine2}}\",\n  \"city\": \"{{companyUpdatedCity}}\",\n  \"region\": \"{{companyUpdatedRegion}}\",\n  \"postalCode\": \"{{companyUpdatedPostalCode}}\",\n  \"country\": \"{{companyUpdatedCountry}}\",\n  \"latitude\": {{companyUpdatedLatitude}},\n  \"longitude\": {{companyUpdatedLongitude}}\n}"
+              "raw": "{\n  \"name\": \"{{companyUpdatedName}}\",\n  \"description\": \"Company updated from Postman\",\n  \"imageUrl\": \"https://cdn.flowmova.test/companies/postman-company-updated.jpg\",\n  \"currency\": \"{{companyUpdatedCurrency}}\",\n  \"businessType\": \"{{companyUpdatedBusinessType}}\",\n  \"addressLine1\": \"{{companyUpdatedAddressLine1}}\",\n  \"addressLine2\": \"{{companyUpdatedAddressLine2}}\",\n  \"city\": \"{{companyUpdatedCity}}\",\n  \"region\": \"{{companyUpdatedRegion}}\",\n  \"postalCode\": \"{{companyUpdatedPostalCode}}\",\n  \"country\": \"{{companyUpdatedCountry}}\",\n  \"latitude\": {{companyUpdatedLatitude}},\n  \"longitude\": {{companyUpdatedLongitude}}\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/companies/{{companyId}}",

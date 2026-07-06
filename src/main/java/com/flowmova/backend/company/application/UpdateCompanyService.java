@@ -52,6 +52,7 @@ public class UpdateCompanyService {
         company.update(
                 command.name().trim(),
                 normalizer.normalizeDescription(command.description()),
+                normalizer.normalizeOptionalText(command.imageUrl()),
                 normalizer.normalizeOptionalText(command.addressLine1()),
                 normalizer.normalizeOptionalText(command.addressLine2()),
                 normalizer.normalizeOptionalText(command.city()),

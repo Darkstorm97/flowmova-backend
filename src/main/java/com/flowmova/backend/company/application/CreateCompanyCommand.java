@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 public record CreateCompanyCommand(
         String name,
         String description,
+        String imageUrl,
         String currency,
         String businessType,
         String addressLine1,

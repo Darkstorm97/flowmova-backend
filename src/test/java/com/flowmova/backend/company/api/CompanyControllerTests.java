@@ -72,6 +72,7 @@ class CompanyControllerTests {
                                 {
                                   "name": " FlowMova Demo ",
                                   "description": " Demo company ",
+                                  "imageUrl": " https://cdn.flowmova.test/companies/flowmova-demo.jpg ",
                                   "currency": "usd",
                                   "businessType": "RESTAURANT",
                                   "addressLine1": " 123 Flow Street ",
@@ -88,6 +89,7 @@ class CompanyControllerTests {
                 .andExpect(jsonPath("$.id").exists())
                 .andExpect(jsonPath("$.name").value("FlowMova Demo"))
                 .andExpect(jsonPath("$.description").value("Demo company"))
+                .andExpect(jsonPath("$.imageUrl").value("https://cdn.flowmova.test/companies/flowmova-demo.jpg"))
                 .andExpect(jsonPath("$.currency").value("USD"))
                 .andExpect(jsonPath("$.businessType").value("RESTAURANT"))
                 .andExpect(jsonPath("$.addressLine1").value("123 Flow Street"))
@@ -111,6 +113,7 @@ class CompanyControllerTests {
         CompanyUser companyUser = companyUserRepository.findByCompanyIdAndUserId(createdCompanyId, user.getId()).orElseThrow();
 
         assertThat(company.getStatus()).isEqualTo(CompanyStatus.ACTIVE);
+        assertThat(company.getImageUrl()).isEqualTo("https://cdn.flowmova.test/companies/flowmova-demo.jpg");
         assertThat(company.getCurrency()).isEqualTo("USD");
         assertThat(company.getBusinessType()).isEqualTo(CompanyBusinessType.RESTAURANT);
         assertThat(company.getAddressLine1()).isEqualTo("123 Flow Street");
@@ -273,6 +276,7 @@ class CompanyControllerTests {
                                 {
                                   "name": " Updated Company ",
                                   "description": " Updated description ",
+                                  "imageUrl": " https://cdn.flowmova.test/companies/updated-company.jpg ",
                                   "currency": "eur",
                                   "businessType": "SERVICE",
                                   "addressLine1": " 456 Update Street ",
@@ -289,6 +293,7 @@ class CompanyControllerTests {
                 .andExpect(jsonPath("$.id").value(company.getId().toString()))
                 .andExpect(jsonPath("$.name").value("Updated Company"))
                 .andExpect(jsonPath("$.description").value("Updated description"))
+                .andExpect(jsonPath("$.imageUrl").value("https://cdn.flowmova.test/companies/updated-company.jpg"))
                 .andExpect(jsonPath("$.currency").value("EUR"))
                 .andExpect(jsonPath("$.businessType").value("SERVICE"))
                 .andExpect(jsonPath("$.addressLine1").value("456 Update Street"))
@@ -304,6 +309,7 @@ class CompanyControllerTests {
         Company updatedCompany = companyRepository.findById(company.getId()).orElseThrow();
         assertThat(updatedCompany.getName()).isEqualTo("Updated Company");
         assertThat(updatedCompany.getDescription()).isEqualTo("Updated description");
+        assertThat(updatedCompany.getImageUrl()).isEqualTo("https://cdn.flowmova.test/companies/updated-company.jpg");
         assertThat(updatedCompany.getCurrency()).isEqualTo("EUR");
         assertThat(updatedCompany.getBusinessType()).isEqualTo(CompanyBusinessType.SERVICE);
         assertThat(updatedCompany.getAddressLine1()).isEqualTo("456 Update Street");
@@ -420,6 +426,22 @@ class CompanyControllerTests {
                 "Owner"));
 
         Company alphaCompany = activeCompany(uniquePrefix + " Alpha Moving", "Visible alpha", owner);
+        alphaCompany.update(
+                alphaCompany.getName(),
+                alphaCompany.getDescription(),
+                "https://cdn.flowmova.test/companies/alpha-moving.jpg",
+                alphaCompany.getAddressLine1(),
+                alphaCompany.getAddressLine2(),
+                alphaCompany.getCity(),
+                alphaCompany.getRegion(),
+                alphaCompany.getPostalCode(),
+                alphaCompany.getCountry(),
+                alphaCompany.getLatitude(),
+                alphaCompany.getLongitude(),
+                alphaCompany.getCurrency(),
+                alphaCompany.getBusinessType(),
+                owner);
+        companyRepository.saveAndFlush(alphaCompany);
         activeCompany(uniquePrefix + " Beta Moving", "Visible beta", owner);
         companyRepository.save(new Company(uniquePrefix + " Alpha Disabled", "Hidden disabled", owner));
 
@@ -432,6 +454,7 @@ class CompanyControllerTests {
                 .andExpect(jsonPath("$.items.length()").value(1))
                 .andExpect(jsonPath("$.items[0].id").value(alphaCompany.getId().toString()))
                 .andExpect(jsonPath("$.items[0].name").value(uniquePrefix + " Alpha Moving"))
+                .andExpect(jsonPath("$.items[0].imageUrl").value("https://cdn.flowmova.test/companies/alpha-moving.jpg"))
                 .andExpect(jsonPath("$.items[0].currency").value("CAD"))
                 .andExpect(jsonPath("$.items[0].businessType").value("OTHER"))
                 .andExpect(jsonPath("$.items[0].status").value("ACTIVE"))

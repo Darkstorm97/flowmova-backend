@@ -36,6 +36,9 @@ public class Company {
     @Column(name = "description")
     private String description;
 
+    @Column(name = "image_url", length = 2000)
+    private String imageUrl;
+
     @Column(name = "address_line_1", length = 255)
     private String addressLine1;
 
@@ -116,6 +119,7 @@ public class Company {
                 null,
                 null,
                 null,
+                null,
                 currency,
                 businessType,
                 createdBy);
@@ -135,9 +139,42 @@ public class Company {
             String currency,
             CompanyBusinessType businessType,
             User createdBy) {
+        this(
+                name,
+                description,
+                null,
+                addressLine1,
+                addressLine2,
+                city,
+                region,
+                postalCode,
+                country,
+                latitude,
+                longitude,
+                currency,
+                businessType,
+                createdBy);
+    }
+
+    public Company(
+            String name,
+            String description,
+            String imageUrl,
+            String addressLine1,
+            String addressLine2,
+            String city,
+            String region,
+            String postalCode,
+            String country,
+            BigDecimal latitude,
+            BigDecimal longitude,
+            String currency,
+            CompanyBusinessType businessType,
+            User createdBy) {
         this.id = UUID.randomUUID();
         this.name = name;
         this.description = description;
+        this.imageUrl = imageUrl;
         this.addressLine1 = addressLine1;
         this.addressLine2 = addressLine2;
         this.city = city;
@@ -158,6 +195,7 @@ public class Company {
     public void update(
             String name,
             String description,
+            String imageUrl,
             String addressLine1,
             String addressLine2,
             String city,
@@ -171,6 +209,7 @@ public class Company {
             User updatedBy) {
         this.name = name;
         this.description = description;
+        this.imageUrl = imageUrl;
         this.addressLine1 = addressLine1;
         this.addressLine2 = addressLine2;
         this.city = city;
@@ -194,6 +233,10 @@ public class Company {
 
     public String getDescription() {
         return description;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
     }
 
     public String getAddressLine1() {

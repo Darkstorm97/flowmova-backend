@@ -246,6 +246,24 @@ Criteres d'acceptation:
 - La reponse retourne la fiche compagnie mise a jour.
 - Les collections Postman sont mises a jour.
 
+### COMPANY-007 - Ajouter l'image publique de compagnie
+
+Issue GitHub: #101.
+
+**En tant que** administrateur d'entreprise,
+**je veux** renseigner une image publique de ma compagnie,
+**afin de** rendre la fiche et les cartes de recherche plus visuelles pour les utilisateurs.
+
+Criteres d'acceptation:
+
+- Une migration Flyway ajoute le champ optionnel `image_url` a la table `companies`.
+- Le backend stocke une URL d'image, pas le fichier lui-meme.
+- La creation d'entreprise accepte un champ optionnel `imageUrl`.
+- La modification d'entreprise accepte un champ optionnel `imageUrl`.
+- Une valeur vide est normalisee a `null`.
+- Les reponses de creation, modification, recherche publique, fiche entreprise et liste `mes entreprises` exposent `imageUrl`.
+- Les collections Postman sont mises a jour si l'API de creation ou de consultation change.
+
 ### COMPANY-020 - Consulter mes entreprises
 
 **En tant que** utilisateur authentifie,

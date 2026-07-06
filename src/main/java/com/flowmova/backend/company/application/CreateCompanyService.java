@@ -40,6 +40,7 @@ public class CreateCompanyService {
         Company company = new Company(
                 command.name().trim(),
                 normalizer.normalizeDescription(command.description()),
+                normalizer.normalizeOptionalText(command.imageUrl()),
                 normalizer.normalizeOptionalText(command.addressLine1()),
                 normalizer.normalizeOptionalText(command.addressLine2()),
                 normalizer.normalizeOptionalText(command.city()),

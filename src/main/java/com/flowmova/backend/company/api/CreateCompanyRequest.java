@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 public record CreateCompanyRequest(
         @NotBlank @Size(max = 150) String name,
         @Size(max = 2_000) String description,
+        @Size(max = 2_000) String imageUrl,
         @Size(max = 3) String currency,
         @Size(max = 50) String businessType,
         @Size(max = 255) String addressLine1,
@@ -25,6 +26,7 @@ public record CreateCompanyRequest(
         return new CreateCompanyCommand(
                 name,
                 description,
+                imageUrl,
                 currency,
                 businessType,
                 addressLine1,
