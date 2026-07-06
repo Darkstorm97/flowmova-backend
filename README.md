@@ -36,6 +36,8 @@ La structure des modules backend est documentee dans [docs/architecture/backend-
 
 La strategie d'environnements Azure est documentee dans [docs/architecture/azure-environments.md](docs/architecture/azure-environments.md).
 
+Les regles de workflow projet, de nomenclature des issues et de synchronisation Git sont documentees dans [docs/project-workflow.md](docs/project-workflow.md).
+
 Modules cibles de demarrage:
 
 - `auth`: inscription, connexion, JWT, reset password
