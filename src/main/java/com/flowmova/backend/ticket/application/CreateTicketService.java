@@ -69,13 +69,39 @@ public class CreateTicketService {
 
     @Transactional
     public TicketResponse create(UUID serviceUnitId, AuthenticatedUser authenticatedUser, CreateTicketCommand command) {
+        return create(serviceUnitId, authenticatedUser, command, false);
+    }
+
+    @Transactional
+    public TicketResponse createFromPublicLocation(
+            String publicAccessSlug,
+            AuthenticatedUser authenticatedUser,
+            CreateTicketCommand command) {
+        ServiceUnitLocation location = serviceUnitLocationRepository.findByPublicAccessSlugAndStatus(
+                        publicAccessSlug,
+                        ServiceUnitLocationStatus.ACTIVE)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Location not found"));
+        CreateTicketCommand locationCommand = new CreateTicketCommand(
+                location.getId(),
+                command.guestName(),
+                command.customerPhone(),
+                command.notes(),
+                command.lines());
+        return create(location.getServiceUnit().getId(), authenticatedUser, locationCommand, true);
+    }
+
+    private TicketResponse create(
+            UUID serviceUnitId,
+            AuthenticatedUser authenticatedUser,
+            CreateTicketCommand command,
+            boolean allowQrOnly) {
         ServiceUnit serviceUnit = serviceUnitRepository
                 .findByIdAndCompanyStatusAndStatus(serviceUnitId, CompanyStatus.ACTIVE, ServiceUnitStatus.OPEN)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service unit not found"));
         if (serviceUnit.getCompany().getOperationalStatus() == CompanyOperationalStatus.CLOSED) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Company is closed");
         }
-        if (serviceUnit.getCreationEntryMode() == ServiceUnitCreationEntryMode.QR_ONLY) {
+        if (!allowQrOnly && serviceUnit.getCreationEntryMode() == ServiceUnitCreationEntryMode.QR_ONLY) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Service unit requires QR code access");
         }
 

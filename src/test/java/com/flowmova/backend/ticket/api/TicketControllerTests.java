@@ -229,6 +229,28 @@ class TicketControllerTests {
     }
 
     @Test
+    void guestCreatesQrOnlyTicketFromPublicLocation() throws Exception {
+        Fixture fixture = fixture("qr-only-location-ticket");
+        fixture.serviceUnit().setCreationEntryMode(ServiceUnitCreationEntryMode.QR_ONLY);
+        serviceUnitRepository.saveAndFlush(fixture.serviceUnit());
+
+        mockMvc.perform(post(
+                        "/api/public/locations/{publicAccessSlug}/tickets",
+                        fixture.defaultLocation().getPublicAccessSlug())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "guestName": "Alice Client"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.guestName").value("Alice Client"))
+                .andExpect(jsonPath("$.serviceUnitId").value(fixture.serviceUnit().getId().toString()))
+                .andExpect(jsonPath("$.locationId").value(fixture.defaultLocation().getId().toString()))
+                .andExpect(jsonPath("$.accessCode").exists());
+    }
+
+    @Test
     void rejectsGuestTicketWhenServiceUnitRequiresAuthenticatedUserWithoutActiveTicket() throws Exception {
         Fixture fixture = fixture("guest-active-ticket-limit");
         fixture.serviceUnit().setTicketCreationGuardMode(TicketCreationGuardMode.AUTHENTICATED_ONLY_ONE_OPEN_TICKET);

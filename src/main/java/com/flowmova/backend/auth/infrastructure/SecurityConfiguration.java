@@ -50,6 +50,7 @@ class SecurityConfiguration {
                         .requestMatchers(HttpMethod.PATCH, "/api/tickets/guest-access/cancel").permitAll()
                         .requestMatchers(HttpMethod.PATCH, "/api/tickets/guest-access/confirm-treatment").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/public/locations/{publicAccessSlug}").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/public/locations/{publicAccessSlug}/tickets").permitAll()
                         .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/info").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
