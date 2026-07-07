@@ -264,6 +264,25 @@ Criteres d'acceptation:
 - Les reponses de creation, modification, recherche publique, fiche entreprise et liste `mes entreprises` exposent `imageUrl`.
 - Les collections Postman sont mises a jour si l'API de creation ou de consultation change.
 
+### COMPANY-008 - Ajouter la disponibilite operationnelle d'une compagnie
+
+Issue GitHub: #104.
+
+**En tant que** administrateur d'entreprise,
+**je veux** ouvrir ou fermer operationnellement ma compagnie,
+**afin de** controler si elle accepte de nouvelles creations de tickets sans la desactiver sur la plateforme.
+
+Criteres d'acceptation:
+
+- Un champ de disponibilite operationnelle est ajoute a `Company`, distinct de `company_status`.
+- Les valeurs supportees sont `OPEN` et `CLOSED`.
+- `ACTIVE` continue de signifier que la compagnie est publiee/utilisable sur la plateforme.
+- Une compagnie `ACTIVE` mais operationnellement `CLOSED` reste consultable publiquement.
+- Les reponses publiques et admin exposent la disponibilite operationnelle.
+- Un endpoint ou une mise a jour admin permet de modifier cette disponibilite.
+- Toute creation de ticket est refusee lorsque la compagnie est `CLOSED`, peu importe l'unite, l'emplacement ou le parcours QR.
+- Les collections Postman et la documentation OpenAPI sont mises a jour.
+
 ### COMPANY-020 - Consulter mes entreprises
 
 **En tant que** utilisateur authentifie,
@@ -691,6 +710,25 @@ Criteres d'acceptation:
 - La creation d'unite accepte `ticketCreationGuardMode`; si absent, `NONE` est utilise.
 - La modification d'unite accepte `ticketCreationGuardMode`.
 - Les anciennes references a une option booleenne anti-spam sont remplacees par ce mode.
+- Les collections Postman et la documentation OpenAPI sont mises a jour.
+
+### SERVICE-060 - Configurer le mode de creation QR seulement
+
+Issue GitHub: #103.
+
+**En tant que** administrateur d'entreprise,
+**je veux** rendre certaines unites visibles mais creables uniquement depuis un QR code,
+**afin de** reserver la creation de ticket a un contexte physique ou emplacement precis.
+
+Criteres d'acceptation:
+
+- Un champ de mode d'entree ou de creation est ajoute a `ServiceUnit`, distinct du statut `OPEN` / `CLOSED` / `ARCHIVED`.
+- Les valeurs minimales supportees sont `PUBLIC_AND_QR` et `QR_ONLY`.
+- Une unite `QR_ONLY` reste visible publiquement lorsqu'elle est ouverte.
+- Les reponses publiques et admin exposent ce mode.
+- La creation et la modification admin permettent de configurer ce mode.
+- La creation standard de ticket est refusee pour une unite `QR_ONLY` hors contexte QR/emplacement valide.
+- La creation depuis le parcours QR/emplacement reste possible si la compagnie et l'unite sont disponibles.
 - Les collections Postman et la documentation OpenAPI sont mises a jour.
 
 ### ITEM-001 - Creer la table `items`
