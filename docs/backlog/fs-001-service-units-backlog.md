@@ -467,6 +467,28 @@ Criteres d'acceptation:
 - Le catalogue archive n'est plus visible publiquement.
 - L'archivage ne supprime pas les articles ou tickets existants.
 
+### CATALOG-060 - Paginer et rechercher les catalogues publics
+
+Issue GitHub: #102.
+
+**En tant que** utilisateur,
+**je veux** consulter les catalogues publics par page avec recherche,
+**afin de** naviguer dans une grande offre sans charger tous les articles.
+
+Criteres d'acceptation:
+
+- L'endpoint public `GET /api/companies/{companyId}/catalogs` accepte une pagination `page`/`size`/`sort`.
+- Le filtre existant `catalogCategoryId` reste supporte.
+- Une recherche textuelle permet de filtrer par nom et description.
+- La pagination, la categorie et la recherche peuvent etre combinees.
+- Le format de reponse pagine reste coherent avec les autres listes backend.
+- Les catalogues archives et les entreprises non actives ne sont pas exposes publiquement.
+- OpenAPI, Postman et les tests backend sont mis a jour.
+
+Dependance frontend:
+
+- `PUBLIC-FRONT-008` consommera cette API paginee.
+
 ## Milestone 4 - Unites de service
 
 ### SERVICE-001 - Creer la table `service_units`
