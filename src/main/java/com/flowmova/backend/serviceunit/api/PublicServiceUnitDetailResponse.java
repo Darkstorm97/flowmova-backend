@@ -3,6 +3,7 @@ package com.flowmova.backend.serviceunit.api;
 import com.flowmova.backend.item.api.ItemResponse;
 import com.flowmova.backend.item.domain.Item;
 import com.flowmova.backend.serviceunit.domain.ServiceUnit;
+import com.flowmova.backend.serviceunit.domain.ServiceUnitCreationEntryMode;
 import com.flowmova.backend.serviceunit.domain.ServiceUnitStatus;
 import com.flowmova.backend.serviceunit.domain.ServiceUnitType;
 import com.flowmova.backend.serviceunit.domain.TicketCreationGuardMode;
@@ -20,6 +21,7 @@ public record PublicServiceUnitDetailResponse(
         ServiceUnitType type,
         ServiceUnitStatus status,
         TicketCreationGuardMode ticketCreationGuardMode,
+        ServiceUnitCreationEntryMode creationEntryMode,
         ServiceUnitLocationResponse defaultLocation,
         List<ServiceUnitLocationResponse> locations,
         List<ItemResponse> items,
@@ -40,6 +42,7 @@ public record PublicServiceUnitDetailResponse(
                 serviceUnit.getType(),
                 serviceUnit.getStatus(),
                 serviceUnit.getTicketCreationGuardMode(),
+                serviceUnit.getCreationEntryMode(),
                 ServiceUnitLocationResponse.from(defaultLocation),
                 locations.stream()
                         .map(ServiceUnitLocationResponse::from)

@@ -8,6 +8,7 @@ import com.flowmova.backend.item.domain.ItemAvailability;
 import com.flowmova.backend.item.domain.ItemStatus;
 import com.flowmova.backend.item.infrastructure.ItemRepository;
 import com.flowmova.backend.serviceunit.domain.ServiceUnit;
+import com.flowmova.backend.serviceunit.domain.ServiceUnitCreationEntryMode;
 import com.flowmova.backend.serviceunit.domain.ServiceUnitStatus;
 import com.flowmova.backend.serviceunit.domain.TicketCreationGuardMode;
 import com.flowmova.backend.serviceunit.infrastructure.ServiceUnitRepository;
@@ -73,6 +74,9 @@ public class CreateTicketService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service unit not found"));
         if (serviceUnit.getCompany().getOperationalStatus() == CompanyOperationalStatus.CLOSED) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Company is closed");
+        }
+        if (serviceUnit.getCreationEntryMode() == ServiceUnitCreationEntryMode.QR_ONLY) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Service unit requires QR code access");
         }
 
         ServiceUnitLocation location = resolveLocation(serviceUnitId, command.locationId());

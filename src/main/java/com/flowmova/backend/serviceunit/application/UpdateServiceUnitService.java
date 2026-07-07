@@ -64,6 +64,7 @@ public class UpdateServiceUnitService {
                 normalize(command.description()),
                 normalize(command.location()),
                 command.ticketCreationGuardMode(),
+                command.creationEntryMode(),
                 updater);
         ServiceUnit savedServiceUnit = serviceUnitRepository.saveAndFlush(serviceUnit);
 

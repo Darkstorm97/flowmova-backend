@@ -24,6 +24,7 @@ import com.flowmova.backend.item.domain.Item;
 import com.flowmova.backend.item.domain.ItemAvailability;
 import com.flowmova.backend.item.infrastructure.ItemRepository;
 import com.flowmova.backend.serviceunit.domain.ServiceUnit;
+import com.flowmova.backend.serviceunit.domain.ServiceUnitCreationEntryMode;
 import com.flowmova.backend.serviceunit.domain.TicketCreationGuardMode;
 import com.flowmova.backend.serviceunit.infrastructure.ServiceUnitRepository;
 import com.flowmova.backend.serviceunitlocation.domain.ServiceUnitLocation;
@@ -207,6 +208,24 @@ class TicketControllerTests {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("CONFLICT"))
                 .andExpect(jsonPath("$.message").value("Company is closed"));
+    }
+
+    @Test
+    void rejectsStandardTicketCreationWhenServiceUnitIsQrOnly() throws Exception {
+        Fixture fixture = fixture("qr-only-ticket");
+        fixture.serviceUnit().setCreationEntryMode(ServiceUnitCreationEntryMode.QR_ONLY);
+        serviceUnitRepository.saveAndFlush(fixture.serviceUnit());
+
+        mockMvc.perform(post("/api/service-units/{serviceUnitId}/tickets", fixture.serviceUnit().getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "guestName": "Alice Client"
+                                }
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CONFLICT"))
+                .andExpect(jsonPath("$.message").value("Service unit requires QR code access"));
     }
 
     @Test

@@ -24,6 +24,7 @@ import com.flowmova.backend.item.domain.ItemAvailability;
 import com.flowmova.backend.item.domain.ItemStatus;
 import com.flowmova.backend.item.infrastructure.ItemRepository;
 import com.flowmova.backend.serviceunit.domain.ServiceUnit;
+import com.flowmova.backend.serviceunit.domain.ServiceUnitCreationEntryMode;
 import com.flowmova.backend.serviceunit.domain.ServiceUnitStatus;
 import com.flowmova.backend.serviceunit.domain.ServiceUnitType;
 import com.flowmova.backend.serviceunit.domain.TicketCreationGuardMode;
@@ -112,6 +113,7 @@ class ServiceUnitControllerTests {
                 .andExpect(jsonPath("$.type").value("TICKET_QUEUE"))
                 .andExpect(jsonPath("$.status").value("CLOSED"))
                 .andExpect(jsonPath("$.ticketCreationGuardMode").value("NONE"))
+                .andExpect(jsonPath("$.creationEntryMode").value("PUBLIC_AND_QR"))
                 .andExpect(jsonPath("$.defaultLocation.id").exists())
                 .andExpect(jsonPath("$.defaultLocation.name").value("Principal"))
                 .andExpect(jsonPath("$.defaultLocation.type").value("DEFAULT"))
@@ -133,12 +135,42 @@ class ServiceUnitControllerTests {
         assertThat(serviceUnit.getCompany().getId()).isEqualTo(company.getId());
         assertThat(serviceUnit.getType()).isEqualTo(ServiceUnitType.TICKET_QUEUE);
         assertThat(serviceUnit.getStatus()).isEqualTo(ServiceUnitStatus.CLOSED);
+        assertThat(serviceUnit.getCreationEntryMode()).isEqualTo(ServiceUnitCreationEntryMode.PUBLIC_AND_QR);
         assertThat(serviceUnit.getCreatedBy().getId()).isEqualTo(admin.getId());
         assertThat(defaultLocation.getServiceUnit().getId()).isEqualTo(serviceUnitId);
         assertThat(defaultLocation.getType()).isEqualTo(ServiceUnitLocationType.DEFAULT);
         assertThat(defaultLocation.isDefaultLocation()).isTrue();
         assertThat(defaultLocation.getStatus()).isEqualTo(ServiceUnitLocationStatus.ACTIVE);
         assertThat(defaultLocation.getCreatedBy().getId()).isEqualTo(admin.getId());
+    }
+
+    @Test
+    void adminCreatesServiceUnitWithQrOnlyCreationEntryMode() throws Exception {
+        User admin = user("service-unit-qr-only");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        String response = mockMvc.perform(post("/api/companies/{companyId}/service-units", company.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "QR queue",
+                                  "type": "TICKET_QUEUE",
+                                  "creationEntryMode": "QR_ONLY"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.creationEntryMode").value("QR_ONLY"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        ServiceUnit serviceUnit = serviceUnitRepository.findById(
+                        UUID.fromString(objectMapper.readTree(response).get("id").asText()))
+                .orElseThrow();
+        assertThat(serviceUnit.getCreationEntryMode()).isEqualTo(ServiceUnitCreationEntryMode.QR_ONLY);
     }
 
     @Test
@@ -1529,7 +1561,8 @@ class ServiceUnitControllerTests {
                                   "name": " Updated Queue ",
                                   "description": " Updated description ",
                                   "location": " Updated location ",
-                                  "ticketCreationGuardMode": "AUTHENTICATED_OR_GUEST_RECENT_ONE_OPEN_TICKET"
+                                  "ticketCreationGuardMode": "AUTHENTICATED_OR_GUEST_RECENT_ONE_OPEN_TICKET",
+                                  "creationEntryMode": "QR_ONLY"
                                 }
                                 """))
                 .andExpect(status().isOk())
@@ -1540,6 +1573,7 @@ class ServiceUnitControllerTests {
                 .andExpect(jsonPath("$.location").value("Updated location"))
                 .andExpect(jsonPath("$.status").value("OPEN"))
                 .andExpect(jsonPath("$.ticketCreationGuardMode").value("AUTHENTICATED_OR_GUEST_RECENT_ONE_OPEN_TICKET"))
+                .andExpect(jsonPath("$.creationEntryMode").value("QR_ONLY"))
                 .andExpect(jsonPath("$.defaultLocation.id").value(defaultLocation.getId().toString()));
 
         ServiceUnit updatedServiceUnit = serviceUnitRepository.findById(serviceUnit.getId()).orElseThrow();
@@ -1549,6 +1583,7 @@ class ServiceUnitControllerTests {
         assertThat(updatedServiceUnit.getStatus()).isEqualTo(ServiceUnitStatus.OPEN);
         assertThat(updatedServiceUnit.getTicketCreationGuardMode())
                 .isEqualTo(TicketCreationGuardMode.AUTHENTICATED_OR_GUEST_RECENT_ONE_OPEN_TICKET);
+        assertThat(updatedServiceUnit.getCreationEntryMode()).isEqualTo(ServiceUnitCreationEntryMode.QR_ONLY);
         assertThat(updatedServiceUnit.getUpdatedBy().getId()).isEqualTo(admin.getId());
     }
 

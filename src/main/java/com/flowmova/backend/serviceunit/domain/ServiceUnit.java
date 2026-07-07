@@ -57,6 +57,11 @@ public class ServiceUnit {
     @Column(name = "ticket_creation_guard_mode", nullable = false, columnDefinition = "ticket_creation_guard_mode")
     private TicketCreationGuardMode ticketCreationGuardMode = TicketCreationGuardMode.NONE;
 
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "creation_entry_mode", nullable = false, columnDefinition = "service_unit_creation_entry_mode")
+    private ServiceUnitCreationEntryMode creationEntryMode = ServiceUnitCreationEntryMode.PUBLIC_AND_QR;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "settings", nullable = false, columnDefinition = "jsonb")
     private Map<String, Object> settings = new LinkedHashMap<>();
@@ -120,12 +125,16 @@ public class ServiceUnit {
             String description,
             String location,
             TicketCreationGuardMode ticketCreationGuardMode,
+            ServiceUnitCreationEntryMode creationEntryMode,
             User updatedBy) {
         this.name = name;
         this.description = description;
         this.location = location;
         if (ticketCreationGuardMode != null) {
             this.ticketCreationGuardMode = ticketCreationGuardMode;
+        }
+        if (creationEntryMode != null) {
+            this.creationEntryMode = creationEntryMode;
         }
         this.updatedBy = updatedBy;
     }
@@ -134,6 +143,12 @@ public class ServiceUnit {
         this.ticketCreationGuardMode = ticketCreationGuardMode == null
                 ? TicketCreationGuardMode.NONE
                 : ticketCreationGuardMode;
+    }
+
+    public void setCreationEntryMode(ServiceUnitCreationEntryMode creationEntryMode) {
+        this.creationEntryMode = creationEntryMode == null
+                ? ServiceUnitCreationEntryMode.PUBLIC_AND_QR
+                : creationEntryMode;
     }
 
     public UUID getId() {
@@ -166,6 +181,10 @@ public class ServiceUnit {
 
     public TicketCreationGuardMode getTicketCreationGuardMode() {
         return ticketCreationGuardMode;
+    }
+
+    public ServiceUnitCreationEntryMode getCreationEntryMode() {
+        return creationEntryMode;
     }
 
     public Map<String, Object> getSettings() {

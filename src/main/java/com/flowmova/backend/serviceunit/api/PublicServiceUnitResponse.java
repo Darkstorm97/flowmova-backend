@@ -1,6 +1,7 @@
 package com.flowmova.backend.serviceunit.api;
 
 import com.flowmova.backend.serviceunit.domain.ServiceUnit;
+import com.flowmova.backend.serviceunit.domain.ServiceUnitCreationEntryMode;
 import com.flowmova.backend.serviceunit.domain.ServiceUnitStatus;
 import com.flowmova.backend.serviceunit.domain.ServiceUnitType;
 import com.flowmova.backend.serviceunit.domain.TicketCreationGuardMode;
@@ -16,6 +17,7 @@ public record PublicServiceUnitResponse(
         ServiceUnitType type,
         ServiceUnitStatus status,
         TicketCreationGuardMode ticketCreationGuardMode,
+        ServiceUnitCreationEntryMode creationEntryMode,
         Instant createdAt,
         Instant updatedAt) {
 
@@ -29,6 +31,7 @@ public record PublicServiceUnitResponse(
                 serviceUnit.getType(),
                 serviceUnit.getStatus(),
                 serviceUnit.getTicketCreationGuardMode(),
+                serviceUnit.getCreationEntryMode(),
                 serviceUnit.getCreatedAt(),
                 serviceUnit.getUpdatedAt());
     }
