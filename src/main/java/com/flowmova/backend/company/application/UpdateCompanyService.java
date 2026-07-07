@@ -63,6 +63,7 @@ public class UpdateCompanyService {
                 command.longitude(),
                 normalizer.normalizeCurrency(command.currency()),
                 normalizer.normalizeBusinessType(command.businessType()),
+                normalizer.normalizeOperationalStatus(command.operationalStatus(), company.getOperationalStatus()),
                 updater);
 
         return CompanyResponse.from(companyRepository.saveAndFlush(company));

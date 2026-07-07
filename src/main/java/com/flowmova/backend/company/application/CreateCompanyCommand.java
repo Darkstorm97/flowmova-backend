@@ -8,6 +8,7 @@ public record CreateCompanyCommand(
         String imageUrl,
         String currency,
         String businessType,
+        String operationalStatus,
         String addressLine1,
         String addressLine2,
         String city,

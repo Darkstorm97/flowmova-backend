@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flowmova.backend.auth.domain.AccessTokenGenerator;
 import com.flowmova.backend.company.domain.Company;
 import com.flowmova.backend.company.domain.CompanyBusinessType;
+import com.flowmova.backend.company.domain.CompanyOperationalStatus;
 import com.flowmova.backend.company.domain.CompanyStatus;
 import com.flowmova.backend.company.infrastructure.CompanyRepository;
 import com.flowmova.backend.companyaccess.domain.CompanyRole;
@@ -75,6 +76,7 @@ class CompanyControllerTests {
                                   "imageUrl": " https://cdn.flowmova.test/companies/flowmova-demo.jpg ",
                                   "currency": "usd",
                                   "businessType": "RESTAURANT",
+                                  "operationalStatus": "closed",
                                   "addressLine1": " 123 Flow Street ",
                                   "addressLine2": " Suite 5 ",
                                   "city": " Montreal ",
@@ -101,6 +103,7 @@ class CompanyControllerTests {
                 .andExpect(jsonPath("$.latitude").value(45.501689))
                 .andExpect(jsonPath("$.longitude").value(-73.567256))
                 .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.operationalStatus").value("CLOSED"))
                 .andExpect(jsonPath("$.createdAt").exists())
                 .andExpect(jsonPath("$.updatedAt").exists())
                 .andReturn()
@@ -113,6 +116,7 @@ class CompanyControllerTests {
         CompanyUser companyUser = companyUserRepository.findByCompanyIdAndUserId(createdCompanyId, user.getId()).orElseThrow();
 
         assertThat(company.getStatus()).isEqualTo(CompanyStatus.ACTIVE);
+        assertThat(company.getOperationalStatus()).isEqualTo(CompanyOperationalStatus.CLOSED);
         assertThat(company.getImageUrl()).isEqualTo("https://cdn.flowmova.test/companies/flowmova-demo.jpg");
         assertThat(company.getCurrency()).isEqualTo("USD");
         assertThat(company.getBusinessType()).isEqualTo(CompanyBusinessType.RESTAURANT);
@@ -148,7 +152,8 @@ class CompanyControllerTests {
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.currency").value("CAD"))
-                .andExpect(jsonPath("$.businessType").value("OTHER"));
+                .andExpect(jsonPath("$.businessType").value("OTHER"))
+                .andExpect(jsonPath("$.operationalStatus").value("OPEN"));
     }
 
     @Test
@@ -172,6 +177,29 @@ class CompanyControllerTests {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
                 .andExpect(jsonPath("$.message").value("Business type must be a supported company business type"));
+    }
+
+    @Test
+    void rejectsCompanyCreationWithUnsupportedOperationalStatus() throws Exception {
+        User user = userRepository.save(new User(
+                "company-invalid-operational-status.%s@flowmova.test".formatted(UUID.randomUUID()),
+                passwordEncoder.encode("Password123!"),
+                "Company",
+                "OperationalStatus"));
+        String token = accessTokenGenerator.generate(user).value();
+
+        mockMvc.perform(post("/api/companies")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Invalid Operational Status Company",
+                                  "operationalStatus": "PAUSED"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("Operational status must be OPEN or CLOSED"));
     }
 
     @Test
@@ -279,6 +307,7 @@ class CompanyControllerTests {
                                   "imageUrl": " https://cdn.flowmova.test/companies/updated-company.jpg ",
                                   "currency": "eur",
                                   "businessType": "SERVICE",
+                                  "operationalStatus": "closed",
                                   "addressLine1": " 456 Update Street ",
                                   "addressLine2": "",
                                   "city": " Paris ",
@@ -304,7 +333,8 @@ class CompanyControllerTests {
                 .andExpect(jsonPath("$.country").value("FR"))
                 .andExpect(jsonPath("$.latitude").value(48.856613))
                 .andExpect(jsonPath("$.longitude").value(2.352222))
-                .andExpect(jsonPath("$.status").value("ACTIVE"));
+                .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.operationalStatus").value("CLOSED"));
 
         Company updatedCompany = companyRepository.findById(company.getId()).orElseThrow();
         assertThat(updatedCompany.getName()).isEqualTo("Updated Company");
@@ -312,6 +342,7 @@ class CompanyControllerTests {
         assertThat(updatedCompany.getImageUrl()).isEqualTo("https://cdn.flowmova.test/companies/updated-company.jpg");
         assertThat(updatedCompany.getCurrency()).isEqualTo("EUR");
         assertThat(updatedCompany.getBusinessType()).isEqualTo(CompanyBusinessType.SERVICE);
+        assertThat(updatedCompany.getOperationalStatus()).isEqualTo(CompanyOperationalStatus.CLOSED);
         assertThat(updatedCompany.getAddressLine1()).isEqualTo("456 Update Street");
         assertThat(updatedCompany.getAddressLine2()).isNull();
         assertThat(updatedCompany.getCity()).isEqualTo("Paris");
@@ -440,6 +471,7 @@ class CompanyControllerTests {
                 alphaCompany.getLongitude(),
                 alphaCompany.getCurrency(),
                 alphaCompany.getBusinessType(),
+                alphaCompany.getOperationalStatus(),
                 owner);
         companyRepository.saveAndFlush(alphaCompany);
         activeCompany(uniquePrefix + " Beta Moving", "Visible beta", owner);

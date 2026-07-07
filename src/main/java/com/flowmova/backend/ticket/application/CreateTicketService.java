@@ -1,6 +1,7 @@
 package com.flowmova.backend.ticket.application;
 
 import com.flowmova.backend.auth.domain.AuthenticatedUser;
+import com.flowmova.backend.company.domain.CompanyOperationalStatus;
 import com.flowmova.backend.company.domain.CompanyStatus;
 import com.flowmova.backend.item.domain.Item;
 import com.flowmova.backend.item.domain.ItemAvailability;
@@ -70,6 +71,9 @@ public class CreateTicketService {
         ServiceUnit serviceUnit = serviceUnitRepository
                 .findByIdAndCompanyStatusAndStatus(serviceUnitId, CompanyStatus.ACTIVE, ServiceUnitStatus.OPEN)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service unit not found"));
+        if (serviceUnit.getCompany().getOperationalStatus() == CompanyOperationalStatus.CLOSED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Company is closed");
+        }
 
         ServiceUnitLocation location = resolveLocation(serviceUnitId, command.locationId());
         User user = resolveUser(authenticatedUser);

@@ -51,6 +51,7 @@ public class CreateCompanyService {
                 command.longitude(),
                 normalizer.normalizeCurrency(command.currency()),
                 normalizer.normalizeBusinessType(command.businessType()),
+                normalizer.normalizeOperationalStatus(command.operationalStatus(), null),
                 creator);
         company.activate();
 

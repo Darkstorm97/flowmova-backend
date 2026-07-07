@@ -15,6 +15,7 @@ import com.flowmova.backend.catalog.infrastructure.CatalogRepository;
 import com.flowmova.backend.catalogcategory.domain.CatalogCategory;
 import com.flowmova.backend.catalogcategory.infrastructure.CatalogCategoryRepository;
 import com.flowmova.backend.company.domain.Company;
+import com.flowmova.backend.company.domain.CompanyOperationalStatus;
 import com.flowmova.backend.company.infrastructure.CompanyRepository;
 import com.flowmova.backend.companyaccess.domain.CompanyRole;
 import com.flowmova.backend.companyaccess.domain.CompanyUser;
@@ -173,6 +174,39 @@ class TicketControllerTests {
         assertThat(ticket.getGuestAccessCodeHash()).isNull();
         assertThat(ticket.getStatus()).isEqualTo(TicketStatus.CREATED);
         assertThat(ticketLineRepository.findByTicketId(ticket.getId())).isEmpty();
+    }
+
+    @Test
+    void rejectsTicketCreationWhenCompanyIsOperationallyClosed() throws Exception {
+        Fixture fixture = fixture("closed-company-ticket");
+        fixture.company().update(
+                fixture.company().getName(),
+                fixture.company().getDescription(),
+                fixture.company().getImageUrl(),
+                fixture.company().getAddressLine1(),
+                fixture.company().getAddressLine2(),
+                fixture.company().getCity(),
+                fixture.company().getRegion(),
+                fixture.company().getPostalCode(),
+                fixture.company().getCountry(),
+                fixture.company().getLatitude(),
+                fixture.company().getLongitude(),
+                fixture.company().getCurrency(),
+                fixture.company().getBusinessType(),
+                CompanyOperationalStatus.CLOSED,
+                fixture.owner());
+        companyRepository.saveAndFlush(fixture.company());
+
+        mockMvc.perform(post("/api/service-units/{serviceUnitId}/tickets", fixture.serviceUnit().getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "guestName": "Alice Client"
+                                }
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CONFLICT"))
+                .andExpect(jsonPath("$.message").value("Company is closed"));
     }
 
     @Test

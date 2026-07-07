@@ -25,6 +25,7 @@ public class Company {
 
     public static final String DEFAULT_CURRENCY = "CAD";
     public static final CompanyBusinessType DEFAULT_BUSINESS_TYPE = CompanyBusinessType.OTHER;
+    public static final CompanyOperationalStatus DEFAULT_OPERATIONAL_STATUS = CompanyOperationalStatus.OPEN;
 
     @Id
     @Column(name = "id", nullable = false)
@@ -76,6 +77,11 @@ public class Company {
     @Column(name = "status", nullable = false, columnDefinition = "company_status")
     private CompanyStatus status = CompanyStatus.DISABLED;
 
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "operational_status", nullable = false, columnDefinition = "company_operational_status")
+    private CompanyOperationalStatus operationalStatus = DEFAULT_OPERATIONAL_STATUS;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -122,6 +128,7 @@ public class Company {
                 null,
                 currency,
                 businessType,
+                null,
                 createdBy);
     }
 
@@ -153,6 +160,7 @@ public class Company {
                 longitude,
                 currency,
                 businessType,
+                null,
                 createdBy);
     }
 
@@ -170,6 +178,7 @@ public class Company {
             BigDecimal longitude,
             String currency,
             CompanyBusinessType businessType,
+            CompanyOperationalStatus operationalStatus,
             User createdBy) {
         this.id = UUID.randomUUID();
         this.name = name;
@@ -185,6 +194,7 @@ public class Company {
         this.longitude = longitude;
         this.currency = currency;
         this.businessType = businessType;
+        this.operationalStatus = operationalStatus == null ? DEFAULT_OPERATIONAL_STATUS : operationalStatus;
         this.createdBy = createdBy;
     }
 
@@ -206,6 +216,7 @@ public class Company {
             BigDecimal longitude,
             String currency,
             CompanyBusinessType businessType,
+            CompanyOperationalStatus operationalStatus,
             User updatedBy) {
         this.name = name;
         this.description = description;
@@ -220,6 +231,9 @@ public class Company {
         this.longitude = longitude;
         this.currency = currency;
         this.businessType = businessType;
+        if (operationalStatus != null) {
+            this.operationalStatus = operationalStatus;
+        }
         this.updatedBy = updatedBy;
     }
 
@@ -281,6 +295,10 @@ public class Company {
 
     public CompanyStatus getStatus() {
         return status;
+    }
+
+    public CompanyOperationalStatus getOperationalStatus() {
+        return operationalStatus;
     }
 
     public Instant getCreatedAt() {

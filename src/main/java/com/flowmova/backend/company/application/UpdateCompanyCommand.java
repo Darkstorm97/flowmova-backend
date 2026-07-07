@@ -8,6 +8,7 @@ public record UpdateCompanyCommand(
         String imageUrl,
         String currency,
         String businessType,
+        String operationalStatus,
         String addressLine1,
         String addressLine2,
         String city,

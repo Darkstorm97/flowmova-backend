@@ -2,6 +2,7 @@ package com.flowmova.backend.company.application;
 
 import com.flowmova.backend.company.domain.Company;
 import com.flowmova.backend.company.domain.CompanyBusinessType;
+import com.flowmova.backend.company.domain.CompanyOperationalStatus;
 import java.util.Arrays;
 import java.util.Currency;
 import java.util.Locale;
@@ -67,6 +68,21 @@ class CompanyInputNormalizer {
             return CompanyBusinessType.valueOf(normalizedBusinessType);
         } catch (IllegalArgumentException exception) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Business type must be a supported company business type");
+        }
+    }
+
+    CompanyOperationalStatus normalizeOperationalStatus(
+            String operationalStatus,
+            CompanyOperationalStatus fallbackStatus) {
+        if (operationalStatus == null || operationalStatus.isBlank()) {
+            return fallbackStatus == null ? Company.DEFAULT_OPERATIONAL_STATUS : fallbackStatus;
+        }
+
+        String normalizedOperationalStatus = operationalStatus.trim().toUpperCase(Locale.ROOT);
+        try {
+            return CompanyOperationalStatus.valueOf(normalizedOperationalStatus);
+        } catch (IllegalArgumentException exception) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Operational status must be OPEN or CLOSED");
         }
     }
 }

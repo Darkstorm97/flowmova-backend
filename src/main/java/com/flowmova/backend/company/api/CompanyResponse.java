@@ -2,6 +2,7 @@ package com.flowmova.backend.company.api;
 
 import com.flowmova.backend.company.domain.Company;
 import com.flowmova.backend.company.domain.CompanyBusinessType;
+import com.flowmova.backend.company.domain.CompanyOperationalStatus;
 import com.flowmova.backend.company.domain.CompanyStatus;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -23,6 +24,7 @@ public record CompanyResponse(
         BigDecimal latitude,
         BigDecimal longitude,
         CompanyStatus status,
+        CompanyOperationalStatus operationalStatus,
         Instant createdAt,
         Instant updatedAt) {
 
@@ -43,6 +45,7 @@ public record CompanyResponse(
                 company.getLatitude(),
                 company.getLongitude(),
                 company.getStatus(),
+                company.getOperationalStatus(),
                 company.getCreatedAt(),
                 company.getUpdatedAt());
     }

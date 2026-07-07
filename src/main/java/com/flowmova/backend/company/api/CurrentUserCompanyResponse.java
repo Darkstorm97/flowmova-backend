@@ -2,6 +2,7 @@ package com.flowmova.backend.company.api;
 
 import com.flowmova.backend.company.domain.Company;
 import com.flowmova.backend.company.domain.CompanyBusinessType;
+import com.flowmova.backend.company.domain.CompanyOperationalStatus;
 import com.flowmova.backend.company.domain.CompanyStatus;
 import com.flowmova.backend.companyaccess.domain.CompanyRole;
 import com.flowmova.backend.companyaccess.domain.CompanyUser;
@@ -25,6 +26,7 @@ public record CurrentUserCompanyResponse(
         BigDecimal latitude,
         BigDecimal longitude,
         CompanyStatus status,
+        CompanyOperationalStatus operationalStatus,
         CompanyRole role,
         Instant createdAt,
         Instant updatedAt) {
@@ -47,6 +49,7 @@ public record CurrentUserCompanyResponse(
                 company.getLatitude(),
                 company.getLongitude(),
                 company.getStatus(),
+                company.getOperationalStatus(),
                 companyUser.getRole(),
                 company.getCreatedAt(),
                 company.getUpdatedAt());
