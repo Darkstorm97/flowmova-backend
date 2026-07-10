@@ -3,6 +3,7 @@ package com.flowmova.backend.catalog.api;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -30,6 +31,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest
@@ -502,6 +504,75 @@ class CatalogControllerTests {
 
         assertThat(catalogRepository.findById(catalog.getId()).orElseThrow().getStatus())
                 .isEqualTo(CatalogStatus.ACTIVE);
+    }
+
+    @Test
+    void adminUploadsCatalogImage() throws Exception {
+        User admin = user("catalog-image-admin");
+        Company company = company(admin);
+        CatalogCategory category = category(company, admin);
+        Catalog catalog = catalogRepository.save(new Catalog(
+                company,
+                category,
+                "Catalog With Image",
+                null,
+                null,
+                null,
+                admin));
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        String token = accessTokenGenerator.generate(admin).value();
+        MockMultipartFile image = new MockMultipartFile(
+                "image",
+                "catalog.png",
+                "image/png",
+                new byte[] {1, 2, 3, 4});
+
+        mockMvc.perform(multipart(
+                        "/api/companies/{companyId}/catalogs/{catalogId}/image",
+                        company.getId(),
+                        catalog.getId())
+                        .file(image)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(catalog.getId().toString()))
+                .andExpect(jsonPath("$.imageUrl").value(org.hamcrest.Matchers.containsString(
+                        "/uploads/catalogs/%s/%s/cover.png".formatted(company.getId(), catalog.getId()))));
+
+        Catalog updatedCatalog = catalogRepository.findById(catalog.getId()).orElseThrow();
+        assertThat(updatedCatalog.getImageUrl()).contains(
+                "/uploads/catalogs/%s/%s/cover.png".formatted(company.getId(), catalog.getId()));
+        assertThat(updatedCatalog.getUpdatedBy().getId()).isEqualTo(admin.getId());
+    }
+
+    @Test
+    void rejectsCatalogImageUploadForEmployee() throws Exception {
+        User employee = user("catalog-image-employee");
+        Company company = company(employee);
+        CatalogCategory category = category(company, employee);
+        Catalog catalog = catalogRepository.save(new Catalog(
+                company,
+                category,
+                "Employee Image Catalog",
+                null,
+                null,
+                null,
+                employee));
+        companyUserRepository.save(new CompanyUser(company.getId(), employee, CompanyRole.EMPLOYEE));
+        String token = accessTokenGenerator.generate(employee).value();
+        MockMultipartFile image = new MockMultipartFile(
+                "image",
+                "catalog.png",
+                "image/png",
+                new byte[] {1, 2, 3, 4});
+
+        mockMvc.perform(multipart(
+                        "/api/companies/{companyId}/catalogs/{catalogId}/image",
+                        company.getId(),
+                        catalog.getId())
+                        .file(image)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("Company admin role is required"));
     }
 
     @Test

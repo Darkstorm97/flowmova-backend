@@ -77,8 +77,20 @@ public class CatalogCategory {
         this.createdBy = createdBy;
     }
 
+    public void update(String name, String description, Integer displayOrder, User updatedBy) {
+        this.name = name;
+        this.description = description;
+        this.displayOrder = displayOrder == null ? 0 : displayOrder;
+        this.updatedBy = updatedBy;
+    }
+
     public void archive() {
         this.status = CatalogCategoryStatus.ARCHIVED;
+    }
+
+    public void archive(User updatedBy) {
+        this.status = CatalogCategoryStatus.ARCHIVED;
+        this.updatedBy = updatedBy;
     }
 
     public UUID getId() {

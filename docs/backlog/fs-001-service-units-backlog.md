@@ -402,7 +402,25 @@ Criteres d'acceptation:
 - Les categories sont triees par `display_order`, puis par nom.
 - Les utilisateurs non autorises ne peuvent pas lister les categories internes d'une entreprise.
 
+### CATCAT-BACK-002 - Modifier une categorie de catalogue
+
+Issue GitHub: #111.
+
+**En tant que** administrateur d'entreprise,
+**je veux** modifier une categorie de catalogue,
+**afin de** ajuster l'organisation de mon catalogue.
+
+Criteres d'acceptation:
+
+- L'endpoint `PUT /api/companies/{companyId}/catalog-categories/{categoryId}` existe.
+- Le role `ADMIN` actif est requis.
+- Le nom, la description et `displayOrder` peuvent etre modifies.
+- Le nom reste unique dans l'entreprise, sauf pour la categorie modifiee.
+- `updated_by`, `updated_at` et `version` sont mis a jour.
+
 ### CATCAT-030 - Archiver une categorie de catalogue
+
+Issue GitHub: #111.
 
 **En tant que** administrateur d'entreprise,
 **je veux** archiver une categorie,
@@ -492,6 +510,24 @@ Criteres d'acceptation:
 - La nouvelle categorie doit appartenir a la meme entreprise.
 - Les articles issus du catalogue conservent leur reference au catalogue modifie.
 - `updated_at` et `version` sont mis a jour.
+
+### CATALOG-BACK-002 - Upload local image catalogue
+
+Issue GitHub: #112.
+
+**En tant que** administrateur d'entreprise,
+**je veux** uploader une image depuis mon appareil pour un element catalogue,
+**afin de** illustrer les articles visibles par les clients.
+
+Criteres d'acceptation:
+
+- L'endpoint `POST /api/companies/{companyId}/catalogs/{catalogId}/image` accepte un multipart `image`.
+- Le role `ADMIN` actif est requis.
+- Le catalogue doit appartenir a l'entreprise.
+- Le stockage local `.flowmova-storage` est reutilise.
+- `catalog.imageUrl` est mis a jour avec l'URL publique locale.
+- Les formats JPEG, PNG et WEBP sont acceptes selon les limites de stockage existantes.
+- Les tests couvrent upload admin, refus non admin et mise a jour de `imageUrl`.
 
 ### CATALOG-040 - Archiver un catalogue
 

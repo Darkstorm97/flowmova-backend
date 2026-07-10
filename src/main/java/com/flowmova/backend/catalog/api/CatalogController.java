@@ -5,6 +5,7 @@ import com.flowmova.backend.catalog.application.ArchiveCatalogService;
 import com.flowmova.backend.catalog.application.CreateCatalogService;
 import com.flowmova.backend.catalog.application.ListActiveCatalogsService;
 import com.flowmova.backend.catalog.application.UpdateCatalogService;
+import com.flowmova.backend.catalog.application.UploadCatalogImageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/companies/{companyId}/catalogs")
@@ -32,16 +34,19 @@ public class CatalogController {
     private final ListActiveCatalogsService listActiveCatalogsService;
     private final UpdateCatalogService updateCatalogService;
     private final ArchiveCatalogService archiveCatalogService;
+    private final UploadCatalogImageService uploadCatalogImageService;
 
     public CatalogController(
             CreateCatalogService createCatalogService,
             ListActiveCatalogsService listActiveCatalogsService,
             UpdateCatalogService updateCatalogService,
-            ArchiveCatalogService archiveCatalogService) {
+            ArchiveCatalogService archiveCatalogService,
+            UploadCatalogImageService uploadCatalogImageService) {
         this.createCatalogService = createCatalogService;
         this.listActiveCatalogsService = listActiveCatalogsService;
         this.updateCatalogService = updateCatalogService;
         this.archiveCatalogService = archiveCatalogService;
+        this.uploadCatalogImageService = uploadCatalogImageService;
     }
 
     @GetMapping
@@ -87,5 +92,17 @@ public class CatalogController {
             @PathVariable UUID catalogId,
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser) {
         return archiveCatalogService.archive(companyId, catalogId, authenticatedUser);
+    }
+
+    @PostMapping(path = "/{catalogId}/image", consumes = "multipart/form-data")
+    @Operation(
+            summary = "Uploader l'image d'un catalogue",
+            description = "Remplace l'image d'un element catalogue. Seul un administrateur actif de l'entreprise peut effectuer cette operation.")
+    public CatalogResponse uploadImage(
+            @PathVariable UUID companyId,
+            @PathVariable UUID catalogId,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+            @RequestParam("image") MultipartFile image) {
+        return uploadCatalogImageService.uploadImage(companyId, catalogId, authenticatedUser, image);
     }
 }

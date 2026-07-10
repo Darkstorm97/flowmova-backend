@@ -18,4 +18,6 @@ public interface CatalogCategoryRepository extends JpaRepository<CatalogCategory
     Optional<CatalogCategory> findByIdAndCompanyId(UUID id, UUID companyId);
 
     boolean existsByCompanyIdAndNameIgnoreCase(UUID companyId, String name);
+
+    boolean existsByCompanyIdAndNameIgnoreCaseAndIdNot(UUID companyId, String name, UUID id);
 }
