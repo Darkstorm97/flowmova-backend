@@ -114,6 +114,7 @@ class ServiceUnitControllerTests {
                 .andExpect(jsonPath("$.status").value("CLOSED"))
                 .andExpect(jsonPath("$.ticketCreationGuardMode").value("NONE"))
                 .andExpect(jsonPath("$.creationEntryMode").value("PUBLIC_AND_QR"))
+                .andExpect(jsonPath("$.allowTicketWithoutItems").value(true))
                 .andExpect(jsonPath("$.defaultLocation.id").exists())
                 .andExpect(jsonPath("$.defaultLocation.name").value("Principal"))
                 .andExpect(jsonPath("$.defaultLocation.type").value("DEFAULT"))
@@ -136,12 +137,42 @@ class ServiceUnitControllerTests {
         assertThat(serviceUnit.getType()).isEqualTo(ServiceUnitType.TICKET_QUEUE);
         assertThat(serviceUnit.getStatus()).isEqualTo(ServiceUnitStatus.CLOSED);
         assertThat(serviceUnit.getCreationEntryMode()).isEqualTo(ServiceUnitCreationEntryMode.PUBLIC_AND_QR);
+        assertThat(serviceUnit.isTicketWithoutItemsAllowed()).isTrue();
         assertThat(serviceUnit.getCreatedBy().getId()).isEqualTo(admin.getId());
         assertThat(defaultLocation.getServiceUnit().getId()).isEqualTo(serviceUnitId);
         assertThat(defaultLocation.getType()).isEqualTo(ServiceUnitLocationType.DEFAULT);
         assertThat(defaultLocation.isDefaultLocation()).isTrue();
         assertThat(defaultLocation.getStatus()).isEqualTo(ServiceUnitLocationStatus.ACTIVE);
         assertThat(defaultLocation.getCreatedBy().getId()).isEqualTo(admin.getId());
+    }
+
+    @Test
+    void adminCreatesServiceUnitThatRequiresItems() throws Exception {
+        User admin = user("service-unit-requires-items");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        String response = mockMvc.perform(post("/api/companies/{companyId}/service-units", company.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Commande avec article",
+                                  "type": "TICKET_QUEUE",
+                                  "allowTicketWithoutItems": false
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.allowTicketWithoutItems").value(false))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        ServiceUnit serviceUnit = serviceUnitRepository.findById(
+                        UUID.fromString(objectMapper.readTree(response).get("id").asText()))
+                .orElseThrow();
+        assertThat(serviceUnit.isTicketWithoutItemsAllowed()).isFalse();
     }
 
     @Test

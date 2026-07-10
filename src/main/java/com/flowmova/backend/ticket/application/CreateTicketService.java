@@ -108,6 +108,10 @@ public class CreateTicketService {
         ServiceUnitLocation location = resolveLocation(serviceUnitId, command.locationId());
         User user = resolveUser(authenticatedUser);
         validateActiveTicketLimit(serviceUnit, user);
+        List<CreateTicketLineCommand> ticketLines = lines(command);
+        if (ticketLines.isEmpty() && !serviceUnit.isTicketWithoutItemsAllowed()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "At least one ticket item is required");
+        }
         String guestName = user == null ? requireGuestName(command.guestName()) : null;
         String accessCode = user == null ? generateAccessCode() : null;
         String accessCodeHash = accessCode == null ? null : passwordEncoder.encode(accessCode);
@@ -123,7 +127,7 @@ public class CreateTicketService {
                 trimToNull(command.notes()),
                 serviceUnit.getCompany().getCurrency());
 
-        for (CreateTicketLineCommand lineCommand : lines(command)) {
+        for (CreateTicketLineCommand lineCommand : ticketLines) {
             Item item = itemRepository.findByIdAndServiceUnitId(lineCommand.itemId(), serviceUnitId)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ticket line item is invalid"));
             if (item.getStatus() != ItemStatus.ACTIVE || item.getAvailability() != ItemAvailability.AVAILABLE) {

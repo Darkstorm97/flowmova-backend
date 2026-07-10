@@ -185,6 +185,27 @@ class TicketControllerTests {
     }
 
     @Test
+    void rejectsTicketWithoutItemsWhenServiceRequiresItems() throws Exception {
+        Fixture fixture = fixture("requires-ticket-items");
+        fixture.serviceUnit().setAllowTicketWithoutItems(false);
+        serviceUnitRepository.saveAndFlush(fixture.serviceUnit());
+        User customer = user("ticket-items-required-customer");
+        String token = accessTokenGenerator.generate(customer).value();
+
+        mockMvc.perform(post("/api/service-units/{serviceUnitId}/tickets", fixture.serviceUnit().getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "locationId": "%s",
+                                  "lines": []
+                                }
+                                """.formatted(fixture.defaultLocation().getId())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("At least one ticket item is required"));
+    }
+
+    @Test
     void rejectsTicketCreationWhenCompanyIsOperationallyClosed() throws Exception {
         Fixture fixture = fixture("closed-company-ticket");
         fixture.company().update(

@@ -52,10 +52,10 @@ Il est construit a partir de FS-001, FS-002 et du DAT. En cas d'ambiguite, les F
 - Les visiteurs non authentifies ne sont jamais bloques globalement par le backend dans le mode `AUTHENTICATED_OR_GUEST_RECENT_ONE_OPEN_TICKET`, car le backend ne peut pas identifier fiablement un visiteur sans compte.
 - Une unite de service peut etre ouverte uniquement si elle est correctement configuree.
 - La configuration minimale d'ouverture est: entreprise active, nom renseigne, type `TICKET_QUEUE`, statut actuel `CLOSED`.
-- Les articles d'une unite sont optionnels. S'ils existent et sont disponibles, ils sont affiches; sinon l'utilisateur peut creer un ticket general.
+- Les articles d'une unite sont optionnels par defaut. Un service peut toutefois configurer `allowTicketWithoutItems=false` pour exiger au moins un article a la creation d'un ticket.
 - Dans le MVP, les quantites d'article sont representatives et informatives; elles ne bloquent pas la creation de ticket si la demande depasse la quantite configuree.
-- Un ticket peut contenir zero, une ou plusieurs lignes de ticket.
-- Un ticket avec zero ligne permet une prise en charge generale.
+- Un ticket peut contenir zero, une ou plusieurs lignes de ticket selon la configuration de l'unite de service.
+- Un ticket avec zero ligne permet une prise en charge generale lorsque `allowTicketWithoutItems=true`.
 - Une ligne de ticket peut preciser une quantite d'article.
 - Si la quantite d'une ligne de ticket est absente ou `null` dans la requete, le backend utilise `1`.
 - Si la quantite d'une ligne de ticket est fournie, elle doit etre superieure ou egale a `1`.

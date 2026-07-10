@@ -14,9 +14,17 @@ public record UpdateServiceUnitRequest(
         @Schema(description = "Mode de controle anti-spam de creation de tickets. Si absent, le mode actuel est conserve.")
         TicketCreationGuardMode ticketCreationGuardMode,
         @Schema(description = "Mode d'entree autorise pour creer un ticket. Si absent, le mode actuel est conserve.")
-        ServiceUnitCreationEntryMode creationEntryMode) {
+        ServiceUnitCreationEntryMode creationEntryMode,
+        @Schema(description = "Autorise la creation d'un ticket sans article. Si absent, le mode actuel est conserve.")
+        Boolean allowTicketWithoutItems) {
 
     public UpdateServiceUnitCommand toCommand() {
-        return new UpdateServiceUnitCommand(name, description, location, ticketCreationGuardMode, creationEntryMode);
+        return new UpdateServiceUnitCommand(
+                name,
+                description,
+                location,
+                ticketCreationGuardMode,
+                creationEntryMode,
+                allowTicketWithoutItems);
     }
 }

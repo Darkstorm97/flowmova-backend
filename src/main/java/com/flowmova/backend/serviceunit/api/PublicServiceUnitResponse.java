@@ -18,6 +18,7 @@ public record PublicServiceUnitResponse(
         ServiceUnitStatus status,
         TicketCreationGuardMode ticketCreationGuardMode,
         ServiceUnitCreationEntryMode creationEntryMode,
+        boolean allowTicketWithoutItems,
         Instant createdAt,
         Instant updatedAt) {
 
@@ -32,6 +33,7 @@ public record PublicServiceUnitResponse(
                 serviceUnit.getStatus(),
                 serviceUnit.getTicketCreationGuardMode(),
                 serviceUnit.getCreationEntryMode(),
+                serviceUnit.isTicketWithoutItemsAllowed(),
                 serviceUnit.getCreatedAt(),
                 serviceUnit.getUpdatedAt());
     }

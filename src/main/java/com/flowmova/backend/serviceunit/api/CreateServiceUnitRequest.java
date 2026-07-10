@@ -26,7 +26,10 @@ public record CreateServiceUnitRequest(
         TicketCreationGuardMode ticketCreationGuardMode,
 
         @Schema(description = "Mode d'entree autorise pour creer un ticket. Si absent, PUBLIC_AND_QR est utilise.")
-        ServiceUnitCreationEntryMode creationEntryMode) {
+        ServiceUnitCreationEntryMode creationEntryMode,
+
+        @Schema(description = "Autorise la creation d'un ticket sans article. Si absent, true est utilise.")
+        Boolean allowTicketWithoutItems) {
 
     public CreateServiceUnitCommand toCommand() {
         return new CreateServiceUnitCommand(
@@ -35,6 +38,7 @@ public record CreateServiceUnitRequest(
                 location,
                 type,
                 ticketCreationGuardMode == null ? TicketCreationGuardMode.NONE : ticketCreationGuardMode,
-                creationEntryMode == null ? ServiceUnitCreationEntryMode.PUBLIC_AND_QR : creationEntryMode);
+                creationEntryMode == null ? ServiceUnitCreationEntryMode.PUBLIC_AND_QR : creationEntryMode,
+                allowTicketWithoutItems == null ? true : allowTicketWithoutItems);
     }
 }

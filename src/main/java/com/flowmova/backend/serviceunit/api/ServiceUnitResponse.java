@@ -19,6 +19,7 @@ public record ServiceUnitResponse(
         ServiceUnitStatus status,
         TicketCreationGuardMode ticketCreationGuardMode,
         ServiceUnitCreationEntryMode creationEntryMode,
+        boolean allowTicketWithoutItems,
         ServiceUnitLocationResponse defaultLocation,
         Instant createdAt,
         Instant updatedAt) {
@@ -34,6 +35,7 @@ public record ServiceUnitResponse(
                 serviceUnit.getStatus(),
                 serviceUnit.getTicketCreationGuardMode(),
                 serviceUnit.getCreationEntryMode(),
+                serviceUnit.isTicketWithoutItemsAllowed(),
                 defaultLocation == null ? null : ServiceUnitLocationResponse.from(defaultLocation),
                 serviceUnit.getCreatedAt(),
                 serviceUnit.getUpdatedAt());

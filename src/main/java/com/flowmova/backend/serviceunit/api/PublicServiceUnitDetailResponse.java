@@ -22,6 +22,7 @@ public record PublicServiceUnitDetailResponse(
         ServiceUnitStatus status,
         TicketCreationGuardMode ticketCreationGuardMode,
         ServiceUnitCreationEntryMode creationEntryMode,
+        boolean allowTicketWithoutItems,
         ServiceUnitLocationResponse defaultLocation,
         List<ServiceUnitLocationResponse> locations,
         List<ItemResponse> items,
@@ -43,6 +44,7 @@ public record PublicServiceUnitDetailResponse(
                 serviceUnit.getStatus(),
                 serviceUnit.getTicketCreationGuardMode(),
                 serviceUnit.getCreationEntryMode(),
+                serviceUnit.isTicketWithoutItemsAllowed(),
                 ServiceUnitLocationResponse.from(defaultLocation),
                 locations.stream()
                         .map(ServiceUnitLocationResponse::from)

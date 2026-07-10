@@ -25,6 +25,8 @@ import org.hibernate.type.SqlTypes;
 @Table(name = "service_units")
 public class ServiceUnit {
 
+    private static final String ALLOW_TICKET_WITHOUT_ITEMS_SETTING = "allowTicketWithoutItems";
+
     @Id
     @Column(name = "id", nullable = false)
     private UUID id;
@@ -126,6 +128,7 @@ public class ServiceUnit {
             String location,
             TicketCreationGuardMode ticketCreationGuardMode,
             ServiceUnitCreationEntryMode creationEntryMode,
+            Boolean allowTicketWithoutItems,
             User updatedBy) {
         this.name = name;
         this.description = description;
@@ -136,6 +139,7 @@ public class ServiceUnit {
         if (creationEntryMode != null) {
             this.creationEntryMode = creationEntryMode;
         }
+        setAllowTicketWithoutItems(allowTicketWithoutItems);
         this.updatedBy = updatedBy;
     }
 
@@ -189,6 +193,24 @@ public class ServiceUnit {
 
     public Map<String, Object> getSettings() {
         return Map.copyOf(settings);
+    }
+
+    public boolean isTicketWithoutItemsAllowed() {
+        Object value = settings.get(ALLOW_TICKET_WITHOUT_ITEMS_SETTING);
+        if (value instanceof Boolean booleanValue) {
+            return booleanValue;
+        }
+        if (value instanceof String stringValue) {
+            return Boolean.parseBoolean(stringValue);
+        }
+        return true;
+    }
+
+    public void setAllowTicketWithoutItems(Boolean allowTicketWithoutItems) {
+        if (allowTicketWithoutItems == null) {
+            return;
+        }
+        settings.put(ALLOW_TICKET_WITHOUT_ITEMS_SETTING, allowTicketWithoutItems);
     }
 
     public Instant getCreatedAt() {

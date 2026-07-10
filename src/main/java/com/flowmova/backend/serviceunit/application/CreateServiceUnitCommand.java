@@ -10,5 +10,6 @@ public record CreateServiceUnitCommand(
         String location,
         ServiceUnitType type,
         TicketCreationGuardMode ticketCreationGuardMode,
-        ServiceUnitCreationEntryMode creationEntryMode) {
+        ServiceUnitCreationEntryMode creationEntryMode,
+        Boolean allowTicketWithoutItems) {
 }

@@ -74,6 +74,7 @@ public class CreateServiceUnitService {
                 creator);
         serviceUnit.setTicketCreationGuardMode(command.ticketCreationGuardMode());
         serviceUnit.setCreationEntryMode(command.creationEntryMode());
+        serviceUnit.setAllowTicketWithoutItems(command.allowTicketWithoutItems());
         ServiceUnit savedServiceUnit = serviceUnitRepository.saveAndFlush(serviceUnit);
 
         ServiceUnitLocation defaultLocation = new ServiceUnitLocation(

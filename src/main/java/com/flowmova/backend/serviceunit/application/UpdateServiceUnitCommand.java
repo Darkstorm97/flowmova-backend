@@ -8,5 +8,6 @@ public record UpdateServiceUnitCommand(
         String description,
         String location,
         TicketCreationGuardMode ticketCreationGuardMode,
-        ServiceUnitCreationEntryMode creationEntryMode) {
+        ServiceUnitCreationEntryMode creationEntryMode,
+        Boolean allowTicketWithoutItems) {
 }
