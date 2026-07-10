@@ -120,12 +120,19 @@ class TicketControllerTests {
                 .andExpect(jsonPath("$.userId").doesNotExist())
                 .andExpect(jsonPath("$.guestName").value("Alice Client"))
                 .andExpect(jsonPath("$.customerPhone").value("+1 514 555 0000"))
+                .andExpect(jsonPath("$.companyId").value(fixture.company().getId().toString()))
+                .andExpect(jsonPath("$.companyName").value(fixture.company().getName()))
                 .andExpect(jsonPath("$.serviceUnitId").value(fixture.serviceUnit().getId().toString()))
+                .andExpect(jsonPath("$.serviceUnitName").value(fixture.serviceUnit().getName()))
                 .andExpect(jsonPath("$.locationId").value(fixture.defaultLocation().getId().toString()))
+                .andExpect(jsonPath("$.locationName").value(fixture.defaultLocation().getName()))
+                .andExpect(jsonPath("$.locationDefault").value(true))
                 .andExpect(jsonPath("$.status").value("CREATED"))
                 .andExpect(jsonPath("$.currency").value("USD"))
                 .andExpect(jsonPath("$.totalAmount").value(4.5))
                 .andExpect(jsonPath("$.lines[0].itemId").value(fixture.item().getId().toString()))
+                .andExpect(jsonPath("$.lines[0].itemName").value("Counter Service"))
+                .andExpect(jsonPath("$.lines[0].itemImageUrl").value("https://cdn.flowmova.test/counter-service.jpg"))
                 .andExpect(jsonPath("$.lines[0].quantity").value(1))
                 .andExpect(jsonPath("$.lines[0].unitPriceAmount").value(4.5))
                 .andExpect(jsonPath("$.lines[0].lineTotalAmount").value(4.5))
@@ -628,7 +635,13 @@ class TicketControllerTests {
                 .andExpect(jsonPath("$.items[0].guestName").doesNotExist())
                 .andExpect(jsonPath("$.items[0].userId").value(customer.getId().toString()))
                 .andExpect(jsonPath("$.items[0].status").value("TREATED"))
+                .andExpect(jsonPath("$.items[0].companyId").value(fixture.company().getId().toString()))
+                .andExpect(jsonPath("$.items[0].companyName").value(fixture.company().getName()))
                 .andExpect(jsonPath("$.items[0].serviceUnitId").value(fixture.serviceUnit().getId().toString()))
+                .andExpect(jsonPath("$.items[0].serviceUnitName").value(fixture.serviceUnit().getName()))
+                .andExpect(jsonPath("$.items[0].locationId").value(fixture.defaultLocation().getId().toString()))
+                .andExpect(jsonPath("$.items[0].locationName").value(fixture.defaultLocation().getName()))
+                .andExpect(jsonPath("$.items[0].locationDefault").value(true))
                 .andExpect(jsonPath("$.items[?(@.ticketNumber == 'T-OTHER-%s')]".formatted(uniqueToken)).doesNotExist())
                 .andExpect(jsonPath("$.items[?(@.ticketNumber == 'T-GUEST-%s')]".formatted(uniqueToken)).doesNotExist())
                 .andExpect(jsonPath("$.page").value(0))
@@ -1412,7 +1425,7 @@ class TicketControllerTests {
                 category,
                 "Counter Service",
                 null,
-                null,
+                "https://cdn.flowmova.test/counter-service.jpg",
                 new BigDecimal("4.50"),
                 owner));
         ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(

@@ -7,6 +7,8 @@ import java.util.UUID;
 public record TicketLineResponse(
         UUID id,
         UUID itemId,
+        String itemName,
+        String itemImageUrl,
         Integer quantity,
         BigDecimal unitPriceAmount,
         BigDecimal lineTotalAmount,
@@ -16,6 +18,8 @@ public record TicketLineResponse(
         return new TicketLineResponse(
                 line.getId(),
                 line.getItem().getId(),
+                line.getItem().getCatalog().getName(),
+                line.getItem().getCatalog().getImageUrl(),
                 line.getQuantity(),
                 line.getUnitPriceAmount(),
                 line.getLineTotalAmount(),

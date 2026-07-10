@@ -1082,6 +1082,8 @@ Criteres d'acceptation:
 - Les tickets peuvent etre recherches par numero de ticket.
 - La recherche par numero est limitee aux tickets du compte authentifie.
 - La recherche par numero accepte une valeur partielle et est insensible a la casse.
+- La reponse expose les libelles publics necessaires a l'affichage client: `companyId`, `companyName`, `serviceUnitName`, `locationName`, `locationDefault`.
+- Les lignes de ticket exposent les libelles publics de l'article: `itemName` et `itemImageUrl` lorsque disponible.
 - Les informations sensibles internes de l'entreprise ne sont pas exposees.
 
 ### TICKET-022 - Consulter un ticket non authentifie avec numero et code
