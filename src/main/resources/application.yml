@@ -1,6 +1,10 @@
 spring:
   application:
     name: flowmova-backend
+  servlet:
+    multipart:
+      max-file-size: ${FLOWMOVA_MULTIPART_MAX_FILE_SIZE:5MB}
+      max-request-size: ${FLOWMOVA_MULTIPART_MAX_REQUEST_SIZE:6MB}
   datasource:
     url: ${FLOWMOVA_DATASOURCE_URL:jdbc:postgresql://localhost:5433/flowmova}
     username: ${FLOWMOVA_DATASOURCE_USERNAME:flowmova}
