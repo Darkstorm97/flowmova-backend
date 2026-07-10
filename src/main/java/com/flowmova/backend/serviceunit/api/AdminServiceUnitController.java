@@ -5,6 +5,7 @@ import com.flowmova.backend.item.api.CreateItemRequest;
 import com.flowmova.backend.item.api.ItemResponse;
 import com.flowmova.backend.item.api.UpdateItemRequest;
 import com.flowmova.backend.item.application.CreateItemService;
+import com.flowmova.backend.item.application.ListServiceUnitItemsService;
 import com.flowmova.backend.item.application.UpdateItemService;
 import com.flowmova.backend.serviceunit.application.ArchiveServiceUnitService;
 import com.flowmova.backend.serviceunit.application.CloseServiceUnitService;
@@ -22,6 +23,7 @@ import com.flowmova.backend.ticket.domain.TicketStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -45,6 +47,7 @@ public class AdminServiceUnitController {
     private final ListAdminServiceUnitsService listAdminServiceUnitsService;
     private final UpdateServiceUnitService updateServiceUnitService;
     private final CreateItemService createItemService;
+    private final ListServiceUnitItemsService listServiceUnitItemsService;
     private final UpdateItemService updateItemService;
     private final ListServiceUnitTicketsService listServiceUnitTicketsService;
     private final ChangeTicketStatusService changeTicketStatusService;
@@ -57,6 +60,7 @@ public class AdminServiceUnitController {
             ListAdminServiceUnitsService listAdminServiceUnitsService,
             UpdateServiceUnitService updateServiceUnitService,
             CreateItemService createItemService,
+            ListServiceUnitItemsService listServiceUnitItemsService,
             UpdateItemService updateItemService,
             ListServiceUnitTicketsService listServiceUnitTicketsService,
             ChangeTicketStatusService changeTicketStatusService,
@@ -67,6 +71,7 @@ public class AdminServiceUnitController {
         this.listAdminServiceUnitsService = listAdminServiceUnitsService;
         this.updateServiceUnitService = updateServiceUnitService;
         this.createItemService = createItemService;
+        this.listServiceUnitItemsService = listServiceUnitItemsService;
         this.updateItemService = updateItemService;
         this.listServiceUnitTicketsService = listServiceUnitTicketsService;
         this.changeTicketStatusService = changeTicketStatusService;
@@ -162,6 +167,17 @@ public class AdminServiceUnitController {
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
             @Valid @RequestBody CreateItemRequest request) {
         return createItemService.create(companyId, serviceUnitId, authenticatedUser, request.toCommand());
+    }
+
+    @GetMapping("/{serviceUnitId}/items")
+    @Operation(
+            summary = "Lister les articles d'une unite de service",
+            description = "Retourne les articles d'une unite de service pour l'administration, incluant les articles indisponibles ou archives.")
+    public List<ItemResponse> listItems(
+            @PathVariable UUID companyId,
+            @PathVariable UUID serviceUnitId,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser) {
+        return listServiceUnitItemsService.list(companyId, serviceUnitId, authenticatedUser);
     }
 
     @GetMapping("/{serviceUnitId}/tickets")

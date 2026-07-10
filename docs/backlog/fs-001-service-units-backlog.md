@@ -779,6 +779,22 @@ Criteres d'acceptation:
 - Le repository permet de lister les articles par unite.
 - Le repository permet de lister les articles actifs et disponibles d'une unite.
 
+### ITEM-003 - Lister les articles admin d'une unite de service
+
+Issue GitHub: #110.
+
+**En tant que** administrateur d'entreprise,
+**je veux** lister les articles rattaches a une unite de service,
+**afin de** les administrer meme lorsqu'ils sont indisponibles ou archives.
+
+Criteres d'acceptation:
+
+- Le role `ADMIN` est requis.
+- Un endpoint admin retourne les articles d'une unite de service.
+- La reponse reutilise `ItemResponse`.
+- Les articles sont tries par `displayOrder`, puis nom de catalogue.
+- Les articles indisponibles ou archives restent visibles cote admin.
+
 ### SERVICE-020 - Associer un catalogue a une unite de service
 
 **En tant que** administrateur d'entreprise,

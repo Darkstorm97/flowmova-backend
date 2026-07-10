@@ -1863,6 +1863,49 @@ class ServiceUnitControllerTests {
     }
 
     @Test
+    void adminListsServiceUnitItemsIncludingUnavailableItems() throws Exception {
+        User admin = user("service-unit-item-list-admin");
+        Company company = activeCompany(admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        Catalog coffee = catalog(company, admin, "Admin Coffee", new BigDecimal("3.50"));
+        Catalog tea = catalog(company, admin, "Admin Tea", new BigDecimal("2.75"));
+        ServiceUnit serviceUnit = serviceUnitRepository.save(new ServiceUnit(
+                company,
+                "Item Admin Queue",
+                null,
+                null,
+                null,
+                admin));
+        itemRepository.save(new Item(
+                serviceUnit,
+                coffee,
+                new BigDecimal("3.50"),
+                ItemAvailability.AVAILABLE,
+                10,
+                2));
+        itemRepository.save(new Item(
+                serviceUnit,
+                tea,
+                new BigDecimal("2.75"),
+                ItemAvailability.UNAVAILABLE,
+                0,
+                1));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(get(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/items",
+                        company.getId(),
+                        serviceUnit.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].catalog.name").value("Admin Tea"))
+                .andExpect(jsonPath("$[0].availability").value("UNAVAILABLE"))
+                .andExpect(jsonPath("$[1].catalog.name").value("Admin Coffee"))
+                .andExpect(jsonPath("$[1].availability").value("AVAILABLE"));
+    }
+
+    @Test
     void adminAssociatesCatalogToServiceUnitWithItemPriceOverride() throws Exception {
         User admin = user("service-unit-item-price");
         Company company = activeCompany(admin);
