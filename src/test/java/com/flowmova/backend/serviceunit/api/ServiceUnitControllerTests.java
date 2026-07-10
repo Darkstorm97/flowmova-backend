@@ -35,6 +35,7 @@ import com.flowmova.backend.serviceunitlocation.domain.ServiceUnitLocationType;
 import com.flowmova.backend.serviceunitlocation.infrastructure.ServiceUnitLocationRepository;
 import com.flowmova.backend.user.domain.User;
 import com.flowmova.backend.user.infrastructure.UserRepository;
+import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -76,6 +77,9 @@ class ServiceUnitControllerTests {
 
     @Autowired
     private ServiceUnitLocationRepository serviceUnitLocationRepository;
+
+    @Autowired
+    private EntityManager entityManager;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -1593,7 +1597,8 @@ class ServiceUnitControllerTests {
                                   "description": " Updated description ",
                                   "location": " Updated location ",
                                   "ticketCreationGuardMode": "AUTHENTICATED_OR_GUEST_RECENT_ONE_OPEN_TICKET",
-                                  "creationEntryMode": "QR_ONLY"
+                                  "creationEntryMode": "QR_ONLY",
+                                  "allowTicketWithoutItems": false
                                 }
                                 """))
                 .andExpect(status().isOk())
@@ -1605,7 +1610,11 @@ class ServiceUnitControllerTests {
                 .andExpect(jsonPath("$.status").value("OPEN"))
                 .andExpect(jsonPath("$.ticketCreationGuardMode").value("AUTHENTICATED_OR_GUEST_RECENT_ONE_OPEN_TICKET"))
                 .andExpect(jsonPath("$.creationEntryMode").value("QR_ONLY"))
+                .andExpect(jsonPath("$.allowTicketWithoutItems").value(false))
                 .andExpect(jsonPath("$.defaultLocation.id").value(defaultLocation.getId().toString()));
+
+        serviceUnitRepository.flush();
+        entityManager.clear();
 
         ServiceUnit updatedServiceUnit = serviceUnitRepository.findById(serviceUnit.getId()).orElseThrow();
         assertThat(updatedServiceUnit.getName()).isEqualTo("Updated Queue");
@@ -1615,6 +1624,7 @@ class ServiceUnitControllerTests {
         assertThat(updatedServiceUnit.getTicketCreationGuardMode())
                 .isEqualTo(TicketCreationGuardMode.AUTHENTICATED_OR_GUEST_RECENT_ONE_OPEN_TICKET);
         assertThat(updatedServiceUnit.getCreationEntryMode()).isEqualTo(ServiceUnitCreationEntryMode.QR_ONLY);
+        assertThat(updatedServiceUnit.isTicketWithoutItemsAllowed()).isFalse();
         assertThat(updatedServiceUnit.getUpdatedBy().getId()).isEqualTo(admin.getId());
     }
 

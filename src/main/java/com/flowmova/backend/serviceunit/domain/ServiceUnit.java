@@ -210,7 +210,9 @@ public class ServiceUnit {
         if (allowTicketWithoutItems == null) {
             return;
         }
-        settings.put(ALLOW_TICKET_WITHOUT_ITEMS_SETTING, allowTicketWithoutItems);
+        Map<String, Object> updatedSettings = new LinkedHashMap<>(settings);
+        updatedSettings.put(ALLOW_TICKET_WITHOUT_ITEMS_SETTING, allowTicketWithoutItems);
+        settings = updatedSettings;
     }
 
     public Instant getCreatedAt() {
