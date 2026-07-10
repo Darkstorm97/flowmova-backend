@@ -237,6 +237,11 @@ public class Company {
         this.updatedBy = updatedBy;
     }
 
+    public void updateImageUrl(String imageUrl, User updatedBy) {
+        this.imageUrl = imageUrl;
+        this.updatedBy = updatedBy;
+    }
+
     public UUID getId() {
         return id;
     }

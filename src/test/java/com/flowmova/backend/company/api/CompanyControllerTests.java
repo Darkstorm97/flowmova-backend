@@ -2,6 +2,7 @@ package com.flowmova.backend.company.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -31,6 +32,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.mock.web.MockMultipartFile;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -445,6 +447,64 @@ class CompanyControllerTests {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
                 .andExpect(jsonPath("$.message").value("Business type must be a supported company business type"));
+    }
+
+    @Test
+    void uploadsCompanyImageWhenUserIsAdmin() throws Exception {
+        User admin = userRepository.save(new User(
+                "company-image-admin.%s@flowmova.test".formatted(UUID.randomUUID()),
+                passwordEncoder.encode("Password123!"),
+                "Company",
+                "ImageAdmin"));
+        Company company = activeCompany("Image Upload Company", "Visible", admin);
+        companyUserRepository.save(new CompanyUser(company.getId(), admin, CompanyRole.ADMIN));
+        String token = accessTokenGenerator.generate(admin).value();
+        MockMultipartFile image = new MockMultipartFile(
+                "image",
+                "cover.png",
+                MediaType.IMAGE_PNG_VALUE,
+                new byte[] {1, 2, 3, 4});
+
+        mockMvc.perform(multipart("/api/companies/{companyId}/image", company.getId())
+                        .file(image)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(company.getId().toString()))
+                .andExpect(jsonPath("$.imageUrl").value("http://localhost:8080/uploads/companies/%s/cover.png".formatted(company.getId())));
+
+        Company updatedCompany = companyRepository.findById(company.getId()).orElseThrow();
+        assertThat(updatedCompany.getImageUrl()).isEqualTo(
+                "http://localhost:8080/uploads/companies/%s/cover.png".formatted(company.getId()));
+        assertThat(updatedCompany.getUpdatedBy().getId()).isEqualTo(admin.getId());
+    }
+
+    @Test
+    void rejectsCompanyImageUploadWhenUserIsNotAdmin() throws Exception {
+        User owner = userRepository.save(new User(
+                "company-image-owner.%s@flowmova.test".formatted(UUID.randomUUID()),
+                passwordEncoder.encode("Password123!"),
+                "Company",
+                "ImageOwner"));
+        User employee = userRepository.save(new User(
+                "company-image-employee.%s@flowmova.test".formatted(UUID.randomUUID()),
+                passwordEncoder.encode("Password123!"),
+                "Company",
+                "ImageEmployee"));
+        Company company = activeCompany("Image Forbidden Company", "Visible", owner);
+        companyUserRepository.save(new CompanyUser(company.getId(), employee, CompanyRole.EMPLOYEE));
+        String token = accessTokenGenerator.generate(employee).value();
+        MockMultipartFile image = new MockMultipartFile(
+                "image",
+                "cover.png",
+                MediaType.IMAGE_PNG_VALUE,
+                new byte[] {1, 2, 3, 4});
+
+        mockMvc.perform(multipart("/api/companies/{companyId}/image", company.getId())
+                        .file(image)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.message").value("Company admin role is required"));
     }
 
     @Test

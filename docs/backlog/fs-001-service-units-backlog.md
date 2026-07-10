@@ -283,6 +283,26 @@ Criteres d'acceptation:
 - Toute creation de ticket est refusee lorsque la compagnie est `CLOSED`, peu importe l'unite, l'emplacement ou le parcours QR.
 - Les collections Postman et la documentation OpenAPI sont mises a jour.
 
+### COMPANY-BACK-001 - Stockage local des images entreprise
+
+Issue GitHub: #106.
+
+**En tant que** administrateur d'entreprise,
+**je veux** uploader une image depuis mon appareil,
+**afin de** ne pas devoir fournir manuellement une URL publique.
+
+Criteres d'acceptation:
+
+- Une abstraction `FileStorageService` existe pour isoler le stockage.
+- Une implementation locale stocke les images dans `.flowmova-storage`.
+- Les fichiers locaux sont servis publiquement via `/uploads/**`.
+- L'endpoint `POST /api/companies/{companyId}/image` accepte un multipart `image`.
+- Seul un membre `ADMIN` actif de la compagnie peut uploader/remplacer l'image.
+- Les types acceptes sont JPEG, PNG et WEBP.
+- La taille maximale est configurable.
+- `company.imageUrl` est mis a jour avec l'URL publique locale.
+- Les tests couvrent upload admin, refus non admin et mise a jour `imageUrl`.
+
 ### COMPANY-020 - Consulter mes entreprises
 
 **En tant que** utilisateur authentifie,

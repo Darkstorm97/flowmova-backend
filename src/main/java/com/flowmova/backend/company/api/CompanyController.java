@@ -6,6 +6,7 @@ import com.flowmova.backend.company.application.GetActiveCompanyService;
 import com.flowmova.backend.company.application.SearchActiveCompaniesService;
 import com.flowmova.backend.company.application.SearchCompaniesQuery;
 import com.flowmova.backend.company.application.UpdateCompanyService;
+import com.flowmova.backend.company.application.UploadCompanyImageService;
 import com.flowmova.backend.shared.api.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/companies")
@@ -33,16 +35,19 @@ public class CompanyController {
     private final SearchActiveCompaniesService searchActiveCompaniesService;
     private final GetActiveCompanyService getActiveCompanyService;
     private final UpdateCompanyService updateCompanyService;
+    private final UploadCompanyImageService uploadCompanyImageService;
 
     public CompanyController(
             CreateCompanyService createCompanyService,
             SearchActiveCompaniesService searchActiveCompaniesService,
             GetActiveCompanyService getActiveCompanyService,
-            UpdateCompanyService updateCompanyService) {
+            UpdateCompanyService updateCompanyService,
+            UploadCompanyImageService uploadCompanyImageService) {
         this.createCompanyService = createCompanyService;
         this.searchActiveCompaniesService = searchActiveCompaniesService;
         this.getActiveCompanyService = getActiveCompanyService;
         this.updateCompanyService = updateCompanyService;
+        this.uploadCompanyImageService = uploadCompanyImageService;
     }
 
     @GetMapping
@@ -89,5 +94,16 @@ public class CompanyController {
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
             @Valid @RequestBody UpdateCompanyRequest request) {
         return updateCompanyService.update(companyId, authenticatedUser, request.toCommand());
+    }
+
+    @PostMapping(path = "/{companyId}/image", consumes = "multipart/form-data")
+    @Operation(
+            summary = "Uploader l'image d'une entreprise",
+            description = "Remplace l'image d'une entreprise active. Seul un administrateur actif de l'entreprise peut effectuer cette operation.")
+    public CompanyResponse uploadImage(
+            @PathVariable UUID companyId,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+            @RequestParam("image") MultipartFile image) {
+        return uploadCompanyImageService.uploadImage(companyId, authenticatedUser, image);
     }
 }

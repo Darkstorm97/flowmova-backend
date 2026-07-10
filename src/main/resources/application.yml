@@ -21,6 +21,10 @@ server:
 
 flowmova:
   public-base-url: ${FLOWMOVA_PUBLIC_BASE_URL:http://localhost:3000}
+  storage:
+    local-root: ${FLOWMOVA_STORAGE_LOCAL_ROOT:.flowmova-storage}
+    public-url-prefix: ${FLOWMOVA_STORAGE_PUBLIC_URL_PREFIX:http://localhost:8080/uploads}
+    max-image-bytes: ${FLOWMOVA_STORAGE_MAX_IMAGE_BYTES:5242880}
   auth:
     jwt:
       issuer: ${FLOWMOVA_JWT_ISSUER:flowmova-backend}
