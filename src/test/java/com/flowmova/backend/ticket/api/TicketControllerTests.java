@@ -1039,6 +1039,24 @@ class TicketControllerTests {
     }
 
     @Test
+    void employeeListsEmptyCompanyTickets() throws Exception {
+        Fixture fixture = fixture("company-tickets-empty");
+        User employee = user("company-tickets-empty-employee");
+        companyUserRepository.save(new CompanyUser(fixture.company().getId(), employee, CompanyRole.EMPLOYEE));
+        String token = accessTokenGenerator.generate(employee).value();
+
+        mockMvc.perform(get("/api/companies/{companyId}/admin/tickets", fixture.company().getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("sort", "createdAt,asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items").isArray())
+                .andExpect(jsonPath("$.items.length()").value(0))
+                .andExpect(jsonPath("$.totalItems").value(0));
+    }
+
+    @Test
     void rejectsCompanyTicketListForServiceFromAnotherCompany() throws Exception {
         Fixture fixture = fixture("company-tickets-invalid-service");
         Fixture otherFixture = fixture("company-tickets-invalid-other");

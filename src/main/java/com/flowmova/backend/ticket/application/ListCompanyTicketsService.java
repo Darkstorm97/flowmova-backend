@@ -121,12 +121,14 @@ public class ListCompanyTicketsService {
             TicketStatus status,
             String ticketNumber) {
         return (root, query, criteriaBuilder) -> {
-            var predicate = criteriaBuilder.equal(root.get("serviceUnit").get("company").get("id"), companyId);
+            var serviceUnitJoin = root.join("serviceUnit");
+            var companyJoin = serviceUnitJoin.join("company");
+            var predicate = criteriaBuilder.equal(companyJoin.get("id"), companyId);
 
             if (serviceUnitId != null) {
                 predicate = criteriaBuilder.and(
                         predicate,
-                        criteriaBuilder.equal(root.get("serviceUnit").get("id"), serviceUnitId));
+                        criteriaBuilder.equal(serviceUnitJoin.get("id"), serviceUnitId));
             }
 
             if (status != null) {
