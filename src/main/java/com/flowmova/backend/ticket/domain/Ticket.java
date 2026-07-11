@@ -139,7 +139,10 @@ public class Ticket {
     }
 
     public void close() {
-        if (status != TicketStatus.TREATED && status != TicketStatus.CUSTOMER_CONFIRMED) {
+        if (status != TicketStatus.CREATED
+                && status != TicketStatus.RECEIVED
+                && status != TicketStatus.TREATED
+                && status != TicketStatus.CUSTOMER_CONFIRMED) {
             throw new IllegalStateException("Ticket transition is invalid");
         }
         this.status = TicketStatus.CLOSED;

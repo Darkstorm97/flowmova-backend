@@ -31,6 +31,7 @@ import com.flowmova.backend.serviceunitlocation.domain.ServiceUnitLocation;
 import com.flowmova.backend.serviceunitlocation.domain.ServiceUnitLocationType;
 import com.flowmova.backend.serviceunitlocation.infrastructure.ServiceUnitLocationRepository;
 import com.flowmova.backend.ticket.domain.Ticket;
+import com.flowmova.backend.ticket.domain.TicketLine;
 import com.flowmova.backend.ticket.domain.TicketStatus;
 import com.flowmova.backend.ticket.infrastructure.TicketLineRepository;
 import com.flowmova.backend.ticket.infrastructure.TicketRepository;
@@ -998,6 +999,62 @@ class TicketControllerTests {
     }
 
     @Test
+    void employeeListsCompanyTicketsFilteredByServiceWithLines() throws Exception {
+        Fixture fixture = fixture("company-tickets");
+        Fixture otherServiceFixture = fixture("company-tickets-other-service");
+        User employee = user("company-tickets-employee");
+        companyUserRepository.save(new CompanyUser(fixture.company().getId(), employee, CompanyRole.EMPLOYEE));
+        String token = accessTokenGenerator.generate(employee).value();
+        String uniqueToken = shortToken();
+
+        Ticket ticket = new Ticket(
+                "T-COMPANY-%s".formatted(uniqueToken),
+                null,
+                "Guest Client",
+                passwordEncoder.encode("ACCESS01"),
+                fixture.serviceUnit(),
+                fixture.defaultLocation(),
+                null,
+                null,
+                fixture.company().getCurrency());
+        ticket.addLine(new TicketLine(fixture.item(), 3, new BigDecimal("4.50"), null));
+        ticket = ticketRepository.saveAndFlush(ticket);
+        saveGuestTicket("T-COMPANY-OTHER-SERVICE-%s".formatted(uniqueToken), otherServiceFixture);
+
+        mockMvc.perform(get("/api/companies/{companyId}/admin/tickets", fixture.company().getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .param("serviceUnitId", fixture.serviceUnit().getId().toString())
+                        .param("ticketNumber", uniqueToken.toLowerCase())
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("sort", "createdAt,asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].id").value(ticket.getId().toString()))
+                .andExpect(jsonPath("$.items[0].serviceUnitId").value(fixture.serviceUnit().getId().toString()))
+                .andExpect(jsonPath("$.items[0].lines[0].itemId").value(fixture.item().getId().toString()))
+                .andExpect(jsonPath("$.items[0].lines[0].itemName").value("Counter Service"))
+                .andExpect(jsonPath("$.items[0].lines[0].quantity").value(3))
+                .andExpect(jsonPath("$.totalItems").value(1));
+    }
+
+    @Test
+    void rejectsCompanyTicketListForServiceFromAnotherCompany() throws Exception {
+        Fixture fixture = fixture("company-tickets-invalid-service");
+        Fixture otherFixture = fixture("company-tickets-invalid-other");
+        User admin = user("company-tickets-invalid-admin");
+        companyUserRepository.save(new CompanyUser(fixture.company().getId(), admin, CompanyRole.ADMIN));
+        String token = accessTokenGenerator.generate(admin).value();
+
+        mockMvc.perform(get("/api/companies/{companyId}/admin/tickets", fixture.company().getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .param("serviceUnitId", otherFixture.serviceUnit().getId().toString()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("Service unit is invalid"));
+    }
+
+    @Test
     void employeeChangesTicketStatusFromCreatedToReceived() throws Exception {
         Fixture fixture = fixture("ticket-status-received");
         User employee = user("ticket-status-received-employee");
@@ -1051,6 +1108,35 @@ class TicketControllerTests {
 
         assertThat(ticketRepository.findById(ticket.getId()).orElseThrow().getStatus())
                 .isEqualTo(TicketStatus.TREATED);
+    }
+
+    @Test
+    void employeeClosesCreatedTicketDirectly() throws Exception {
+        Fixture fixture = fixture("ticket-status-close-created");
+        User employee = user("ticket-status-close-created-employee");
+        companyUserRepository.save(new CompanyUser(fixture.company().getId(), employee, CompanyRole.EMPLOYEE));
+        String token = accessTokenGenerator.generate(employee).value();
+        Ticket ticket = saveGuestTicket("T-STATUS-CLOSE-CREATED-%s".formatted(shortToken()), fixture);
+
+        mockMvc.perform(patch(
+                        "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/tickets/{ticketId}/status",
+                        fixture.company().getId(),
+                        fixture.serviceUnit().getId(),
+                        ticket.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "CLOSED"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CLOSED"))
+                .andExpect(jsonPath("$.closedAt").exists());
+
+        Ticket closedTicket = ticketRepository.findById(ticket.getId()).orElseThrow();
+        assertThat(closedTicket.getStatus()).isEqualTo(TicketStatus.CLOSED);
+        assertThat(closedTicket.getClosedAt()).isNotNull();
     }
 
     @Test
@@ -1147,6 +1233,8 @@ class TicketControllerTests {
         companyUserRepository.save(new CompanyUser(fixture.company().getId(), admin, CompanyRole.ADMIN));
         String token = accessTokenGenerator.generate(admin).value();
         Ticket ticket = saveGuestTicket("T-STATUS-INVALID-%s".formatted(shortToken()), fixture);
+        ticket.cancel();
+        ticket = ticketRepository.saveAndFlush(ticket);
 
         mockMvc.perform(patch(
                         "/api/companies/{companyId}/admin/service-units/{serviceUnitId}/tickets/{ticketId}/status",

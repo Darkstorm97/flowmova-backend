@@ -1138,6 +1138,23 @@ Criteres d'acceptation:
 - Le filtre par emplacement peut etre combine avec `status` et `ticketNumber`.
 - La collection Postman est mise a jour.
 
+### TICKET-BACK-004 - Suivi admin global des tickets par entreprise
+
+Issue GitHub: #113.
+
+**En tant que** utilisateur autorise de l'entreprise,
+**je veux** consulter tous les tickets de l'entreprise dans une vue globale,
+**afin de** suivre l'activite sans entrer service par service.
+
+Criteres d'acceptation:
+
+- L'endpoint `GET /api/companies/{companyId}/admin/tickets` existe.
+- Les roles `ADMIN` et `EMPLOYEE` actifs peuvent consulter les tickets.
+- Les tickets peuvent etre filtres par `serviceUnitId`, `status` et `ticketNumber`.
+- La reponse conserve les lignes de ticket avec article et quantite.
+- Le tri par defaut place les tickets les plus recents en bas via `createdAt,asc`.
+- Un `serviceUnitId` d'une autre entreprise retourne `400 BAD_REQUEST`.
+
 ### TICKET-021 - Consulter mes tickets
 
 **En tant que** utilisateur authentifie,
@@ -1186,6 +1203,7 @@ Criteres d'acceptation:
 - Les transitions invalides sont refusees.
 - L'equipe peut passer un ticket `CREATED` vers `RECEIVED`, `TREATED` ou `CANCELLED`.
 - L'equipe peut passer un ticket `RECEIVED` vers `TREATED` ou `CANCELLED`.
+- L'equipe peut passer un ticket `CREATED` ou `RECEIVED` directement vers `CLOSED` lorsque la prise en charge est terminee sans etapes intermediaires.
 - L'equipe peut passer un ticket `TREATED` vers `CLOSED`.
 - L'equipe peut passer un ticket `CUSTOMER_CONFIRMED` vers `CLOSED`.
 - Les statuts finaux `CLOSED` et `CANCELLED` ne peuvent plus etre modifies par ce parcours.
